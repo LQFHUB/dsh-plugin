@@ -26,7 +26,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 16 条，点击展开，最新在最上面）</summary>
+<summary>📜 变更记录（共 17 条，点击展开，最新在最上面）</summary>
+
+### 2026-08-15 chat-width-customizer 部署到 111（AI 主机）并修复 pnpm 状态文件损坏
+
+- 变更内容：插件同步部署到 111（192.168.31.111，`/root/.dsh/external/chat-width-customizer`，`dsh plugin add link:` 安装，bundles 已登记）；修复 111 profile 的 `node_modules/.modules.yaml`（pnpm 状态文件损坏导致 pnpm 崩溃，备份为 `.modules.yaml.bak` 后删除重建）；重启 dsh-web.service（detach 延迟触发，避免中断当前回合）后验证通过：服务 active、页面注入 `chat-width-customizer/client.js?rev=979d48e91068`（与 112 同版本）；README 部署目标更新为 112（验证）+ 111（正式使用）
+- 涉及路径：`chat-width-customizer/README.md`、`AGENTS.md`；111 上 `/root/.dsh/external/chat-width-customizer`、`/root/.dsh/profiles/web/`（安装与修复）
+- 备注：111 为 systemd 服务（dsh-web.service，unit 自带 DEEPSEEK_API_KEY）；重启中断了运行中的会话回合，前端自动重连恢复；git 提交后按约定推送
 
 ### 2026-08-15 在 112 实测验证自动重连并写入机制与方法
 
