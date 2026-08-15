@@ -1,0 +1,26 @@
+{
+  "name": "@user/dsh-web-lan",
+  "version": "1.0.0",
+  "description": "dsh Web 局域网直连支持（免反代）：randomUUID polyfill、特权 API 放行、isLoopback 修正",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "files": [
+    "lib/index.js",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "license": "MIT"
+}

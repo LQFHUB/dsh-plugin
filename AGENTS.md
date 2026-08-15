@@ -36,6 +36,20 @@
 
 </details>
 
+### 2026-08-16 新增 web-lan 局域网直连插件（免反代）并部署 112 验证 + 111 正式使用
+
+- 变更内容：新建 `web-lan/` 文件夹（host 插件 `@user/dsh-web-lan` v1.0.0）——dsh Web 局域网直连（免反代）三件套：① index.html 注入 crypto.randomUUID polyfill（纯 HTTP 局域网来源无安全上下文）；② 15 个特权 /api 方法（settings/credentials/host/agentPreset/llm.discoverModels）经 apiProxy relay 放行局域网客户端配置模型与插件；③ 重写 dsh-client-connection client.js 使浏览器端 isLoopback 恒为 true（插件配置卡片非本机可渲染）；bundle patch（cordis.patch.yml）自带 webserver 0.0.0.0:3080 配置，`dsh plugin add link:` 安装后自动应用，无需再手动改 profile patch；README/LICENSE 齐全，单元测试 node:test 9/9 通过（polyfill 注入、isLoopback 重写、relay 转发/500 兜底、特权方法清单）
+- 涉及路径：`web-lan/`（lib/index.js、package.json、cordis.patch.yml、README.md、LICENSE、test/index.test.js）、`AGENTS.md`；111/112 上 `/root/.dsh/external/web-lan`（安装）、`/root/.dsh/profiles/web/`（package.json 依赖与 bundles 登记、cordis.patch.yml 清空为 []）
+- 备注：旧临时版（`/root/AI/deepseek/dsh-web-lan` symlink + profile patch 手动安装）已按用户要求在 111/112 卸载（删 symlink、patch 清空，备份 `.bak-web-lan-v1`）；112 实测 4 项全过（polyfill marker、`isLoopback: true`、局域网来源 settings.describe/credentials.describe 返回业务响应、插件列表登记），111 同 4 项验证通过（111 安装由用户手动完成：安装命令中断后用户手动 `dsh plugin add` 并启动服务，安装结果与标准流程一致）
+
+### 2026-08-16 新增 describe-image 图像理解插件（参考 dsh-web-ui dsh-tool-describe-image 移植）
+
+- 变更内容：新建 `describe-image/` 文件夹（用户指示"参考 zhu1090093659/dsh-web-ui 实现图像理解插件"，对应其 `packages/dsh-tool-describe-image`，Apache-2.0 注明出处）——host 半区注册 `describe_image` 工具（本地路径 / http(s) URL / 附件引用 / 裸附件 id 四种输入 → OpenAI 兼容视觉端点，chat-completions / responses 双协议，只返回文本进对话，图片字节绝不进会话记录）+ `installSettingsSection` 注册 `describe-image` 设置命名空间 + `/describe-image` prefix 路由（POST attach 上传→附件存储→markdown 引用；GET raw/<id> 回读渲染；同源护栏）；浏览器半区（tsdown 构建，`window.__ModuleLoader__.load` 官方 bundle 格式）：发送改写（拖拽/粘贴图片 → describe-image 引用）+ 「图像理解」设置卡（官方槽位 `settings.plugin.item`，id `describe-image`，order 40，9 字段 staged form，secret 字段不回读）+ 中英词典；适配点：上游全家桶槽位 `web-ui.plugin.item` 改为官方槽位、CSS Modules 改内联样式（`body[data-dsh-describe-image]` 作用域）、新增同源护栏、包名 `dsh-describe-image`；配置默认留空可挂载，设置卡填写即时生效（端点为知识库已配置的 xiaomimimo `mimo-v2.5`，密钥走环境变量/设置卡 secret，不写明文）；测试 123 用例全绿（工具端到端 / attach 路由 / 设置 section / 真实 Loader+cordis.yml 组合 / 语义缓存 / 发送改写），`@deepseek-ai/dsh-*` 经 vitest alias 从本机 DSH 全局安装树解析（npm root -g）
+- 涉及路径：`describe-image/`（package.json、cordis.patch.yml、pnpm-workspace.yaml、tsdown.config.ts、tsconfig.json、vitest.config.ts、src/×15、tests/×8、lib/{index,invariant,client}.js、README.md、LICENSE）、`AGENTS.md`
+- 备注：构建产物 lib/ 随源码提交（link 安装直接可用）；本机 pnpm store 曾因共享挂载 `.pnpm-store/v11/index.db` 权限 000 报 SQLITE_ERROR，chmod 644 修复；测试需 DSH 环境（README 注明）；部署目标 112（验证）+ 111（正式使用），密钥建议 `XIAOMI_MIMO_API_KEY` 环境变量注入
+
+</details>
+
 ### 2026-08-15 新增 theme-center 主题插件：集成 dsh-web-ui 全部 10 款皮肤 + 「主题」设置卡片
 
 - 变更内容：新建 `theme-center/` 文件夹（个人主题插件，纯视觉、不含宽度定制）——按用户指示参考 zhu1090093659/dsh-web-ui 的皮肤中心（skin-center）实现：在「设置 > 插件配置」注册「主题」卡片（官方槽位 `settings.plugin.item`，id `theme`，参考官方 bash/agent-loop 卡片外框与皮肤中心交互），内置该仓库全部 10 款皮肤（蓝色幻想/龙的传人/夕港/初音未来/Minecraft/QQ2008/同花顺/交易终端/鲸吟/XP，bundle 原样复用，BSD-3-Clause 注明出处），支持试穿/应用/持久记忆（localStorage `dsh-theme-center:active:v1`）、亮暗预览（官方 theme 服务）与背景遮罩滑杆（`--dsw-skin-scrim`）；宿主半区注册同源路由 `/api/theme-center/bundle/<id>`（webServer，带同源护栏）按需分发 `lib/skins/` 内 bundle，浏览器半区走内核 `__ModuleLoader__`/`__DSH_MODULES__` 执行（同皮肤中心 try-on 路径，无 eval、无配置写入、无页面重载）；miniCtx.get 委托真实上下文（ths/trading 可读 connection，缺失降级）

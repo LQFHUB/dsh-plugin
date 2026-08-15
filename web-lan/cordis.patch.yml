@@ -1,0 +1,11 @@
+# @user/dsh-web-lan bundle patch：局域网直连（免反代）。
+# 1) webserver 绑定 0.0.0.0：resolveLanTrust 自动信任局域网 IP（非特权 /api 围栏放行）；
+# 2) 挂载 web-lan 插件（randomUUID polyfill / 特权 API relay / isLoopback 重写）。
+# 移除这两行可整体禁用。
+- id: webserver
+  config:
+    host: 0.0.0.0
+    port: 3080
+- insert:
+    - id: web-lan
+      name: '@user/dsh-web-lan'
