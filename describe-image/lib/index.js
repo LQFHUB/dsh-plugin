@@ -1,8 +1,8 @@
 import { installSettingsSection, settingsNamespace } from "@deepseek-ai/dsh-settings";
 import { defineTool } from "@deepseek-ai/dsh-tools";
+import { launchEnvironmentOf } from "@deepseek-ai/dsh-launch-environment";
 import z from "@deepseek-ai/schemastery";
 import { credentialRef } from "@deepseek-ai/dsh-credentials";
-import { launchEnvironmentOf } from "@deepseek-ai/dsh-launch-environment";
 import { readFile, stat } from "node:fs/promises";
 //#region src/media.ts
 /** The accepted image media types, in stable order. */
@@ -344,9 +344,99 @@ function registerAttachRoute(ctx, readMaxBytes = () => DEFAULT_MAX_BYTES) {
 	});
 }
 //#endregion
+//#region src/configured-models.ts
+/** 从 profile 对象取字符串字段。 */
+function stringField(profile, key) {
+	if (typeof profile !== "object" || profile === null) return void 0;
+	const value = profile[key];
+	return typeof value === "string" && value.length > 0 ? value : void 0;
+}
+/** 按 settingsPath 从命名空间 section 取 provider profile 对象。 */
+function profileAt(section, settingsPath) {
+	let current = section;
+	for (const key of settingsPath) {
+		if (typeof current !== "object" || current === null) return void 0;
+		current = current[key];
+	}
+	return current;
+}
+/**
+* 枚举 DSH 中已配置且支持图像输入的模型。只列 settings 服务中确有配置
+* section 的 provider（未配置的目录条目跳过）；listModels 失败的 provider
+* （未注册/不可用）静默跳过。
+* @param ctx - 注册上下文（llm / settings 服务）。
+* @returns 可用视觉模型列表（provider 目录顺序）。
+*/
+async function listConfiguredVisionModels(ctx) {
+	const llm = ctx.get("llm");
+	const settings = ctx.get("settings");
+	if (llm === void 0 || settings === void 0) return [];
+	const out = [];
+	for (const entry of llm.listConfigurableProviders()) {
+		const section = settings.get(entry.settingsNs);
+		if (section === void 0) continue;
+		const profile = profileAt(section, entry.settingsPath);
+		if (typeof profile !== "object" || profile === null) continue;
+		let models;
+		try {
+			models = await llm.listModels(entry.provider);
+		} catch {
+			continue;
+		}
+		for (const model of models) {
+			if (model.inputModalities !== void 0 && !model.inputModalities.includes("image")) continue;
+			out.push({
+				provider: entry.provider,
+				providerName: stringField(profile, "displayName") ?? entry.displayName,
+				model: model.id,
+				modelName: model.name ?? model.id
+			});
+		}
+	}
+	return out;
+}
+/**
+* 把一次 configured 模式的调用解析为视觉端点事实：从选中 provider 的
+* 配置 section 读取 baseURL，模型用配置选中的 id，apiKey 经 profile 的
+* apiKeyEnv 凭证引用解析（profile 内联 apiKey 优先）。
+* @param ctx - 注册上下文（llm / settings / credentials）。
+* @param spec - 已校验的插件配置（useConfiguredModel 必须为 true）。
+* @returns 视觉端点事实。
+*/
+async function resolveConfiguredVision(ctx, spec) {
+	const llm = ctx.get("llm");
+	const settings = ctx.get("settings");
+	if (llm === void 0 || settings === void 0) throw new Error("describe-image: no llm/settings service is mounted; use a custom endpoint instead");
+	const entry = llm.listConfigurableProviders().find((candidate) => candidate.provider === spec.configuredProvider);
+	if (entry === void 0) throw new Error(`describe-image: configured provider "${spec.configuredProvider}" is not a known DSH model provider`);
+	const profile = profileAt(settings.get(entry.settingsNs), entry.settingsPath);
+	const baseURL = stringField(profile, "baseURL");
+	if (baseURL === void 0 || !/^https?:\/\//.test(baseURL)) throw new Error(`describe-image: provider "${spec.configuredProvider}" has no absolute http(s) baseURL in its model settings`);
+	let apiKey;
+	const inline = stringField(profile, "apiKey");
+	const keyEnv = stringField(profile, "apiKeyEnv");
+	if (inline !== void 0) apiKey = inline;
+	else if (keyEnv !== void 0) {
+		const credentials = ctx.get("credentials");
+		if (credentials !== void 0) apiKey = (await credentials.resolve(keyEnv))?.value;
+		else {
+			const ambient = launchEnvironmentOf(ctx).get(keyEnv);
+			if (ambient !== void 0 && ambient.value.length > 0) apiKey = ambient.value;
+		}
+	}
+	if (apiKey === void 0) throw new Error(`describe-image: provider "${spec.configuredProvider}" resolves no API key; set apiKeyEnv in its model settings`);
+	return {
+		baseURL: baseURL.replace(/\/+$/, ""),
+		model: spec.configuredModelId,
+		apiKey
+	};
+}
+//#endregion
 //#region src/settings-routes.ts
 /** 设置读写 API 路径（浏览器端 GET 视图 / POST 批量写）。 */
 const SETTINGS_API_PATH = "/describe-image/settings";
+/** 可用视觉模型列表 API 路径（设置卡模型选择器用）。 */
+const MODELS_API_PATH = "/describe-image/models";
 /** 本插件设置的命名空间名（与 config-resolve 的 DESCRIBE_IMAGE_SETTINGS_NAMESPACE 一致）。 */
 const SETTINGS_NAMESPACE = "describe-image";
 /** 请求体上限：9 个字段的批量写，64 KiB 富余。 */
@@ -467,6 +557,51 @@ function registerSettingsRoute(ctx) {
 		}
 	});
 }
+/** 注册 GET /describe-image/models（已配置的可用视觉模型列表，同源护栏）。 */
+function registerModelsRoute(ctx) {
+	const webserver = ctx.get("webServer");
+	if (webserver === void 0) return;
+	webserver.register({
+		kind: "exact",
+		path: MODELS_API_PATH,
+		handler: async (req, res) => {
+			if (!isSameOriginRequest(req)) {
+				json(res, {
+					ok: false,
+					error: {
+						code: "rejected",
+						message: "cross-site request rejected"
+					}
+				}, 403);
+				return;
+			}
+			if (req.method !== "GET") {
+				json(res, {
+					ok: false,
+					error: {
+						code: "internal",
+						message: "only GET is allowed"
+					}
+				}, 405);
+				return;
+			}
+			try {
+				json(res, {
+					ok: true,
+					value: { models: await listConfiguredVisionModels(ctx) }
+				});
+			} catch (error) {
+				json(res, {
+					ok: false,
+					error: {
+						code: "internal",
+						message: error.message ?? String(error)
+					}
+				}, 500);
+			}
+		}
+	});
+}
 //#endregion
 //#region src/config-resolve.ts
 /** Environment-variable name the API key resolves through when no inline key is configured. */
@@ -491,7 +626,10 @@ const Config = z.object({
 	maxBytes: z.number().step(1).min(1).default(DEFAULT_MAX_BYTES),
 	maxOutputTokens: z.number().step(1).min(1).default(DEFAULT_MAX_OUTPUT_TOKENS),
 	timeoutMs: z.number().min(1).default(DEFAULT_TIMEOUT_MS),
-	apiStyle: z.union(API_STYLES).default(DEFAULT_API_STYLE)
+	apiStyle: z.union(API_STYLES).default(DEFAULT_API_STYLE),
+	useConfiguredModel: z.boolean().default(false),
+	configuredProvider: z.string(),
+	configuredModelId: z.string()
 });
 /** Settings namespace carrying the endpoint, model, and key reference the Plugins card edits. */
 const DESCRIBE_IMAGE_SETTINGS_NAMESPACE = settingsNamespace("describe-image");
@@ -504,10 +642,15 @@ const DESCRIBE_IMAGE_SETTINGS_NAMESPACE = settingsNamespace("describe-image");
 * @returns validated facts.
 */
 function resolveConfig(config) {
+	const useConfiguredModel = config.useConfiguredModel === true;
 	const baseURL = (config.baseURL ?? "").trim().replace(/\/+$/, "");
-	if (!/^https?:\/\//.test(baseURL)) throw new Error("describe-image: baseURL must be an absolute http(s) URL");
+	if (!useConfiguredModel && !/^https?:\/\//.test(baseURL)) throw new Error("describe-image: baseURL must be an absolute http(s) URL");
 	const model = (config.model ?? "").trim();
-	if (model.length === 0) throw new Error("describe-image: model must be a non-empty model id");
+	if (!useConfiguredModel && model.length === 0) throw new Error("describe-image: model must be a non-empty model id");
+	const configuredProvider = (config.configuredProvider ?? "").trim();
+	const configuredModelId = (config.configuredModelId ?? "").trim();
+	if (useConfiguredModel && configuredProvider.length === 0) throw new Error("describe-image: configuredProvider must name a DSH model provider");
+	if (useConfiguredModel && configuredModelId.length === 0) throw new Error("describe-image: configuredModelId must name a vision model of that provider");
 	const apiKey = config.apiKey;
 	if (apiKey !== void 0 && apiKey.length === 0) throw new Error("describe-image: apiKey must be non-empty when set");
 	let apiKeyEnv;
@@ -536,7 +679,10 @@ function resolveConfig(config) {
 		maxBytes,
 		maxOutputTokens,
 		timeoutMs,
-		apiStyle
+		apiStyle,
+		useConfiguredModel,
+		configuredProvider,
+		configuredModelId
 	};
 }
 /**
@@ -957,6 +1103,7 @@ function apply(ctx, config = {}) {
 	const visionCache = createVisionCache();
 	registerAttachRoute(ctx, () => current().maxBytes ?? 10485760);
 	registerSettingsRoute(ctx);
+	registerModelsRoute(ctx);
 	ctx.tools.register(defineTool({
 		name: "describe_image",
 		description: "Inspect one image — a local absolute path, an http(s) URL, or the JSON of an image attachment note — and return the text the user needs. Use when the user references an image file or URL, or when a task needs OCR, chart or diagram reading, screenshot or UI analysis, translation of image text, or photo understanding. Always pass an explicit `prompt` with a precise instruction — e.g. \"transcribe all text\", \"extract the table as CSV\", \"diagnose the UI layout problems\", \"translate the text into Chinese\" — instead of leaving it to the default description: a targeted instruction produces a much more useful answer. The image may be a local path, an http(s) URL, the JSON object from an `[image attachment …]` note, or — the common case when the user used this plugin's input-box image button — a short markdown image reference like `![图片](/describe-image/raw/sha256:abc…)` pasted into the conversation. In the markdown form, take the attachment id from the URL and pass that id as the `image` value (never the whole markdown, and never a made-up path); the tool resolves the id to the stored image. The image itself never enters the conversation — only the returned text is shown to you.",
@@ -1011,11 +1158,23 @@ function apply(ctx, config = {}) {
 		},
 		async execute(args, exec) {
 			const active = spec();
-			const apiKey = await resolveApiKey(ctx, active);
+			let apiKey;
+			let baseURL = active.baseURL;
+			let model = active.model;
+			if (active.useConfiguredModel) {
+				const configured = await resolveConfiguredVision(ctx, active);
+				baseURL = configured.baseURL;
+				model = configured.model;
+				apiKey = configured.apiKey;
+			} else apiKey = await resolveApiKey(ctx, active);
 			const image = await loadImage(ctx, args.image, exec.signal, active.maxBytes);
 			return {
-				text: await callVision(active, apiKey, args.prompt ?? active.defaultPrompt, image, exec.signal, visionCache),
-				model: active.model,
+				text: await callVision({
+					...active,
+					baseURL,
+					model
+				}, apiKey, args.prompt ?? active.defaultPrompt, image, exec.signal, visionCache),
+				model,
 				image: args.image,
 				mimeType: image.mimeType,
 				bytes: image.bytes.length
@@ -1025,4 +1184,4 @@ function apply(ctx, config = {}) {
 	}));
 }
 //#endregion
-export { API_STYLES, Config, DEFAULT_API_KEY_ENV, DEFAULT_API_STYLE, DEFAULT_CACHE_MAX_ENTRIES, DEFAULT_CACHE_TTL_MS, DEFAULT_MAX_BYTES, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_PROMPT, DEFAULT_TIMEOUT_MS, DESCRIBE_IMAGE_SETTINGS_NAMESPACE, SETTINGS_API_PATH, SETTINGS_NAMESPACE, apply, applySettingsWrites, buildSettingsView, callVision, createVisionCache, describeImageCallView, extractChatCompletionsContent, extractResponsesContent, inject, loadImage, name, parseImageAttachmentRef, readAttachment, readBoundedBody, readBoundedText, registerSettingsRoute, resolveApiKey, resolveConfig, semanticRequestKey, sniffMimeType };
+export { API_STYLES, Config, DEFAULT_API_KEY_ENV, DEFAULT_API_STYLE, DEFAULT_CACHE_MAX_ENTRIES, DEFAULT_CACHE_TTL_MS, DEFAULT_MAX_BYTES, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_PROMPT, DEFAULT_TIMEOUT_MS, DESCRIBE_IMAGE_SETTINGS_NAMESPACE, MODELS_API_PATH, SETTINGS_API_PATH, SETTINGS_NAMESPACE, apply, applySettingsWrites, buildSettingsView, callVision, createVisionCache, describeImageCallView, extractChatCompletionsContent, extractResponsesContent, inject, listConfiguredVisionModels, loadImage, name, parseImageAttachmentRef, profileAt, readAttachment, readBoundedBody, readBoundedText, registerModelsRoute, registerSettingsRoute, resolveApiKey, resolveConfig, resolveConfiguredVision, semanticRequestKey, sniffMimeType };

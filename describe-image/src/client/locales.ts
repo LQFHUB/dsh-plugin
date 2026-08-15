@@ -46,6 +46,18 @@ export const zh = {
   'field.maxOutputTokens.hint': '发给端点的 max_tokens（responses 协议为 max_output_tokens）。',
   'field.timeoutMs': '超时（毫秒）',
   'field.timeoutMs.hint': '单次视觉请求超时。',
+  'field.useConfiguredModel': '模型来源',
+  'field.useConfiguredModel.hint': '复用 DSH 模型设置（设置 > 模型）中已配置的视觉模型，或自定义端点。',
+  'field.useConfiguredModel.plugin': '自定义端点',
+  'field.useConfiguredModel.configured': '使用已配置模型',
+  'field.configuredProvider': 'Provider',
+  'field.configuredProvider.hint': '设置 > 模型 中配置的 provider 名（如 pi-ai 的 providers 键）。',
+  'field.configuredModelId': '视觉模型',
+  'field.configuredModelId.hint': '该 provider 中支持图像输入的模型 id。',
+  'configured.picker.title': '可用视觉模型（模型设置）',
+  'configured.picker.placeholder': '选择已配置的视觉模型…',
+  'configured.picker.empty': '模型设置中暂无支持图像的模型；请先在 设置 > 模型 配置。',
+  'configured.picker.failed': '无法加载可用模型列表。',
 } satisfies Record<string, string>
 
 /** The describe-image client namespace key union. */
@@ -97,6 +109,18 @@ export const en = {
   'field.maxOutputTokens.hint': 'The max_tokens sent to the endpoint (max_output_tokens under the responses style).',
   'field.timeoutMs': 'Timeout (ms)',
   'field.timeoutMs.hint': 'Per-call vision request timeout.',
+  'field.useConfiguredModel': 'Model source',
+  'field.useConfiguredModel.hint': 'Reuse a vision model configured in DSH model settings (Settings > Models), or use a custom endpoint.',
+  'field.useConfiguredModel.plugin': 'Custom endpoint',
+  'field.useConfiguredModel.configured': 'Use configured model',
+  'field.configuredProvider': 'Provider',
+  'field.configuredProvider.hint': 'Provider name configured in Settings > Models (e.g. a pi-ai providers key).',
+  'field.configuredModelId': 'Vision model',
+  'field.configuredModelId.hint': 'An image-capable model id of that provider.',
+  'configured.picker.title': 'Available vision models (model settings)',
+  'configured.picker.placeholder': 'Pick a configured vision model…',
+  'configured.picker.empty': 'No image-capable models in model settings yet; configure one in Settings > Models first.',
+  'configured.picker.failed': 'Could not load the available models.',
 } satisfies Record<string, string>
 
 /** The two dictionaries, keyed by language. */

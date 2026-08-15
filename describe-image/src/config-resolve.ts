@@ -54,6 +54,12 @@ export interface Config {
   timeoutMs?: number
   /** Protocol style of the endpoint; defaults to {@link DEFAULT_API_STYLE} (`chat-completions`). */
   apiStyle?: ApiStyle
+  /** 复用 DSH 模型设置（设置 > 模型）中已配置的视觉模型，忽略 baseURL/model/apiKey。 */
+  useConfiguredModel?: boolean
+  /** 已配置模型所在 provider（llm 可配置 provider 名，如 pi-ai 的 providers dict key）。 */
+  configuredProvider?: string
+  /** 已配置模型中选中的视觉模型 id。 */
+  configuredModelId?: string
 }
 
 /** Schemastery configuration for the describe-image tool; doubles as the `describe-image` settings-section schema. */
@@ -67,6 +73,9 @@ export const Config: z<Config> = z.object({
   maxOutputTokens: z.number().step(1).min(1).default(DEFAULT_MAX_OUTPUT_TOKENS),
   timeoutMs: z.number().min(1).default(DEFAULT_TIMEOUT_MS),
   apiStyle: z.union(API_STYLES).default(DEFAULT_API_STYLE),
+  useConfiguredModel: z.boolean().default(false),
+  configuredProvider: z.string(),
+  configuredModelId: z.string(),
 })
 
 /** Settings namespace carrying the endpoint, model, and key reference the Plugins card edits. */
@@ -83,6 +92,9 @@ export interface ResolvedConfig {
   maxOutputTokens: number
   timeoutMs: number
   apiStyle: ApiStyle
+  useConfiguredModel: boolean
+  configuredProvider: string
+  configuredModelId: string
 }
 
 /**
@@ -94,12 +106,23 @@ export interface ResolvedConfig {
  * @returns validated facts.
  */
 export function resolveConfig(config: Config): ResolvedConfig {
+  const useConfiguredModel = config.useConfiguredModel === true
   const baseURL = (config.baseURL ?? '').trim().replace(/\/+$/, '')
-  if (!/^https?:\/\//.test(baseURL)) {
+  if (!useConfiguredModel && !/^https?:\/\//.test(baseURL)) {
     throw new Error('describe-image: baseURL must be an absolute http(s) URL')
   }
   const model = (config.model ?? '').trim()
-  if (model.length === 0) throw new Error('describe-image: model must be a non-empty model id')
+  if (!useConfiguredModel && model.length === 0) {
+    throw new Error('describe-image: model must be a non-empty model id')
+  }
+  const configuredProvider = (config.configuredProvider ?? '').trim()
+  const configuredModelId = (config.configuredModelId ?? '').trim()
+  if (useConfiguredModel && configuredProvider.length === 0) {
+    throw new Error('describe-image: configuredProvider must name a DSH model provider')
+  }
+  if (useConfiguredModel && configuredModelId.length === 0) {
+    throw new Error('describe-image: configuredModelId must name a vision model of that provider')
+  }
   const apiKey = config.apiKey
   if (apiKey !== undefined && apiKey.length === 0) {
     throw new Error('describe-image: apiKey must be non-empty when set')
@@ -125,7 +148,12 @@ export function resolveConfig(config: Config): ResolvedConfig {
   if (!API_STYLES.includes(apiStyle)) {
     throw new Error(`describe-image: apiStyle must be one of ${API_STYLES.map(style => JSON.stringify(style)).join(', ')}`)
   }
-  return { baseURL, model, apiKey, apiKeyEnv, defaultPrompt: config.defaultPrompt ?? DEFAULT_PROMPT, maxBytes, maxOutputTokens, timeoutMs, apiStyle }
+  return {
+    baseURL, model, apiKey, apiKeyEnv,
+    defaultPrompt: config.defaultPrompt ?? DEFAULT_PROMPT,
+    maxBytes, maxOutputTokens, timeoutMs, apiStyle,
+    useConfiguredModel, configuredProvider, configuredModelId,
+  }
 }
 
 /**

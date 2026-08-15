@@ -17,7 +17,8 @@ import { installSettingsSection } from '@deepseek-ai/dsh-settings'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { GenericCallView } from '@deepseek-ai/dsh-tools'
 import { registerAttachRoute } from './attach-routes.ts'
-import { registerSettingsRoute } from './settings-routes.ts'
+import { registerSettingsRoute, registerModelsRoute } from './settings-routes.ts'
+import { resolveConfiguredVision } from './configured-models.ts'
 import { DEFAULT_MAX_BYTES } from './media.ts'
 import { Config, DESCRIBE_IMAGE_SETTINGS_NAMESPACE, resolveApiKey, resolveConfig, type ResolvedConfig } from './config-resolve.ts'
 import { callVision, createVisionCache, loadImage } from './vision-client.ts'
@@ -66,6 +67,13 @@ export {
   registerSettingsRoute,
 } from './settings-routes.ts'
 export type { SettingsView, SettingsWrite } from './settings-routes.ts'
+export { MODELS_API_PATH, registerModelsRoute } from './settings-routes.ts'
+export {
+  listConfiguredVisionModels,
+  profileAt,
+  resolveConfiguredVision,
+} from './configured-models.ts'
+export type { ConfiguredVisionModel } from './configured-models.ts'
 
 const DESCRIPTION_HEAD =
   'Inspect one image — a local absolute path, an http(s) URL, or the JSON of an image attachment '
@@ -133,9 +141,10 @@ export function apply(ctx: Context, config: Config = {}): void {
   // 上一次答案，避免重复请求端点。
   const visionCache = createVisionCache()
   // webServer 可选（loader-composition 测试无它也能启动）：仅在服务真正
-  // 挂载时注册 attach 路由与设置读写路由。
+  // 挂载时注册 attach 路由、设置读写路由与已配置模型列表路由。
   registerAttachRoute(ctx, () => current().maxBytes ?? DEFAULT_MAX_BYTES)
   registerSettingsRoute(ctx)
+  registerModelsRoute(ctx)
   ctx.tools.register(defineTool({
     name: 'describe_image',
     description: DESCRIPTION_HEAD
@@ -173,10 +182,22 @@ export function apply(ctx: Context, config: Config = {}): void {
     },
     async execute(args, exec) {
       const active = spec()
-      const apiKey = await resolveApiKey(ctx, active)
+      let apiKey: string
+      let baseURL = active.baseURL
+      let model = active.model
+      if (active.useConfiguredModel) {
+        // 复用 DSH 模型设置（设置 > 模型）中已配置的视觉模型：
+        // baseURL/apiKey 从 provider 配置解析，模型用配置选中的 id。
+        const configured = await resolveConfiguredVision(ctx, active)
+        baseURL = configured.baseURL
+        model = configured.model
+        apiKey = configured.apiKey
+      } else {
+        apiKey = await resolveApiKey(ctx, active)
+      }
       const image = await loadImage(ctx, args.image, exec.signal, active.maxBytes)
-      const text = await callVision(active, apiKey, args.prompt ?? active.defaultPrompt, image, exec.signal, visionCache)
-      return { text, model: active.model, image: args.image, mimeType: image.mimeType, bytes: image.bytes.length }
+      const text = await callVision({ ...active, baseURL, model }, apiKey, args.prompt ?? active.defaultPrompt, image, exec.signal, visionCache)
+      return { text, model, image: args.image, mimeType: image.mimeType, bytes: image.bytes.length }
     },
     presentCall: describeImageCallView,
   }))

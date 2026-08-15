@@ -17,9 +17,13 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
 import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import { isSameOriginRequest, json, readJsonBody } from './attach-routes.ts'
+import { listConfiguredVisionModels } from './configured-models.ts'
 
 /** 设置读写 API 路径（浏览器端 GET 视图 / POST 批量写）。 */
 export const SETTINGS_API_PATH = '/describe-image/settings'
+
+/** 可用视觉模型列表 API 路径（设置卡模型选择器用）。 */
+export const MODELS_API_PATH = '/describe-image/models'
 
 /** 本插件设置的命名空间名（与 config-resolve 的 DESCRIBE_IMAGE_SETTINGS_NAMESPACE 一致）。 */
 export const SETTINGS_NAMESPACE = 'describe-image'
@@ -125,6 +129,32 @@ export function registerSettingsRoute(ctx: Context): void {
         json(res, { ok: true, value: view })
       } catch (error) {
         json(res, { ok: false, error: { code: 'rejected', message: (error as Error).message ?? String(error) } }, 422)
+      }
+    },
+  })
+}
+
+/** 注册 GET /describe-image/models（已配置的可用视觉模型列表，同源护栏）。 */
+export function registerModelsRoute(ctx: Context): void {
+  const webserver = ctx.get('webServer')
+  if (webserver === undefined) return
+  webserver.register({
+    kind: 'exact',
+    path: MODELS_API_PATH,
+    handler: async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
+      if (!isSameOriginRequest(req)) {
+        json(res, { ok: false, error: { code: 'rejected', message: 'cross-site request rejected' } }, 403)
+        return
+      }
+      if (req.method !== 'GET') {
+        json(res, { ok: false, error: { code: 'internal', message: 'only GET is allowed' } }, 405)
+        return
+      }
+      try {
+        const models = await listConfiguredVisionModels(ctx)
+        json(res, { ok: true, value: { models } })
+      } catch (error) {
+        json(res, { ok: false, error: { code: 'internal', message: (error as Error).message ?? String(error) } }, 500)
       }
     },
   })

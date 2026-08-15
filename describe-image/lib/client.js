@@ -826,7 +826,19 @@ const zh = {
 	"field.maxOutputTokens": "输出 token 上限",
 	"field.maxOutputTokens.hint": "发给端点的 max_tokens（responses 协议为 max_output_tokens）。",
 	"field.timeoutMs": "超时（毫秒）",
-	"field.timeoutMs.hint": "单次视觉请求超时。"
+	"field.timeoutMs.hint": "单次视觉请求超时。",
+	"field.useConfiguredModel": "模型来源",
+	"field.useConfiguredModel.hint": "复用 DSH 模型设置（设置 > 模型）中已配置的视觉模型，或自定义端点。",
+	"field.useConfiguredModel.plugin": "自定义端点",
+	"field.useConfiguredModel.configured": "使用已配置模型",
+	"field.configuredProvider": "Provider",
+	"field.configuredProvider.hint": "设置 > 模型 中配置的 provider 名（如 pi-ai 的 providers 键）。",
+	"field.configuredModelId": "视觉模型",
+	"field.configuredModelId.hint": "该 provider 中支持图像输入的模型 id。",
+	"configured.picker.title": "可用视觉模型（模型设置）",
+	"configured.picker.placeholder": "选择已配置的视觉模型…",
+	"configured.picker.empty": "模型设置中暂无支持图像的模型；请先在 设置 > 模型 配置。",
+	"configured.picker.failed": "无法加载可用模型列表。"
 };
 /** The two dictionaries, keyed by language. */
 const dictionaries = {
@@ -875,7 +887,19 @@ const dictionaries = {
 		"field.maxOutputTokens": "Max output tokens",
 		"field.maxOutputTokens.hint": "The max_tokens sent to the endpoint (max_output_tokens under the responses style).",
 		"field.timeoutMs": "Timeout (ms)",
-		"field.timeoutMs.hint": "Per-call vision request timeout."
+		"field.timeoutMs.hint": "Per-call vision request timeout.",
+		"field.useConfiguredModel": "Model source",
+		"field.useConfiguredModel.hint": "Reuse a vision model configured in DSH model settings (Settings > Models), or use a custom endpoint.",
+		"field.useConfiguredModel.plugin": "Custom endpoint",
+		"field.useConfiguredModel.configured": "Use configured model",
+		"field.configuredProvider": "Provider",
+		"field.configuredProvider.hint": "Provider name configured in Settings > Models (e.g. a pi-ai providers key).",
+		"field.configuredModelId": "Vision model",
+		"field.configuredModelId.hint": "An image-capable model id of that provider.",
+		"configured.picker.title": "Available vision models (model settings)",
+		"configured.picker.placeholder": "Pick a configured vision model…",
+		"configured.picker.empty": "No image-capable models in model settings yet; configure one in Settings > Models first.",
+		"configured.picker.failed": "Could not load the available models."
 	}
 };
 /** Current UI language, mirrored from the shell (defaults to zh). */
@@ -902,6 +926,9 @@ var DescribeImageSettingsCardController = class {
 	/** @param scope - the bound settings scope for the `describe-image` namespace. */
 	constructor(scope) {
 		this.form = new CardForm(scope, [
+			choiceField("useConfiguredModel", ["false", "true"]),
+			textField("configuredProvider"),
+			textField("configuredModelId"),
 			textField("baseURL"),
 			textField("model"),
 			choiceField("apiStyle", ["chat-completions", "responses"]),
@@ -925,7 +952,10 @@ var DescribeImageSettingsCardController = class {
 			defaultPrompt: this.form.field("defaultPrompt"),
 			maxBytes: this.form.field("maxBytes"),
 			maxOutputTokens: this.form.field("maxOutputTokens"),
-			timeoutMs: this.form.field("timeoutMs")
+			timeoutMs: this.form.field("timeoutMs"),
+			useConfiguredModel: this.form.field("useConfiguredModel"),
+			configuredProvider: this.form.field("configuredProvider"),
+			configuredModelId: this.form.field("configuredModelId")
 		};
 	}
 	/**
@@ -940,6 +970,76 @@ var DescribeImageSettingsCardController = class {
 	}
 };
 /**
+* 「使用已配置模型」的选择器：拉取模型设置中可用视觉模型列表，选中即
+* 填充 provider 与模型两个字段。加载失败 / 空列表渲染说明文案。
+*/
+function ConfiguredModelPicker(props) {
+	const [models, setModels] = (0, react.useState)(null);
+	const [failed, setFailed] = (0, react.useState)(false);
+	(0, react.useEffect)(() => {
+		let alive = true;
+		fetch("/describe-image/models").then((response) => response.json()).then((envelope) => {
+			if (!alive) return;
+			if (envelope.ok === true && Array.isArray(envelope.value?.models)) setModels(envelope.value.models);
+			else setFailed(true);
+		}).catch(() => {
+			if (alive) setFailed(true);
+		});
+		return () => {
+			alive = false;
+		};
+	}, []);
+	let body;
+	if (failed) body = /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+		className: S.hint,
+		children: t("configured.picker.failed")
+	});
+	else if (models === null) body = /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+		className: S.hint,
+		children: t("settings.saving")
+	});
+	else if (models.length === 0) body = /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+		className: S.hint,
+		children: t("configured.picker.empty")
+	});
+	else body = /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("select", {
+		id: "settings-describe-image-configured-picker",
+		className: S.select,
+		disabled: props.disabled,
+		value: "",
+		onChange: (event) => {
+			const [provider, model] = event.target.value.split("\0");
+			if (provider && model) props.onPick(provider, model);
+		},
+		children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("option", {
+			value: "",
+			children: t("configured.picker.placeholder")
+		}), models.map((entry) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("option", {
+			value: `${entry.provider}\u0000${entry.model}`,
+			children: [
+				entry.providerName,
+				" / ",
+				entry.modelName,
+				"（",
+				entry.provider,
+				" / ",
+				entry.model,
+				"）"
+			]
+		}, `${entry.provider}\u0000${entry.model}`))]
+	});
+	return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+		className: S.field,
+		children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+			className: S.head,
+			children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+				className: S.label,
+				children: t("configured.picker.title")
+			})
+		}), body]
+	});
+}
+/**
 * Render the describe-image card.
 * @param props - the card snapshot and its form actions.
 * @returns the card.
@@ -947,6 +1047,7 @@ var DescribeImageSettingsCardController = class {
 function DescribeImageSettingsCard(props) {
 	const state = props.useDescribeImageSettingsCard((snapshot) => snapshot);
 	const disabled = !state.writable;
+	const usingConfigured = state.useConfiguredModel.text === "true";
 	const fieldProps = {
 		overriddenLabel: t("settings.overridden"),
 		resetLabel: t("settings.reset"),
@@ -961,6 +1062,62 @@ function DescribeImageSettingsCard(props) {
 		onSave: props.save,
 		onDiscard: props.discard,
 		children: [
+			/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ChoiceField, {
+				id: "settings-describe-image-source",
+				label: t("field.useConfiguredModel"),
+				hint: t("field.useConfiguredModel.hint"),
+				inheritLabel: t("settings.inherit"),
+				choices: [{
+					value: "false",
+					label: t("field.useConfiguredModel.plugin")
+				}, {
+					value: "true",
+					label: t("field.useConfiguredModel.configured")
+				}],
+				...fieldProps,
+				...state.useConfiguredModel,
+				onEdit: (text) => {
+					props.edit("useConfiguredModel", text);
+				},
+				onReset: () => {
+					props.resetField("useConfiguredModel");
+				}
+			}),
+			usingConfigured ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
+				/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ConfiguredModelPicker, {
+					disabled,
+					onPick: (provider, model) => {
+						props.edit("configuredProvider", provider);
+						props.edit("configuredModelId", model);
+					}
+				}),
+				/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ValueField, {
+					id: "settings-describe-image-configuredprovider",
+					label: t("field.configuredProvider"),
+					hint: t("field.configuredProvider.hint"),
+					...fieldProps,
+					...state.configuredProvider,
+					onEdit: (text) => {
+						props.edit("configuredProvider", text);
+					},
+					onReset: () => {
+						props.resetField("configuredProvider");
+					}
+				}),
+				/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ValueField, {
+					id: "settings-describe-image-configuredmodelid",
+					label: t("field.configuredModelId"),
+					hint: t("field.configuredModelId.hint"),
+					...fieldProps,
+					...state.configuredModelId,
+					onEdit: (text) => {
+						props.edit("configuredModelId", text);
+					},
+					onReset: () => {
+						props.resetField("configuredModelId");
+					}
+				})
+			] }) : null,
 			/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ValueField, {
 				id: "settings-describe-image-baseurl",
 				label: t("field.baseURL"),

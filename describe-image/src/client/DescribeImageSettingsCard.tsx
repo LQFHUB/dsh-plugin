@@ -7,9 +7,11 @@
 
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SettingsScope, SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+import { useEffect, useState } from 'react'
 import { PluginSettingsCard, ChoiceField, ValueField } from './PluginSettingsCard.tsx'
 import { CardForm, choiceField, numberField, secretField, textField, type CardActions, type CardShell, type FieldState as CardFieldState } from './settings-form.ts'
 import { t } from './locales.ts'
+import { S as css } from './styles.ts'
 
 /** The describe-image fields this card edits (the namespace's full schema). */
 export interface DescribeImageSettings {
@@ -22,6 +24,12 @@ export interface DescribeImageSettings {
   maxOutputTokens?: number
   timeoutMs?: number
   apiStyle?: 'chat-completions' | 'responses'
+  /** 复用 DSH 模型设置（设置 > 模型）中已配置的视觉模型。 */
+  useConfiguredModel?: boolean
+  /** 已配置模型所在 provider（llm 可配置 provider 名）。 */
+  configuredProvider?: string
+  /** 已配置模型中选中的视觉模型 id。 */
+  configuredModelId?: string
 }
 
 /** What the describe-image card renders. */
@@ -35,6 +43,9 @@ export interface DescribeImageSettingsCardState extends CardShell {
   maxOutputTokens: CardFieldState
   timeoutMs: CardFieldState
   apiStyle: CardFieldState
+  useConfiguredModel: CardFieldState
+  configuredProvider: CardFieldState
+  configuredModelId: CardFieldState
 }
 
 /** The registration-side face the card's slot entry injects. */
@@ -53,6 +64,9 @@ export class DescribeImageSettingsCardController {
   /** @param scope - the bound settings scope for the `describe-image` namespace. */
   constructor(scope: SettingsScope<DescribeImageSettings>) {
     this.form = new CardForm(scope, [
+      choiceField('useConfiguredModel', ['false', 'true']),
+      textField('configuredProvider'),
+      textField('configuredModelId'),
       textField('baseURL'),
       textField('model'),
       choiceField('apiStyle', ['chat-completions', 'responses']),
@@ -78,6 +92,9 @@ export class DescribeImageSettingsCardController {
       maxBytes: this.form.field('maxBytes'),
       maxOutputTokens: this.form.field('maxOutputTokens'),
       timeoutMs: this.form.field('timeoutMs'),
+      useConfiguredModel: this.form.field('useConfiguredModel'),
+      configuredProvider: this.form.field('configuredProvider'),
+      configuredModelId: this.form.field('configuredModelId'),
     }
   }
 
@@ -92,8 +109,76 @@ export class DescribeImageSettingsCardController {
 
 /** Props the renderer binds for the describe-image card. */
 export type DescribeImageSettingsCardProps =
-  PropsRuntime<'web-ui.plugin.item'>
+  PropsRuntime<'settings.plugin.item'>
   & InjectFace<DescribeImageSettingsCardFace>
+
+/** 可用视觉模型条目（GET /describe-image/models）。 */
+interface AvailableVisionModel {
+  provider: string
+  providerName: string
+  model: string
+  modelName: string
+}
+
+/**
+ * 「使用已配置模型」的选择器：拉取模型设置中可用视觉模型列表，选中即
+ * 填充 provider 与模型两个字段。加载失败 / 空列表渲染说明文案。
+ */
+export function ConfiguredModelPicker(props: {
+  disabled: boolean
+  onPick: (provider: string, model: string) => void
+}) {
+  const [models, setModels] = useState<AvailableVisionModel[] | null>(null)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    let alive = true
+    fetch('/describe-image/models')
+      .then(response => response.json())
+      .then((envelope: { ok?: unknown; value?: { models?: AvailableVisionModel[] } }) => {
+        if (!alive) return
+        if (envelope.ok === true && Array.isArray(envelope.value?.models)) setModels(envelope.value!.models)
+        else setFailed(true)
+      })
+      .catch(() => { if (alive) setFailed(true) })
+    return () => { alive = false }
+  }, [])
+  let body
+  if (failed) {
+    body = <p className={css.hint}>{t('configured.picker.failed')}</p>
+  } else if (models === null) {
+    body = <p className={css.hint}>{t('settings.saving')}</p>
+  } else if (models.length === 0) {
+    body = <p className={css.hint}>{t('configured.picker.empty')}</p>
+  } else {
+    body = (
+      <select
+        id="settings-describe-image-configured-picker"
+        className={css.select}
+        disabled={props.disabled}
+        value=""
+        onChange={(event) => {
+          const [provider, model] = event.target.value.split('\u0000')
+          if (provider && model) props.onPick(provider, model)
+        }}
+      >
+        <option value="">{t('configured.picker.placeholder')}</option>
+        {models.map(entry => (
+          <option key={`${entry.provider}\u0000${entry.model}`} value={`${entry.provider}\u0000${entry.model}`}>
+            {entry.providerName} / {entry.modelName}（{entry.provider} / {entry.model}）
+          </option>
+        ))}
+      </select>
+    )
+  }
+  return (
+    <div className={css.field}>
+      <div className={css.head}>
+        <span className={css.label}>{t('configured.picker.title')}</span>
+      </div>
+      {body}
+    </div>
+  )
+}
 
 /**
  * Render the describe-image card.
@@ -103,6 +188,7 @@ export type DescribeImageSettingsCardProps =
 export function DescribeImageSettingsCard(props: DescribeImageSettingsCardProps) {
   const state = props.useDescribeImageSettingsCard(snapshot => snapshot)
   const disabled = !state.writable
+  const usingConfigured = state.useConfiguredModel.text === 'true'
   const fieldProps = {
     overriddenLabel: t('settings.overridden'),
     resetLabel: t('settings.reset'),
@@ -118,6 +204,51 @@ export function DescribeImageSettingsCard(props: DescribeImageSettingsCardProps)
       onSave={props.save}
       onDiscard={props.discard}
     >
+      <ChoiceField
+        id="settings-describe-image-source"
+        label={t('field.useConfiguredModel')}
+        hint={t('field.useConfiguredModel.hint')}
+        inheritLabel={t('settings.inherit')}
+        choices={[
+          { value: 'false', label: t('field.useConfiguredModel.plugin') },
+          { value: 'true', label: t('field.useConfiguredModel.configured') },
+        ]}
+        {...fieldProps}
+        {...state.useConfiguredModel}
+        onEdit={(text) => { props.edit('useConfiguredModel', text) }}
+        onReset={() => { props.resetField('useConfiguredModel') }}
+      />
+      {usingConfigured
+        ? (
+          <>
+            <ConfiguredModelPicker
+              disabled={disabled}
+              onPick={(provider, model) => {
+                props.edit('configuredProvider', provider)
+                props.edit('configuredModelId', model)
+              }}
+            />
+            <ValueField
+              id="settings-describe-image-configuredprovider"
+              label={t('field.configuredProvider')}
+              hint={t('field.configuredProvider.hint')}
+              {...fieldProps}
+              {...state.configuredProvider}
+              onEdit={(text) => { props.edit('configuredProvider', text) }}
+              onReset={() => { props.resetField('configuredProvider') }}
+            />
+            <ValueField
+              id="settings-describe-image-configuredmodelid"
+              label={t('field.configuredModelId')}
+              hint={t('field.configuredModelId.hint')}
+              {...fieldProps}
+              {...state.configuredModelId}
+              onEdit={(text) => { props.edit('configuredModelId', text) }}
+              onReset={() => { props.resetField('configuredModelId') }}
+            />
+          </>
+        )
+        : null}
       <ValueField
         id="settings-describe-image-baseurl"
         label={t('field.baseURL')}

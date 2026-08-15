@@ -18,6 +18,7 @@ OpenAI 兼容的视觉模型端点（Xiaomi MiMo、Qwen-VL、GLM-4V、GPT-4o、�
 | 直接发图 | 在纯文本会话里拖拽或粘贴图片，发送时被改写为 describe-image 引用（`![图片](/describe-image/raw/sha256:…)`），而不是模型读不了的图片块——图片在会话里正常渲染，模型经工具分析它 |
 | 自定义指令 | `prompt` 参数携带你的精确指令（OCR、图表解读、UI 诊断、翻译…）；`defaultPrompt` 配置设置模型未传指令时的兜底文案 |
 | 实时配置卡 | 设置 → 插件配置 → 「图像理解」卡修改 `baseURL` / `apiStyle` / `model` / API key / 默认指令 / 各项上限（走设置服务），即时生效，无需重启 |
+| 复用已配置模型 | 直接使用 设置 → 模型 中已配置的视觉模型（任意 OpenAI 兼容 provider，如 Xiaomi MiMo / Qwen / OpenAI），端点与密钥自动解析，无需在卡片重复填写 |
 | 双协议 | `apiStyle: chat-completions`（默认）请求 `baseURL/chat/completions`；`apiStyle: responses` 请求 `baseURL/responses`，使用 `input` / `max_output_tokens` 并读取 `output_text` |
 | 原图路由 | `GET /describe-image/raw/<id>` 回读已存字节（仅回环、内容寻址 id），让贴入的引用在会话中渲染 |
 | 每次调用解析密钥 | 内联 `apiKey` → 凭证服务（`apiKeyEnv`，默认 `VISION_API_KEY`）→ 启动环境，逐级回退 |
@@ -60,6 +61,9 @@ dsh plugin --profile web add link:/root/.dsh/external/describe-image
 | `maxBytes` | `10485760` | 图片字节上限（本地文件与下载一致） |
 | `maxOutputTokens` | `1024` | 输出 token 上限：`chat-completions` 发 `max_tokens`，`responses` 发 `max_output_tokens` |
 | `timeoutMs` | `60000` | 单次视觉请求超时 |
+| `useConfiguredModel` | `false` | 复用 DSH 模型设置（设置 > 模型）中已配置的视觉模型；开启后忽略 `baseURL`/`model`/`apiKey` |
+| `configuredProvider` | — | 已配置模型所在 provider（如 pi-ai 的 providers 键 `xiaomi`） |
+| `configuredModelId` | — | 该 provider 中支持图像输入的模型 id（如 `mimo-v2.5`） |
 
 带配置的挂载示例（profile 的 `cordis.patch.yml` / 组合文件；密钥经环境变量注入，不写明文）：
 
@@ -91,6 +95,10 @@ dsh plugin --profile web add link:/root/.dsh/external/describe-image
 工具接受 `prompt` 参数：告诉视觉模型你具体要什么——「转录全部文字」、「把表格提取为 CSV」、
 「诊断这个 UI 的布局问题」、「把文字翻译成中文」。针对性指令远胜泛泛描述；工具描述会引导
 文本模型优先传指令。未传 `prompt` 的调用回退到 `defaultPrompt`。
+
+### 复用 DSH 模型设置中已配置的模型
+
+在 设置 → 模型 中配置任意 OpenAI 兼容视觉 provider（如 Xiaomi MiMo：`baseURL=https://api.xiaomimimo.com/v1`、密钥走 `apiKeyEnv` 凭证引用、模型声明 `input: [text, image]`），然后在「图像理解」卡把「模型来源」切到 **使用已配置模型**，从「可用视觉模型」下拉选择即可——端点与密钥每次调用时从模型设置解析，无需在卡片重复填写，也无需重启。
 
 ### 从输入框发送图片
 
