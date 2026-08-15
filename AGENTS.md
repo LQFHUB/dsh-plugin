@@ -26,7 +26,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 22 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 23 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-08-16 describe-image 设置卡极简化：configured 模式默认开启、只显示模型下拉（用户要求"只选已配置模型，不配协议/apikey"）
+
+- 变更内容：用户反馈"现在还是要填写一堆参数，我只希望选择当前已配置的模型即可"——设置卡重构：① `useConfiguredModel` schema 默认改 `true`（新部署开箱即用），未选择模型时 `resolveConfig` 自动降级自定义端点（不报错，首次调用给清晰提示）；② configured 模式**只显示「可用视觉模型」下拉**（选中即填充 provider/模型，端点/密钥/协议全部来自模型设置），其余字段（baseURL/model/apiKey/apiKeyEnv/apiStyle/defaultPrompt/上限）全部隐藏，切到「自定义端点」才显示；③ 修复 boolean 字段渲染 BUG：settings 服务返回 boolean `true` 而 `choiceField` 只认字符串 → 卡片误判为非 configured 分支，改用 `booleanField`；测试 **153 用例全绿**
+- 涉及路径：`describe-image/`（src/config-resolve.ts、src/client/{DescribeImageSettingsCard,locales}.tsx/ts、tests/configured-models.spec.ts、lib/、README.md）、`AGENTS.md`
+- 备注：112 实测全过——设置卡默认「使用已配置模型」、接口地址/API Key/接口协议均隐藏、下拉列出「Xiaomi MiMo / MiMo V2.5」；选模型 → 保存 → settings 用户层写入 `configuredProvider=xiaomi`/`configuredModelId=mimo-v2.5`；真实调用（模型设置解析端点/密钥 → xiaomimimo）返回描述文本；无 console 错误；验证脚本已清理
 
 ### 2026-08-16 新增 notify-sound 会话提示音插件（参考 dsh-plugin-notify-sound 裁剪：仅内置音 + 配置全浏览器同步）并测试全绿
 
