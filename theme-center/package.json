@@ -1,0 +1,33 @@
+{
+  "name": "dsh-theme-center",
+  "version": "0.1.0",
+  "description": "DSH web UI 主题插件：设置 > 插件配置新增「主题」卡片，内置 10 款皮肤（集成自 zhu1090093659/dsh-web-ui 的 skin-center），支持试穿 / 应用 / 持久记忆、亮暗预览与背景遮罩调节。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [],
+      "platform": "web"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "react": "^18.2.0"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "lib/skins",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "license": "BSD-3-Clause"
+}

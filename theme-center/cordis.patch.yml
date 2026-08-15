@@ -1,0 +1,7 @@
+# dsh-theme-center bundle patch: mounts the theme center (host bundle routes +
+# browser 「主题」settings card). The 10 embedded skins ship inside this plugin
+# (lib/skins/), served same-origin by the host half on demand.
+# Remove this entry to disable the surface.
+- insert:
+    - id: theme-center
+      name: 'dsh-theme-center'
