@@ -26,7 +26,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 26 条，点击展开，最新在最上面）</summary>
+<summary>📜 变更记录（共 27 条，点击展开，最新在最上面）</summary>
+
+### 2026-08-16 describe-image 修复：设置卡新增 /describe-image/settings 读写接缝（绕过官方命名空间白名单）并 112 实测通过
+
+- 变更内容：用户反馈 112 上「图像理解」设置卡显示"当前部署未暴露此命名空间"——调查确认官方 apiproxy 的 `WEB_SETTINGS_NAMESPACES` 白名单硬编码（agent-loop/shell/locale/…，官方注释明示"adding a section to that page is a decision made here rather than by the registering plugin"），第三方命名空间一律 `settings-not-exposed`。自包含修复：host 半区新增 `/describe-image/settings` 路由（GET redacted 视图 value/base/user/revision/writable + secrets 标记；POST 批量 set/unset 写用户层、revision 栅栏、空 apiKey 不覆盖、内部经 dsh-settings `replace` 提交 → installSettingsSection onChange 触发 → 工具下次调用即生效；同源护栏）+ 浏览器端 `DescribeImageSettingsScope`（实现 SettingsScope 契约直连该路由，secret no-op 语义），设置卡不再依赖官方 settingsScope（inject 移除 settingsScope 服务）；attach-routes 导出 readJsonBody/json 供复用；测试 **140 用例全绿**（新增 settings-routes 10 + client-scope 7）
+- 涉及路径：`describe-image/`（src/settings-routes.ts、src/client/settings-scope.ts、src/{index,attach-routes,client/index}.ts、tests/{settings-routes,client-scope}.spec.ts、lib/、README.md）、`AGENTS.md`
+- 备注：112 实测全过——curl GET/POST settings 路由（写入 baseURL/model → 用户层生效、redacted 视图不泄密钥）；浏览器（playwright-core+chromium headless）设置 → Plugins 卡渲染「图像理解」卡、展开显示 9 字段表单、已写入的 `baseURL=https://api.xiaomimimo.com/v1` `model=mimo-v2.5` 正确回显、无 notExposed 提示、无 console 错误（排查期间用 apply 探针确认 bundle apply/effect/样式注入均正常，此前"卡片未渲染"判断系 playwright tab 点击方式误报，原生 el.click() 正常）；describe-image 宿主依赖修复（`@deepseek-ai/schemastery` scoped + symlink）已随 112 部署生效，不再拖垮启动
 
 ### 2026-08-16 新增 navbar 对话节点导航条插件（零修改复用 vlln/dsh-navbar）并部署 112 验证 + 111 正式使用
 
