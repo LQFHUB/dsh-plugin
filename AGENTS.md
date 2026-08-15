@@ -26,15 +26,7 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 19 条，点击展开，最新在最上面）</summary>
-
-### 2026-08-15 theme-center 部署到 111（AI 主机，正式使用）
-
-- 变更内容：插件部署到本机 111（AI，`/root/.dsh/external/theme-center`，`dsh plugin add link:` 安装，bundles 已登记，client.js md5 与 112 验证版本一致）；延迟 detach 触发 `systemctl restart dsh-web.service`（避免中断当前回合，前端自动重连恢复）；README 部署目标更新为 112（验证）+ 111（正式使用）
-- 涉及路径：`theme-center/README.md`、`AGENTS.md`；111 上 `/root/.dsh/external/theme-center`（安装）
-- 备注：111 为 systemd 服务（dsh-web.service）；重启后需验证服务 active 与页面注入 `theme-center/client.js`
-
-</details>
+<summary>📜 变更记录（共 23 条，点击展开，最新在最上面）</summary>
 
 ### 2026-08-16 新增 web-lan 局域网直连插件（免反代）并部署 112 验证 + 111 正式使用
 
@@ -48,15 +40,17 @@
 - 涉及路径：`describe-image/`（package.json、cordis.patch.yml、pnpm-workspace.yaml、tsdown.config.ts、tsconfig.json、vitest.config.ts、src/×15、tests/×8、lib/{index,invariant,client}.js、README.md、LICENSE）、`AGENTS.md`
 - 备注：构建产物 lib/ 随源码提交（link 安装直接可用）；本机 pnpm store 曾因共享挂载 `.pnpm-store/v11/index.db` 权限 000 报 SQLITE_ERROR，chmod 644 修复；测试需 DSH 环境（README 注明）；部署目标 112（验证）+ 111（正式使用），密钥建议 `XIAOMI_MIMO_API_KEY` 环境变量注入
 
-</details>
+### 2026-08-15 theme-center 部署到 111（AI 主机，正式使用）
+
+- 变更内容：插件部署到本机 111（AI，`/root/.dsh/external/theme-center`，`dsh plugin add link:` 安装，bundles 已登记，client.js md5 与 112 验证版本一致）；延迟 detach 触发 `systemctl restart dsh-web.service`（避免中断当前回合，前端自动重连恢复）；README 部署目标更新为 112（验证）+ 111（正式使用）
+- 涉及路径：`theme-center/README.md`、`AGENTS.md`；111 上 `/root/.dsh/external/theme-center`（安装）
+- 备注：111 为 systemd 服务（dsh-web.service）；重启后需验证服务 active 与页面注入 `theme-center/client.js`
 
 ### 2026-08-15 新增 theme-center 主题插件：集成 dsh-web-ui 全部 10 款皮肤 + 「主题」设置卡片
 
 - 变更内容：新建 `theme-center/` 文件夹（个人主题插件，纯视觉、不含宽度定制）——按用户指示参考 zhu1090093659/dsh-web-ui 的皮肤中心（skin-center）实现：在「设置 > 插件配置」注册「主题」卡片（官方槽位 `settings.plugin.item`，id `theme`，参考官方 bash/agent-loop 卡片外框与皮肤中心交互），内置该仓库全部 10 款皮肤（蓝色幻想/龙的传人/夕港/初音未来/Minecraft/QQ2008/同花顺/交易终端/鲸吟/XP，bundle 原样复用，BSD-3-Clause 注明出处），支持试穿/应用/持久记忆（localStorage `dsh-theme-center:active:v1`）、亮暗预览（官方 theme 服务）与背景遮罩滑杆（`--dsw-skin-scrim`）；宿主半区注册同源路由 `/api/theme-center/bundle/<id>`（webServer，带同源护栏）按需分发 `lib/skins/` 内 bundle，浏览器半区走内核 `__ModuleLoader__`/`__DSH_MODULES__` 执行（同皮肤中心 try-on 路径，无 eval、无配置写入、无页面重载）；miniCtx.get 委托真实上下文（ths/trading 可读 connection，缺失降级）
 - 涉及路径：`theme-center/`（package.json、cordis.patch.yml、lib/index.js、lib/client.js、lib/skins/×10、lib/meta/×10、README.md、LICENSE）、`AGENTS.md`
 - 备注：皮肤 bundle 约 1.3MB 原样内置；与 dsh-web-ui 皮肤中心不建议并存（README 已注明）；**已在 112 部署验证通过**（`/root/.dsh/external/theme-center` link 安装，bundle rev `ba60879d425c`；playwright-core + chromium headless 共 3 轮 40+ 断言全过：主题卡片 11 行、试穿/退出试穿完全还原、应用/持久化/刷新恢复、官方默认干净还原、亮暗预览、遮罩滑杆、10 款皮肤全量冒烟、xp/miku DOM 与标题链还原）；开发中发现并修复标题还原链缺陷（连续切换时后装皮肤会快照前一皮肤标题，挂载前统一重置为引擎基线）；ths/trading 行情请求 404/405/CORS 为上游 fail-safe 预期降级（未装 dsh-fun-ticker/dsh-longbridge），不影响使用
-
-</details>
 
 ### 2026-08-15 chat-width-customizer 部署到 111（AI 主机）并修复 pnpm 状态文件损坏
 

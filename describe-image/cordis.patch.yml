@@ -1,0 +1,13 @@
+# dsh-describe-image bundle patch: 把 describe_image 工具插件行插入 web
+# profile 名册。作为 profile bundle 层应用（`dsh.bundle.patch` 清单字段），
+# 安装方式：`dsh plugin --profile web add link:<本插件目录>`。
+#
+# 一个包、两个半区：node 半区（exports "."）在宿主进程运行，注册模型面向的
+# describe_image 工具、/describe-image/attach 上传路由与「图像理解」设置
+# section；浏览器半区（由 `dsh.client` 声明、从 lib/client.js 提供）在提交
+# 时把携带图片的发送改写为 describe-image 引用。设置卡本身由 Web GUI 内置
+# 的插件配置页根据 `describe-image` 设置 section 渲染。
+# 移除本条可禁用该表面。
+- insert:
+    - id: describe-image
+      name: 'dsh-describe-image'

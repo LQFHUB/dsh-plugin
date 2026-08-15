@@ -1,0 +1,3 @@
+# pnpm 11 设置：允许 esbuild 运行其安装构建脚本（tsdown/vitest 需要）。
+allowBuilds:
+  esbuild: true
