@@ -26,7 +26,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 26 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 27 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-08-16 新增"主题适配（必须）"开发契约：插件 UI 必须跟随 theme-center 主题切换
+
+- 变更内容：第六节"皮肤/UI 插件开发契约"新增强制条目——插件 UI 样式必须使用官方皮肤令牌（`--dsw-alias-*`）或皮肤变量，不得硬编码颜色/背景/边框；个别皮肤缺令牌时按 right-panel/notify-sound 先例补皮肤限定适配层（选择器限定 body[data-dsh-<skin>] 补丁），不得全局覆盖
+- 涉及路径：`AGENTS.md`
+- 备注：用户指示"开发的插件主题要适配主题插件切换主题"；right-panel（harbor/trading 适配层）、notify-sound（10 款皮肤 + 暗色 33/33 实测）为本规范先例
 
 ### 2026-08-16 notify-sound 皮肤适配实测：10 款皮肤 + 暗色模式全过（ns-card 与主题卡逐项一致）
 
@@ -267,6 +273,7 @@
 
 **皮肤/UI 插件开发契约**
 - 纯呈现层：不注入服务、不发 Cordis 事件、不触及模型请求
+- **主题适配（必须）**：插件 UI 样式**必须使用官方皮肤令牌**（`--dsw-alias-*`，如 border-l2/bg-layer-3/label-primary 等）或主题插件提供的皮肤变量，**不得硬编码颜色/背景/边框数值**——保证 theme-center 切换主题（10 款皮肤 + 官方亮/暗）时插件界面自动跟随；个别皮肤缺失令牌时按 right-panel/notify-sound 先例补皮肤限定适配层（选择器限定 `body[data-dsh-<skin>]` 补丁，fallback 引用皮肤自身变量），不得全局覆盖
 - 样式全部挂在 `body[data-dsh-<name>]` 属性下，暗色变体用 `body[data-dsh-<name>][data-ds-dark-theme]`；不得用裸类名/全局选择器污染其他皮肤与官方 UI
 - 所有写入（body 属性、注入的 DOM、favicon、document.title）必须在 `ctx.effect()` 的 disposer 里**全部收回**（标题仅在仍是自己设置时才还原）
 - 不携带静态资源文件：内联 SVG / data URI
