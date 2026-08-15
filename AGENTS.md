@@ -26,7 +26,7 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 25 条，点击展开，最新在最上面）</summary>
+<summary>📜 变更记录（共 26 条，点击展开，最新在最上面）</summary>
 
 ### 2026-08-16 新增 navbar 对话节点导航条插件（零修改复用 vlln/dsh-navbar）并部署 112 验证 + 111 正式使用
 
@@ -34,11 +34,17 @@
 - 涉及路径：`navbar/`（package.json、cordis.patch.yml、lib/{client.js,index.mjs}、src/{client/index.ts,index.mjs}、tsdown.config.ts、pnpm-workspace.yaml、README.md、LICENSE）、`AGENTS.md`；111/112 上 `/root/.dsh/external/navbar`（安装）、`/root/.dsh/profiles/web/`（依赖与 bundles 登记）
 - 备注：**112 实测全过**（playwright-core + chromium，多轮验证：无 stub 真实浏览器 5/5——bundle 注入、节点数=user 消息数、悬停预览、点击跳转+active 药丸、无页面错误；16 条消息长对话验证窗口截断 10 dots+more 细点、滚轮切换、间隙整条可点、active 跟随滚动到顶=首节点、样式单一 style 标签；<2 条 user 消息自动隐藏为设计行为）——验证期 112 为共享验证机，并行会话部署 right-panel/describe-image 多次重启服务致验证中断，重跑通过；期间发现并**临时移除** 112 上损坏的 dsh-right-panel（bundle id 未注册，UI 阻断）与缺 `@deepseek-ai/dsh-settings` 依赖的 dsh-describe-image（拖垮启动，并行会话已处理并恢复），验证完成后均已还原；**112 测试会话已清理**（删除 6 个验证创建的会话目录 + workspace.json/session_projcache.json 索引同步清理，备份 `.bak-navbar-cleanup`，112 现仅剩原有「验证通过」会话）；111 部署完成（delayed detach 重启 dsh-web.service 避免中断回合），111 实测 10/10 全过（bundle 注入、元素存在、1 条隐藏/2 条出现、节点数正确、悬停预览、点击跳转+active、无错误）；**用户看不到导航条的排查结论：需 Ctrl+Shift+R 强制刷新（bundle 仅页面加载时获取，自动重连不重拉）+ 打开 ≥2 条 user 消息的会话**；112 当前若重启会因 describe-image 缺依赖崩溃（并行会话处理中）
 
+### 2026-08-16 right-panel 默认折叠侧边栏；目录问题澄清（用户确认展示的就是会话目录）
+
+- 变更内容：用户指示"默认关闭侧边栏"——right-panel 浏览器半区两处改动：① createLayoutStore 初始 `explorerCollapsed` 由 false 改为 true（默认折叠）；② layoutSetRoot 恢复逻辑由 `=== "collapsed"`（localStorage 无值即展开）改为 `!== "expanded"`（仅显式展开过才展开，默认关闭）；冒烟测试新增两条断言（初始 true + 恢复逻辑）。目录问题澄清：用户先后反馈"打开的目录不是当前工作目录/是用户根目录"，经调查 112 上所有会话 cwd=/root（唯一 workspace /root），面板显示的正是当前会话目录（= 会话 cwd），GUI workspace chip（`pXSMma_workspace`）亦显示 root，一一对应；GUI 新建 workspace 支持目录选择（`workspaces.createDirectory`，directory-picker 挂 `conversation.hero.workspace.directoryFlow` 槽位），会话 cwd 跟随所选 workspace；用户随后确认"看错了，当前展示的就是会话目录"，无需代码改动
+- 涉及路径：`right-panel/lib/client.js`、`right-panel/tests/smoke.mjs`、`AGENTS.md`；112 上 `/root/.dsh/external/right-panel`（同步）
+- 备注：112 实测默认折叠 PASS——无持久化时 explorer 1px（折叠）+ 浮动展开按钮 flex + grid 5 轨含 0px；显式展开后 localStorage 写 `project-panel-collapse:<root>=expanded`，刷新后仍展开 260px；若用户浏览器存过 expanded 会记住展开（Ctrl+Shift+R 后仍展开可手动折叠一次，或清 localStorage）
+
 ### 2026-08-16 right-panel 主题适配：补齐 harbor/trading 两款皮肤的 --aion-* 面板变量
 
 - 变更内容：用户反馈"修改主题后右侧面板与主题不匹配"——调查确认 theme-center 10 款皮肤中 8 款自带面板适配（bundle 定义 `--aion-*` 变量 + `body[data-dsh-x] [data-aionui-*]` 微调样式，xp 实测跟随），**harbor（夕港）/ trading（交易终端）两款上游 bundle 完全缺适配**（0 变量，上游 npm 0.1.16 最新版同样缺失，为上游固有缺口）；实测 harbor 亮色下官方 UI 为深色半透明纱（`--dsw-alias-bg-layer-1:#181f36b3`、body color-scheme:dark）而面板白色 #f9fafb。方案：在 right-panel 浏览器半区新增**皮肤适配层**（`SKIN_ADAPT_CSS` 常量 + `skin-adapt` effect）——静态注入选择器限定的变量补丁（`body[data-dsh-harbor]` / `body[data-dsh-trading]` / `body[data-dsh-trading][data-ds-dark-theme]`），取值优先引用皮肤自身变量（var(--dsw-alias-*)/var(--dsh-trd-*)，皮肤调色实时跟随），fallback 为实测值；仅这两款皮肤应用时生效，其余 8 款不受干扰，style 随 disposer 收回（卸载/热重载无残留）
 - 涉及路径：`right-panel/lib/client.js`、`right-panel/tests/smoke.mjs`、`right-panel/README.md`、`AGENTS.md`；112 上 `/root/.dsh/external/right-panel`（同步）
-- 备注：112 实测 **16/16 断言全过**——harbor 面板背景 rgba(24,31,54,.7) 深蓝半透明+浅色文字（与官方 UI 一致）、trading 亮色 #fff/#1b2431、trading 暗色 #10151d/#dbe2ec、xp 等已适配皮肤回归不受影响、官方默认完全还原、无 console 错误；目录问题调查结论：面板根 = 会话创建时的静态 cwd（DSH 无会话内动态 workdir 机制，112 唯一 workspace=/root），如需面板显示项目目录应在新建会话时选择项目目录作为 workspace（方案 A，待用户最终确认；方案 B「跟随 agent 动态 cd」需宿主侧新增机制，本次不做）
+- 备注：112 实测 **16/16 断言全过**——harbor 面板背景 rgba(24,31,54,.7) 深蓝半透明+浅色文字（与官方 UI 一致）、trading 亮色 #fff/#1b2431、trading 暗色 #10151d/#dbe2ec、xp 等已适配皮肤回归不受影响、官方默认完全还原、无 console 错误；目录问题调查结论：面板根 = 会话创建时的静态 cwd（DSH 无会话内动态 workdir 机制，112 唯一 workspace=/root），目录问题后续澄清：用户确认看错，面板展示的就是当前会话目录（会话 cwd），无需代码改动（见下一条记录）
 
 ### 2026-08-16 新增 right-panel 右侧面板插件（复用 dsh-web-ui aionui-panel 产物）并部署 112 验证
 

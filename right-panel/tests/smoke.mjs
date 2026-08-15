@@ -64,4 +64,8 @@ assert.match(clientSrc, /body\[data-dsh-trading\]/, '适配层应覆盖 trading�
 assert.match(clientSrc, /body\[data-dsh-trading\]\[data-ds-dark-theme\]/, '适配层应含 trading 暗色变体')
 assert.match(clientSrc, /tag\.remove\(\)/, '适配层 style 应随 disposer 收回')
 
-console.log('✓ dsh-right-panel smoke ok（package.json / patch / host 导出 / 护栏适配 / client 形态与模块 id / 皮肤适配层）')
+// 7. 默认折叠：初始 explorerCollapsed=true，恢复仅认显式 "expanded"。
+assert.match(clientSrc, /explorerCollapsed: true/, 'explorer 应默认折叠')
+assert.match(clientSrc, /!== "expanded"/, '恢复逻辑应仅显式 expanded 才展开（默认关闭）')
+
+console.log('✓ dsh-right-panel smoke ok（package.json / patch / host 导出 / 护栏适配 / client 形态与模块 id / 皮肤适配层 / 默认折叠）')

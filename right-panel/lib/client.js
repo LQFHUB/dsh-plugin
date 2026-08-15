@@ -672,7 +672,7 @@ window.__ModuleLoader__.load({
 				root: "",
 				explorerWidth: readStoredNumber(KEY_EXPLORER_WIDTH, 220, 500, 260),
 				previewWidth: readStoredNumber(KEY_PREVIEW_WIDTH, 340, MAX_PREVIEW_REGION_PX, 480),
-				explorerCollapsed: false,
+				explorerCollapsed: true,
 				previewOpen: false,
 				availableWidth: 0,
 				dragging: false
@@ -713,7 +713,7 @@ window.__ModuleLoader__.load({
 				if (prev.root === root && prev.previewOpen === previewOpen) return prev;
 				let collapsed = prev.explorerCollapsed;
 				if (prev.root !== root) try {
-					collapsed = localStorage.getItem(collapseKey(root)) === "collapsed";
+					collapsed = localStorage.getItem(collapseKey(root)) !== "expanded";
 				} catch {
 					collapsed = false;
 				}
