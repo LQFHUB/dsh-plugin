@@ -200,17 +200,27 @@ describe('resolveConfiguredVision', () => {
 })
 
 describe('configured resolveConfig validation', () => {
-  it('requires configuredProvider/configuredModelId when useConfiguredModel is on', () => {
-    expect(() => tool.resolveConfig({ useConfiguredModel: true, configuredProvider: '', configuredModelId: 'm' }))
-      .toThrow(/configuredProvider must name a DSH model provider/)
-    expect(() => tool.resolveConfig({ useConfiguredModel: true, configuredProvider: 'p', configuredModelId: '' }))
-      .toThrow(/configuredModelId must name a vision model/)
+  it('defaults useConfiguredModel to true; an empty selection degrades to the custom endpoint', () => {
+    // 未选择模型时降级为自定义端点：空 baseURL 报清晰错误（首次调用/未配置挂载时）
+    expect(() => tool.resolveConfig({})).toThrow(/baseURL must be an absolute http\(s\) URL/)
+    expect(() => tool.resolveConfig({ useConfiguredModel: true })).toThrow(/baseURL must be an absolute http\(s\) URL/)
+    // 仅填了 provider 没填模型同样降级
+    expect(() => tool.resolveConfig({ useConfiguredModel: true, configuredProvider: 'p' })).toThrow(/baseURL/)
+    // 降级后走自定义端点：提供 baseURL/model 即不报错且 useConfiguredModel 为 false
+    const degraded = tool.resolveConfig({ baseURL: 'https://api.example.com/v1', model: 'm', useConfiguredModel: true })
+    expect(degraded.useConfiguredModel).toBe(false)
   })
 
-  it('allows empty baseURL/model in configured mode, requires them otherwise', () => {
+  it('keeps configured mode when both provider and model are named', () => {
     const ok = tool.resolveConfig({ useConfiguredModel: true, configuredProvider: 'p', configuredModelId: 'm' })
     expect(ok.useConfiguredModel).toBe(true)
     expect(ok.baseURL).toBe('')
+    expect(ok.model).toBe('')
+    expect(ok.configuredProvider).toBe('p')
+    expect(ok.configuredModelId).toBe('m')
+  })
+
+  it('requires baseURL/model in custom-endpoint mode', () => {
     expect(() => tool.resolveConfig({ model: 'm' })).toThrow(/baseURL must be an absolute http\(s\) URL/)
     expect(() => tool.resolveConfig({ baseURL: 'https://api.example.com/v1' })).toThrow(/model must be a non-empty model id/)
   })

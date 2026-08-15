@@ -96,9 +96,9 @@ dsh plugin --profile web add link:/root/.dsh/external/describe-image
 「诊断这个 UI 的布局问题」、「把文字翻译成中文」。针对性指令远胜泛泛描述；工具描述会引导
 文本模型优先传指令。未传 `prompt` 的调用回退到 `defaultPrompt`。
 
-### 复用 DSH 模型设置中已配置的模型
+### 复用 DSH 模型设置中已配置的模型（默认，开箱即用）
 
-在 设置 → 模型 中配置任意 OpenAI 兼容视觉 provider（如 Xiaomi MiMo：`baseURL=https://api.xiaomimimo.com/v1`、密钥走 `apiKeyEnv` 凭证引用、模型声明 `input: [text, image]`），然后在「图像理解」卡把「模型来源」切到 **使用已配置模型**，从「可用视觉模型」下拉选择即可——端点与密钥每次调用时从模型设置解析，无需在卡片重复填写，也无需重启。
+在 设置 → 模型 中配置任意 OpenAI 兼容视觉 provider（如 Xiaomi MiMo：`baseURL=https://api.xiaomimimo.com/v1`、密钥走 `apiKeyEnv` 凭证引用、模型声明 `input: [text, image]`）。**「图像理解」卡默认即「使用已配置模型」模式，只需在「可用视觉模型」下拉里选一个模型即可**——端点、密钥、协议全部来自模型设置，卡片上不显示也不需要填写任何其他参数。未选择模型时自动回退自定义端点模式（此时才显示 baseURL/model/apiKey 等字段）。
 
 ### 从输入框发送图片
 

@@ -9,7 +9,7 @@ import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-cli
 import type { SettingsScope, SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import { useEffect, useState } from 'react'
 import { PluginSettingsCard, ChoiceField, ValueField } from './PluginSettingsCard.tsx'
-import { CardForm, choiceField, numberField, secretField, textField, type CardActions, type CardShell, type FieldState as CardFieldState } from './settings-form.ts'
+import { CardForm, booleanField, choiceField, numberField, secretField, textField, type CardActions, type CardShell, type FieldState as CardFieldState } from './settings-form.ts'
 import { t } from './locales.ts'
 import { S as css } from './styles.ts'
 
@@ -64,7 +64,7 @@ export class DescribeImageSettingsCardController {
   /** @param scope - the bound settings scope for the `describe-image` namespace. */
   constructor(scope: SettingsScope<DescribeImageSettings>) {
     this.form = new CardForm(scope, [
-      choiceField('useConfiguredModel', ['false', 'true']),
+      booleanField('useConfiguredModel'),
       textField('configuredProvider'),
       textField('configuredModelId'),
       textField('baseURL'),
@@ -126,6 +126,8 @@ interface AvailableVisionModel {
  */
 export function ConfiguredModelPicker(props: {
   disabled: boolean
+  selectedProvider: string
+  selectedModel: string
   onPick: (provider: string, model: string) => void
 }) {
   const [models, setModels] = useState<AvailableVisionModel[] | null>(null)
@@ -150,12 +152,15 @@ export function ConfiguredModelPicker(props: {
   } else if (models.length === 0) {
     body = <p className={css.hint}>{t('configured.picker.empty')}</p>
   } else {
+    const selected = props.selectedProvider && props.selectedModel
+      ? `${props.selectedProvider}\u0000${props.selectedModel}`
+      : ''
     body = (
       <select
         id="settings-describe-image-configured-picker"
         className={css.select}
         disabled={props.disabled}
-        value=""
+        value={selected}
         onChange={(event) => {
           const [provider, model] = event.target.value.split('\u0000')
           if (provider && model) props.onPick(provider, model)
@@ -223,122 +228,110 @@ export function DescribeImageSettingsCard(props: DescribeImageSettingsCardProps)
           <>
             <ConfiguredModelPicker
               disabled={disabled}
+              selectedProvider={state.configuredProvider.text}
+              selectedModel={state.configuredModelId.text}
               onPick={(provider, model) => {
                 props.edit('configuredProvider', provider)
                 props.edit('configuredModelId', model)
               }}
             />
-            <ValueField
-              id="settings-describe-image-configuredprovider"
-              label={t('field.configuredProvider')}
-              hint={t('field.configuredProvider.hint')}
-              {...fieldProps}
-              {...state.configuredProvider}
-              onEdit={(text) => { props.edit('configuredProvider', text) }}
-              onReset={() => { props.resetField('configuredProvider') }}
-            />
-            <ValueField
-              id="settings-describe-image-configuredmodelid"
-              label={t('field.configuredModelId')}
-              hint={t('field.configuredModelId.hint')}
-              {...fieldProps}
-              {...state.configuredModelId}
-              onEdit={(text) => { props.edit('configuredModelId', text) }}
-              onReset={() => { props.resetField('configuredModelId') }}
-            />
+            <p className={css.hint}>{t('configured.picker.usesConfigured')}</p>
           </>
         )
-        : null}
-      <ValueField
-        id="settings-describe-image-baseurl"
-        label={t('field.baseURL')}
-        hint={t('field.baseURL.hint')}
-        placeholder="https://api.example.com/v1"
-        {...fieldProps}
-        {...state.baseURL}
-        onEdit={(text) => { props.edit('baseURL', text) }}
-        onReset={() => { props.resetField('baseURL') }}
-      />
-      <ValueField
-        id="settings-describe-image-model"
-        label={t('field.model')}
-        hint={t('field.model.hint')}
-        {...fieldProps}
-        {...state.model}
-        onEdit={(text) => { props.edit('model', text) }}
-        onReset={() => { props.resetField('model') }}
-      />
-      <ChoiceField
-        id="settings-describe-image-apistyle"
-        label={t('field.apiStyle')}
-        hint={t('field.apiStyle.hint')}
-        inheritLabel={t('settings.inherit')}
-        choices={[
-          { value: 'chat-completions', label: t('field.apiStyle.chatCompletions') },
-          { value: 'responses', label: t('field.apiStyle.responses') },
-        ]}
-        {...fieldProps}
-        {...state.apiStyle}
-        onEdit={(text) => { props.edit('apiStyle', text) }}
-        onReset={() => { props.resetField('apiStyle') }}
-      />
-      <ValueField
-        id="settings-describe-image-apikey"
-        label={t('field.apiKey')}
-        hint={t('field.apiKey.hint')}
-        {...fieldProps}
-        {...state.apiKey}
-        onEdit={(text) => { props.edit('apiKey', text) }}
-        onReset={() => { props.resetField('apiKey') }}
-      />
-      <ValueField
-        id="settings-describe-image-apikeyenv"
-        label={t('field.apiKeyEnv')}
-        hint={t('field.apiKeyEnv.hint')}
-        {...fieldProps}
-        {...state.apiKeyEnv}
-        onEdit={(text) => { props.edit('apiKeyEnv', text) }}
-        onReset={() => { props.resetField('apiKeyEnv') }}
-      />
-      <ValueField
-        id="settings-describe-image-defaultprompt"
-        label={t('field.defaultPrompt')}
-        hint={t('field.defaultPrompt.hint')}
-        {...fieldProps}
-        {...state.defaultPrompt}
-        onEdit={(text) => { props.edit('defaultPrompt', text) }}
-        onReset={() => { props.resetField('defaultPrompt') }}
-      />
-      <ValueField
-        id="settings-describe-image-maxbytes"
-        label={t('field.maxBytes')}
-        hint={t('field.maxBytes.hint')}
-        numeric
-        {...fieldProps}
-        {...state.maxBytes}
-        onEdit={(text) => { props.edit('maxBytes', text) }}
-        onReset={() => { props.resetField('maxBytes') }}
-      />
-      <ValueField
-        id="settings-describe-image-maxoutputtokens"
-        label={t('field.maxOutputTokens')}
-        hint={t('field.maxOutputTokens.hint')}
-        numeric
-        {...fieldProps}
-        {...state.maxOutputTokens}
-        onEdit={(text) => { props.edit('maxOutputTokens', text) }}
-        onReset={() => { props.resetField('maxOutputTokens') }}
-      />
-      <ValueField
-        id="settings-describe-image-timeoutms"
-        label={t('field.timeoutMs')}
-        hint={t('field.timeoutMs.hint')}
-        numeric
-        {...fieldProps}
-        {...state.timeoutMs}
-        onEdit={(text) => { props.edit('timeoutMs', text) }}
-        onReset={() => { props.resetField('timeoutMs') }}
-      />
+        : (
+          <>
+            <ValueField
+              id="settings-describe-image-baseurl"
+              label={t('field.baseURL')}
+              hint={t('field.baseURL.hint')}
+              placeholder="https://api.example.com/v1"
+              {...fieldProps}
+              {...state.baseURL}
+              onEdit={(text) => { props.edit('baseURL', text) }}
+              onReset={() => { props.resetField('baseURL') }}
+            />
+            <ValueField
+              id="settings-describe-image-model"
+              label={t('field.model')}
+              hint={t('field.model.hint')}
+              {...fieldProps}
+              {...state.model}
+              onEdit={(text) => { props.edit('model', text) }}
+              onReset={() => { props.resetField('model') }}
+            />
+            <ChoiceField
+              id="settings-describe-image-apistyle"
+              label={t('field.apiStyle')}
+              hint={t('field.apiStyle.hint')}
+              inheritLabel={t('settings.inherit')}
+              choices={[
+                { value: 'chat-completions', label: t('field.apiStyle.chatCompletions') },
+                { value: 'responses', label: t('field.apiStyle.responses') },
+              ]}
+              {...fieldProps}
+              {...state.apiStyle}
+              onEdit={(text) => { props.edit('apiStyle', text) }}
+              onReset={() => { props.resetField('apiStyle') }}
+            />
+            <ValueField
+              id="settings-describe-image-apikey"
+              label={t('field.apiKey')}
+              hint={t('field.apiKey.hint')}
+              {...fieldProps}
+              {...state.apiKey}
+              onEdit={(text) => { props.edit('apiKey', text) }}
+              onReset={() => { props.resetField('apiKey') }}
+            />
+            <ValueField
+              id="settings-describe-image-apikeyenv"
+              label={t('field.apiKeyEnv')}
+              hint={t('field.apiKeyEnv.hint')}
+              {...fieldProps}
+              {...state.apiKeyEnv}
+              onEdit={(text) => { props.edit('apiKeyEnv', text) }}
+              onReset={() => { props.resetField('apiKeyEnv') }}
+            />
+            <ValueField
+              id="settings-describe-image-defaultprompt"
+              label={t('field.defaultPrompt')}
+              hint={t('field.defaultPrompt.hint')}
+              {...fieldProps}
+              {...state.defaultPrompt}
+              onEdit={(text) => { props.edit('defaultPrompt', text) }}
+              onReset={() => { props.resetField('defaultPrompt') }}
+            />
+            <ValueField
+              id="settings-describe-image-maxbytes"
+              label={t('field.maxBytes')}
+              hint={t('field.maxBytes.hint')}
+              numeric
+              {...fieldProps}
+              {...state.maxBytes}
+              onEdit={(text) => { props.edit('maxBytes', text) }}
+              onReset={() => { props.resetField('maxBytes') }}
+            />
+            <ValueField
+              id="settings-describe-image-maxoutputtokens"
+              label={t('field.maxOutputTokens')}
+              hint={t('field.maxOutputTokens.hint')}
+              numeric
+              {...fieldProps}
+              {...state.maxOutputTokens}
+              onEdit={(text) => { props.edit('maxOutputTokens', text) }}
+              onReset={() => { props.resetField('maxOutputTokens') }}
+            />
+            <ValueField
+              id="settings-describe-image-timeoutms"
+              label={t('field.timeoutMs')}
+              hint={t('field.timeoutMs.hint')}
+              numeric
+              {...fieldProps}
+              {...state.timeoutMs}
+              onEdit={(text) => { props.edit('timeoutMs', text) }}
+              onReset={() => { props.resetField('timeoutMs') }}
+            />
+          </>
+        )}
     </PluginSettingsCard>
   )
 }

@@ -543,6 +543,25 @@ function secretField(field) {
 		secret: true
 	};
 }
+/** A boolean field, edited through true/false draft text. */
+function booleanField(field) {
+	return {
+		field,
+		format: (value) => typeof value === "boolean" ? String(value) : "",
+		parse: (text) => {
+			const trimmed = text.trim();
+			if (trimmed === "") return { kind: "clear" };
+			if (trimmed === "true") return {
+				kind: "set",
+				value: true
+			};
+			if (trimmed === "false") return {
+				kind: "set",
+				value: false
+			};
+		}
+	};
+}
 /** An enumerated string field; only the listed choices are accepted. An empty draft clears the field. */
 function choiceField(field, choices) {
 	return {
@@ -838,7 +857,8 @@ const zh = {
 	"configured.picker.title": "可用视觉模型（模型设置）",
 	"configured.picker.placeholder": "选择已配置的视觉模型…",
 	"configured.picker.empty": "模型设置中暂无支持图像的模型；请先在 设置 > 模型 配置。",
-	"configured.picker.failed": "无法加载可用模型列表。"
+	"configured.picker.failed": "无法加载可用模型列表。",
+	"configured.picker.usesConfigured": "端点、密钥与协议均来自模型设置（设置 > 模型），无需在此配置。"
 };
 /** The two dictionaries, keyed by language. */
 const dictionaries = {
@@ -899,7 +919,8 @@ const dictionaries = {
 		"configured.picker.title": "Available vision models (model settings)",
 		"configured.picker.placeholder": "Pick a configured vision model…",
 		"configured.picker.empty": "No image-capable models in model settings yet; configure one in Settings > Models first.",
-		"configured.picker.failed": "Could not load the available models."
+		"configured.picker.failed": "Could not load the available models.",
+		"configured.picker.usesConfigured": "Endpoint, key and protocol all come from the model settings (Settings > Models); nothing else to configure here."
 	}
 };
 /** Current UI language, mirrored from the shell (defaults to zh). */
@@ -926,7 +947,7 @@ var DescribeImageSettingsCardController = class {
 	/** @param scope - the bound settings scope for the `describe-image` namespace. */
 	constructor(scope) {
 		this.form = new CardForm(scope, [
-			choiceField("useConfiguredModel", ["false", "true"]),
+			booleanField("useConfiguredModel"),
 			textField("configuredProvider"),
 			textField("configuredModelId"),
 			textField("baseURL"),
@@ -1002,32 +1023,35 @@ function ConfiguredModelPicker(props) {
 		className: S.hint,
 		children: t("configured.picker.empty")
 	});
-	else body = /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("select", {
-		id: "settings-describe-image-configured-picker",
-		className: S.select,
-		disabled: props.disabled,
-		value: "",
-		onChange: (event) => {
-			const [provider, model] = event.target.value.split("\0");
-			if (provider && model) props.onPick(provider, model);
-		},
-		children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("option", {
-			value: "",
-			children: t("configured.picker.placeholder")
-		}), models.map((entry) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("option", {
-			value: `${entry.provider}\u0000${entry.model}`,
-			children: [
-				entry.providerName,
-				" / ",
-				entry.modelName,
-				"（",
-				entry.provider,
-				" / ",
-				entry.model,
-				"）"
-			]
-		}, `${entry.provider}\u0000${entry.model}`))]
-	});
+	else {
+		const selected = props.selectedProvider && props.selectedModel ? `${props.selectedProvider}\u0000${props.selectedModel}` : "";
+		body = /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("select", {
+			id: "settings-describe-image-configured-picker",
+			className: S.select,
+			disabled: props.disabled,
+			value: selected,
+			onChange: (event) => {
+				const [provider, model] = event.target.value.split("\0");
+				if (provider && model) props.onPick(provider, model);
+			},
+			children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("option", {
+				value: "",
+				children: t("configured.picker.placeholder")
+			}), models.map((entry) => /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("option", {
+				value: `${entry.provider}\u0000${entry.model}`,
+				children: [
+					entry.providerName,
+					" / ",
+					entry.modelName,
+					"（",
+					entry.provider,
+					" / ",
+					entry.model,
+					"）"
+				]
+			}, `${entry.provider}\u0000${entry.model}`))]
+		});
+	}
 	return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
 		className: S.field,
 		children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
@@ -1061,63 +1085,38 @@ function DescribeImageSettingsCard(props) {
 		state,
 		onSave: props.save,
 		onDiscard: props.discard,
-		children: [
-			/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ChoiceField, {
-				id: "settings-describe-image-source",
-				label: t("field.useConfiguredModel"),
-				hint: t("field.useConfiguredModel.hint"),
-				inheritLabel: t("settings.inherit"),
-				choices: [{
-					value: "false",
-					label: t("field.useConfiguredModel.plugin")
-				}, {
-					value: "true",
-					label: t("field.useConfiguredModel.configured")
-				}],
-				...fieldProps,
-				...state.useConfiguredModel,
-				onEdit: (text) => {
-					props.edit("useConfiguredModel", text);
-				},
-				onReset: () => {
-					props.resetField("useConfiguredModel");
-				}
-			}),
-			usingConfigured ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
-				/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ConfiguredModelPicker, {
-					disabled,
-					onPick: (provider, model) => {
-						props.edit("configuredProvider", provider);
-						props.edit("configuredModelId", model);
-					}
-				}),
-				/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ValueField, {
-					id: "settings-describe-image-configuredprovider",
-					label: t("field.configuredProvider"),
-					hint: t("field.configuredProvider.hint"),
-					...fieldProps,
-					...state.configuredProvider,
-					onEdit: (text) => {
-						props.edit("configuredProvider", text);
-					},
-					onReset: () => {
-						props.resetField("configuredProvider");
-					}
-				}),
-				/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ValueField, {
-					id: "settings-describe-image-configuredmodelid",
-					label: t("field.configuredModelId"),
-					hint: t("field.configuredModelId.hint"),
-					...fieldProps,
-					...state.configuredModelId,
-					onEdit: (text) => {
-						props.edit("configuredModelId", text);
-					},
-					onReset: () => {
-						props.resetField("configuredModelId");
-					}
-				})
-			] }) : null,
+		children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ChoiceField, {
+			id: "settings-describe-image-source",
+			label: t("field.useConfiguredModel"),
+			hint: t("field.useConfiguredModel.hint"),
+			inheritLabel: t("settings.inherit"),
+			choices: [{
+				value: "false",
+				label: t("field.useConfiguredModel.plugin")
+			}, {
+				value: "true",
+				label: t("field.useConfiguredModel.configured")
+			}],
+			...fieldProps,
+			...state.useConfiguredModel,
+			onEdit: (text) => {
+				props.edit("useConfiguredModel", text);
+			},
+			onReset: () => {
+				props.resetField("useConfiguredModel");
+			}
+		}), usingConfigured ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ConfiguredModelPicker, {
+			disabled,
+			selectedProvider: state.configuredProvider.text,
+			selectedModel: state.configuredModelId.text,
+			onPick: (provider, model) => {
+				props.edit("configuredProvider", provider);
+				props.edit("configuredModelId", model);
+			}
+		}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
+			className: S.hint,
+			children: t("configured.picker.usesConfigured")
+		})] }) : /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
 			/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ValueField, {
 				id: "settings-describe-image-baseurl",
 				label: t("field.baseURL"),
@@ -1247,7 +1246,7 @@ function DescribeImageSettingsCard(props) {
 					props.resetField("timeoutMs");
 				}
 			})
-		]
+		] })]
 	});
 }
 //#endregion

@@ -73,7 +73,8 @@ export const Config: z<Config> = z.object({
   maxOutputTokens: z.number().step(1).min(1).default(DEFAULT_MAX_OUTPUT_TOKENS),
   timeoutMs: z.number().min(1).default(DEFAULT_TIMEOUT_MS),
   apiStyle: z.union(API_STYLES).default(DEFAULT_API_STYLE),
-  useConfiguredModel: z.boolean().default(false),
+  // 默认复用 DSH 模型设置（设置 > 模型）：用户只需在下拉里选模型。
+  useConfiguredModel: z.boolean().default(true),
   configuredProvider: z.string(),
   configuredModelId: z.string(),
 })
@@ -106,7 +107,14 @@ export interface ResolvedConfig {
  * @returns validated facts.
  */
 export function resolveConfig(config: Config): ResolvedConfig {
-  const useConfiguredModel = config.useConfiguredModel === true
+  let useConfiguredModel = config.useConfiguredModel === true
+  const configuredProvider = (config.configuredProvider ?? '').trim()
+  const configuredModelId = (config.configuredModelId ?? '').trim()
+  // 默认开启 configured 模式但尚未选择模型时，降级为自定义端点（不报错）：
+  // 新部署开箱即用，用户只需在设置卡下拉里选一个已配置模型。
+  if (useConfiguredModel && (configuredProvider.length === 0 || configuredModelId.length === 0)) {
+    useConfiguredModel = false
+  }
   const baseURL = (config.baseURL ?? '').trim().replace(/\/+$/, '')
   if (!useConfiguredModel && !/^https?:\/\//.test(baseURL)) {
     throw new Error('describe-image: baseURL must be an absolute http(s) URL')
@@ -114,14 +122,6 @@ export function resolveConfig(config: Config): ResolvedConfig {
   const model = (config.model ?? '').trim()
   if (!useConfiguredModel && model.length === 0) {
     throw new Error('describe-image: model must be a non-empty model id')
-  }
-  const configuredProvider = (config.configuredProvider ?? '').trim()
-  const configuredModelId = (config.configuredModelId ?? '').trim()
-  if (useConfiguredModel && configuredProvider.length === 0) {
-    throw new Error('describe-image: configuredProvider must name a DSH model provider')
-  }
-  if (useConfiguredModel && configuredModelId.length === 0) {
-    throw new Error('describe-image: configuredModelId must name a vision model of that provider')
   }
   const apiKey = config.apiKey
   if (apiKey !== undefined && apiKey.length === 0) {

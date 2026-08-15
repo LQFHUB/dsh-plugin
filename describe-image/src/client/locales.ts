@@ -58,6 +58,7 @@ export const zh = {
   'configured.picker.placeholder': '选择已配置的视觉模型…',
   'configured.picker.empty': '模型设置中暂无支持图像的模型；请先在 设置 > 模型 配置。',
   'configured.picker.failed': '无法加载可用模型列表。',
+  'configured.picker.usesConfigured': '端点、密钥与协议均来自模型设置（设置 > 模型），无需在此配置。',
 } satisfies Record<string, string>
 
 /** The describe-image client namespace key union. */
@@ -121,6 +122,7 @@ export const en = {
   'configured.picker.placeholder': 'Pick a configured vision model…',
   'configured.picker.empty': 'No image-capable models in model settings yet; configure one in Settings > Models first.',
   'configured.picker.failed': 'Could not load the available models.',
+  'configured.picker.usesConfigured': 'Endpoint, key and protocol all come from the model settings (Settings > Models); nothing else to configure here.',
 } satisfies Record<string, string>
 
 /** The two dictionaries, keyed by language. */

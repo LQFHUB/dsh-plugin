@@ -627,7 +627,7 @@ const Config = z.object({
 	maxOutputTokens: z.number().step(1).min(1).default(DEFAULT_MAX_OUTPUT_TOKENS),
 	timeoutMs: z.number().min(1).default(DEFAULT_TIMEOUT_MS),
 	apiStyle: z.union(API_STYLES).default(DEFAULT_API_STYLE),
-	useConfiguredModel: z.boolean().default(false),
+	useConfiguredModel: z.boolean().default(true),
 	configuredProvider: z.string(),
 	configuredModelId: z.string()
 });
@@ -642,15 +642,14 @@ const DESCRIBE_IMAGE_SETTINGS_NAMESPACE = settingsNamespace("describe-image");
 * @returns validated facts.
 */
 function resolveConfig(config) {
-	const useConfiguredModel = config.useConfiguredModel === true;
+	let useConfiguredModel = config.useConfiguredModel === true;
+	const configuredProvider = (config.configuredProvider ?? "").trim();
+	const configuredModelId = (config.configuredModelId ?? "").trim();
+	if (useConfiguredModel && (configuredProvider.length === 0 || configuredModelId.length === 0)) useConfiguredModel = false;
 	const baseURL = (config.baseURL ?? "").trim().replace(/\/+$/, "");
 	if (!useConfiguredModel && !/^https?:\/\//.test(baseURL)) throw new Error("describe-image: baseURL must be an absolute http(s) URL");
 	const model = (config.model ?? "").trim();
 	if (!useConfiguredModel && model.length === 0) throw new Error("describe-image: model must be a non-empty model id");
-	const configuredProvider = (config.configuredProvider ?? "").trim();
-	const configuredModelId = (config.configuredModelId ?? "").trim();
-	if (useConfiguredModel && configuredProvider.length === 0) throw new Error("describe-image: configuredProvider must name a DSH model provider");
-	if (useConfiguredModel && configuredModelId.length === 0) throw new Error("describe-image: configuredModelId must name a vision model of that provider");
 	const apiKey = config.apiKey;
 	if (apiKey !== void 0 && apiKey.length === 0) throw new Error("describe-image: apiKey must be non-empty when set");
 	let apiKeyEnv;
