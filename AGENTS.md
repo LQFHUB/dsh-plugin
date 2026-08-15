@@ -26,7 +26,15 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 28 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 29 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-08-16 新增 theme-center/AGENTS.md 主题开发规范（以后主题开发按此执行）
+
+- 变更内容：新建 `theme-center/AGENTS.md`（用户指示"以后主题开发都按照这个规范来"）——沉淀 theme-center 开发全过程的规范：① 定位边界（纯视觉呈现层、纯浏览器切换、不写配置不重载）；② 包结构与文件职责表；③ 新增/更新皮肤流程（上游 bundle 零修改复用 + THEMES 注册表 + lib/meta 元数据 + 验证 + 记录）；④ 主题引擎机制（同源护栏分发路由、内核模块执行路径、miniCtx、串行泵、切换/残留回滚语义、持久化键、标题链基线）；⑤ 皮肤/UI 契约（--dsw-alias-* 令牌、body 属性作用域、disposer 全量收回、主题适配必须、内联资源）；⑥ 112 验证清单与 111 部署流程（含延迟 detach 重启）；⑦ 本目录变更记录机制；该文件已随工作区指令注入 theme-center 目录上下文
+- 涉及路径：`theme-center/AGENTS.md`、`AGENTS.md`
+- 备注：规范内容源自 2026-08-15 theme-center 开发与 112 验证全过程（含标题还原链缺陷修复、同源护栏、残留回滚配方等实测结论）
+
+</details>
 
 ### 2026-08-16 describe-image 保存卡死修复 + 设置卡只留模型下拉（去掉「模型来源」）+ opencode-go baseURL 配置并 112 实测通过
 
