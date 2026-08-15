@@ -34,14 +34,12 @@
 - 涉及路径：`AGENTS.md`（仅记录，验证脚本已清理）
 - 备注：样式修复版仅部署 112；按流程待用户确认后部署 111（样式统一 + 皮肤适配验证版）
 
-### 2026-08-16 navbar 修复
 ### 2026-08-16 notify-sound 样式统一：卡片改用官方皮肤令牌体系（对齐 theme-center/官方卡）并 112 实测通过
 
 - 变更内容：用户反馈"提示音卡片和其他卡片样式不统一"——实测对比（playwright 计算样式）：官方 Shell 卡与 theme-center 主题卡均用 `--dsw-alias-*` 皮肤令牌（border-l2 边框、bg-layer-3/2 背景、label-dimmed hover/展开边框、label-primary 15px 600 名称、label-tertiary 描述），而 ns-card 误用不存在的 `--dsw-alias-line-divider`（fallback #e5e5e5 生效）+ 硬编码字号/间距（名称 14px、header padding 12/14 gap 10、无 hover/focus-visible/展开态区分）。修复：`lib/client.js` 卡片 CSS 整体换用与 theme-center 相同的令牌与数值——卡片 `border:1px solid var(--dsw-alias-border-l2)` + `bg-layer-3` + `border-radius:12px` + hover 边框 `label-dimmed` + 展开态 `bg-layer-2`；header `padding:14px 16px;gap:12px;border-radius:12px` + focus-visible 品牌色 outline；名称 15px/600 `label-primary`、描述 13px `label-tertiary`；body `border-top` + `margin:0 16px` 同 theme；行改透明边框 + hover `interactive-bg-hover`；按钮/下拉同 tc-pill/tc-btn 令牌（border-l2、13px、hover label-dimmed）；字符箭头换 theme 同款 SVG chevron（rotate 180deg）
 - 涉及路径：`notify-sound/lib/client.js`、`notify-sound/README.md`、`AGENTS.md`；112 上 `/root/.dsh/external/notify-sound`（已同步并重启）
 - 备注：测试全绿（宿主 34 + 浏览器 43 断言不变）；112 实测 **6/6 全过**——ns-card 与 tc-card 计算样式逐项相等（边框色/背景/圆角/header padding 14-16/gap 12/名称 15px-600/chevron SVG 同款）、无 console 错误；按流程待用户确认后部署 111
 
-### 2026-08-16 navbar 修复：窄窗口导航条侵入对话流
 ### 2026-08-16 navbar 修复：窄窗口导航条侵入对话流（position 钳制到对话流左缘左侧）并 112 实测通过
 
 - 变更内容：用户反馈"112 上导航条在对话流中展示，位置明显有问题"——复现定位根因：对话流 896px 固定居中，视口 ≤1280px 时其左缘左移（1280px：flow.left=328；1152/1024px：flow.left=312），而导航条固定在 `sidebar.right + 12`（292~332）→ **1280px 重叠 4px、1152/1024px 重叠 20px**，压住对话消息。修复：`position()` 增加钳制 `next = min(anchor, flowLeft - bar.offsetWidth - 8)`——导航条右缘**绝不越过对话流左缘**（保留 8px 间隙）；空间充足（视口 ≥1366px）行为不变仍贴侧边栏 +12，空间不足时导航条左移（1280px 贴 flow 左缘、1152/1024px 微盖侧边栏右缘 16px，两害相权不碰消息）；`src/client/index.ts` 与构建产物 `lib/client.js`（md5 `1fe8d5e0`）同步、README 更新
