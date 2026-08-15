@@ -4,6 +4,8 @@
 > 支持**试穿 / 应用 / 持久记忆**、亮暗预览与背景遮罩调节。
 > 皮肤与卡片交互参考 [zhu1090093659/dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui)
 > 的皮肤中心（skin-center）实现，10 款皮肤 bundle 原样复用（BSD-3-Clause，见 [LICENSE](LICENSE)）。
+> 已部署：AI-2（192.168.31.112，效果验证）与 AI（192.168.31.111，正式使用），
+> 均为 `/root/.dsh/external/theme-center` link 方式安装。
 
 ---
 

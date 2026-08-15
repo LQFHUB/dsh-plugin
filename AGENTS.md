@@ -26,7 +26,15 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 18 条，点击展开，最新在最上面）</summary>
+<summary>📜 变更记录（共 19 条，点击展开，最新在最上面）</summary>
+
+### 2026-08-15 theme-center 部署到 111（AI 主机，正式使用）
+
+- 变更内容：插件部署到本机 111（AI，`/root/.dsh/external/theme-center`，`dsh plugin add link:` 安装，bundles 已登记，client.js md5 与 112 验证版本一致）；延迟 detach 触发 `systemctl restart dsh-web.service`（避免中断当前回合，前端自动重连恢复）；README 部署目标更新为 112（验证）+ 111（正式使用）
+- 涉及路径：`theme-center/README.md`、`AGENTS.md`；111 上 `/root/.dsh/external/theme-center`（安装）
+- 备注：111 为 systemd 服务（dsh-web.service）；重启后需验证服务 active 与页面注入 `theme-center/client.js`
+
+</details>
 
 ### 2026-08-15 新增 theme-center 主题插件：集成 dsh-web-ui 全部 10 款皮肤 + 「主题」设置卡片
 
