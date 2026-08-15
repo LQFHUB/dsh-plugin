@@ -14,6 +14,18 @@
 - 每个功能文件夹内应有自己的说明文档（如 `README.md`），描述该功能的用途和使用方法。
 - 通用、跨功能共享的代码或配置，应放在单独的 `shared/`（或明确命名的）目录中，避免在功能目录间复制。
 
+### 现有插件一览
+
+| 文件夹 | 作用 | 部署状态 |
+|:---|:---|:---|
+| `chat-width-customizer/` | 聊天区宽度定制（预设档位，localStorage 持久化） | 111/112 已部署 |
+| `theme-center/` | 主题中心：10 款皮肤 + 「主题」设置卡（试穿/应用/亮暗/遮罩）；其他插件 UI 需适配它（见第六节主题适配契约） | 111/112 已部署 |
+| `web-lan/` | dsh Web 局域网直连（免反代）：crypto polyfill + apiProxy relay + isLoopback | 111/112 已部署 |
+| `navbar/` | 对话节点导航条（贴左侧边栏，节点跳转/悬停预览/pin 精选，中英文定位） | 111/112 已部署 |
+| `notify-sound/` | 会话提示音（Web Audio 合成 6 音、事件触发、配置跨浏览器同步、提示音设置卡，皮肤令牌适配） | 111/112 已部署 |
+| `describe-image/` | 图像理解工具（视觉模型描述图片，configured 模式复用已配置模型 + 「图像理解」设置卡） | 112 验证通过；111 待用户确认部署 |
+| `right-panel/` | 右侧面板（文件树/多格式预览/SCM 变更面板，语法高亮，harbor/trading 皮肤适配层） | 112 验证通过；111 待用户确认部署 |
+
 ## 三、添加新功能的流程（必须遵守）
 
 1. **先询问，再动手**：在添加任何新功能之前，Agent 必须先询问用户：是否创建一个新文件夹来开发该功能（还是放进现有文件夹）。
@@ -26,7 +38,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 30 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 21 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-08-16 新增"现有插件一览"表格 + 变更记录归档（保留 20 条，12 条移入 CHANGELOG）
+
+- 变更内容：第二节新增"现有插件一览"表格（7 个插件文件夹：chat-width-customizer/theme-center/web-lan/navbar/notify-sound/describe-image/right-panel 的作用与部署状态）；同时按归档机制执行归档——记录达 32 条，保留最新 20 条，最旧 12 条移至 CHANGELOG.md 顶部
+- 涉及路径：`AGENTS.md`、`CHANGELOG.md`
+- 备注：用户指示"将当前目录下的插件目录、作用更新到AGENTS.md文件"
 
 ### 2026-08-16 navbar 修复：中文界面 sidebarOf 匹配失败致导航条落入对话流（两级锚点：按钮中英 aria-label + 分隔条兜底）并 112 双语言实测通过
 
@@ -34,11 +52,13 @@
 - 涉及路径：`navbar/src/client/index.ts`、`navbar/lib/client.js`、`navbar/README.md`、`AGENTS.md`；112 上 `/root/.dsh/external/navbar`（已同步并重启）
 - 备注：**112 实测全过（双语言）**——zh-CN 与 en-US × 1920/1280 视口：**展开态 bar.left = sidebar.right + 12（292=280+12，两语言一致）**、窄窗口钳制 gap=8 不侵入对话流、无 console 错误；中文环境折叠跟随（「收起侧边栏」→ bar 67=56+11）与还原（「打开侧边栏」→ 292 delta=12）完整通过；opencode-go mimo-v2.5 视觉模型实看 zh-1920 截图确认「导航条位于侧边栏右缘紧邻位置（+10~15px）、未遮挡消息、布局协调」；修复过程发现 112 会话树类名 `.YDXeBa_sessionRow` 为真实会话节点（`projectRow` 是工作区分组，误点无对话流）
 
+
 ### 2026-08-16 新增 theme-center/AGENTS.md 主题开发规范（以后主题开发按此执行）
 
 - 变更内容：新建 `theme-center/AGENTS.md`（用户指示"以后主题开发都按照这个规范来"）——沉淀 theme-center 开发全过程的规范：① 定位边界（纯视觉呈现层、纯浏览器切换、不写配置不重载）；② 包结构与文件职责表；③ 新增/更新皮肤流程（上游 bundle 零修改复用 + THEMES 注册表 + lib/meta 元数据 + 验证 + 记录）；④ 主题引擎机制（同源护栏分发路由、内核模块执行路径、miniCtx、串行泵、切换/残留回滚语义、持久化键、标题链基线）；⑤ 皮肤/UI 契约（--dsw-alias-* 令牌、body 属性作用域、disposer 全量收回、主题适配必须、内联资源）；⑥ 112 验证清单与 111 部署流程（含延迟 detach 重启）；⑦ 本目录变更记录机制；该文件已随工作区指令注入 theme-center 目录上下文
 - 涉及路径：`theme-center/AGENTS.md`、`AGENTS.md`
 - 备注：规范内容源自 2026-08-15 theme-center 开发与 112 验证全过程（含标题还原链缺陷修复、同源护栏、残留回滚配方等实测结论）
+
 
 ### 2026-08-16 describe-image 保存卡死修复 + 设置卡只留模型下拉（去掉「模型来源」）+ opencode-go baseURL 配置并 112 实测通过
 
@@ -46,11 +66,13 @@
 - 涉及路径：`describe-image/`（src/client/settings-scope.ts、src/client/DescribeImageSettingsCard.tsx、tests/client-scope.spec.ts、lib/client.js、README.md）、`AGENTS.md`；112 上 `/root/.dsh/external/describe-image`（已同步并重启）
 - 备注：112 实测全过——**保存链路**（playwright 真实 selectOption + .di-save 点击：切 kimi-k3 → 保存 → 服务端落盘 → 刷新回显；切回 mimo-v2.5 → 保存 → 还原；无 console 错误；排查时发现「保存」正则误匹配卡片标题"有未保存的修改"子串导致误点标题=折叠卡片，验证脚本须用 `.di-save` 精确选择）；**卡片只显示模型下拉**（无「模型来源」toggle）；**configured 模式真实调用链路打通**——opencode-go 是 pi-ai 内置 catalog provider（端点 `https://opencode.ai/zen/go`，mimo-v2.5 目录声明 openai-completions + `input:[text,image]`），但其 profile 无 baseURL 会触发 resolveConfiguredVision 报错，已用 DSH 自己的 yaml setIn 序列化路径给 111/112 的 `llm-pi-ai.providers.opencode-go` 补 `baseURL: https://opencode.ai/zen/go/v1`（带 /v1；实测 `…/v1/chat/completions` + 凭证 → HTTP 200 返回 "Red"，不带 /v1 为 404；settings.yaml 为 DSH 自定义 flow 风格，手写行会被 yaml 包报 "Missing , between flow map items" 而 settings-file 解析即抛错——必须经 setIn 规范化写入）；两机凭证均含 OPENCODE_GO_API_KEY；**111 部署文件已同步（client.js md5 `43378e11`），需重启 dsh-web.service 生效——待用户确认**；112 验证后配置已还原 configuredProvider=opencode-go / configuredModelId=mimo-v2.5；验证脚本已清理
 
+
 ### 2026-08-16 新增"主题适配（必须）"开发契约：插件 UI 必须跟随 theme-center 主题切换
 
 - 变更内容：第六节"皮肤/UI 插件开发契约"新增强制条目——插件 UI 样式必须使用官方皮肤令牌（`--dsw-alias-*`）或皮肤变量，不得硬编码颜色/背景/边框；个别皮肤缺令牌时按 right-panel/notify-sound 先例补皮肤限定适配层（选择器限定 body[data-dsh-<skin>] 补丁），不得全局覆盖
 - 涉及路径：`AGENTS.md`
 - 备注：用户指示"开发的插件主题要适配主题插件切换主题"；right-panel（harbor/trading 适配层）、notify-sound（10 款皮肤 + 暗色 33/33 实测）为本规范先例
+
 
 ### 2026-08-16 notify-sound 皮肤适配实测：10 款皮肤 + 暗色模式全过（ns-card 与主题卡逐项一致）
 
@@ -58,11 +80,13 @@
 - 涉及路径：`AGENTS.md`（仅记录，验证脚本已清理）
 - 备注：样式修复版仅部署 112；按流程待用户确认后部署 111（样式统一 + 皮肤适配验证版）
 
+
 ### 2026-08-16 notify-sound 样式统一：卡片改用官方皮肤令牌体系（对齐 theme-center/官方卡）并 112 实测通过
 
 - 变更内容：用户反馈"提示音卡片和其他卡片样式不统一"——实测对比（playwright 计算样式）：官方 Shell 卡与 theme-center 主题卡均用 `--dsw-alias-*` 皮肤令牌（border-l2 边框、bg-layer-3/2 背景、label-dimmed hover/展开边框、label-primary 15px 600 名称、label-tertiary 描述），而 ns-card 误用不存在的 `--dsw-alias-line-divider`（fallback #e5e5e5 生效）+ 硬编码字号/间距（名称 14px、header padding 12/14 gap 10、无 hover/focus-visible/展开态区分）。修复：`lib/client.js` 卡片 CSS 整体换用与 theme-center 相同的令牌与数值——卡片 `border:1px solid var(--dsw-alias-border-l2)` + `bg-layer-3` + `border-radius:12px` + hover 边框 `label-dimmed` + 展开态 `bg-layer-2`；header `padding:14px 16px;gap:12px;border-radius:12px` + focus-visible 品牌色 outline；名称 15px/600 `label-primary`、描述 13px `label-tertiary`；body `border-top` + `margin:0 16px` 同 theme；行改透明边框 + hover `interactive-bg-hover`；按钮/下拉同 tc-pill/tc-btn 令牌（border-l2、13px、hover label-dimmed）；字符箭头换 theme 同款 SVG chevron（rotate 180deg）
 - 涉及路径：`notify-sound/lib/client.js`、`notify-sound/README.md`、`AGENTS.md`；112 上 `/root/.dsh/external/notify-sound`（已同步并重启）
 - 备注：测试全绿（宿主 34 + 浏览器 43 断言不变）；112 实测 **6/6 全过**——ns-card 与 tc-card 计算样式逐项相等（边框色/背景/圆角/header padding 14-16/gap 12/名称 15px-600/chevron SVG 同款）、无 console 错误；按流程待用户确认后部署 111
+
 
 ### 2026-08-16 navbar 修复：窄窗口导航条侵入对话流（position 钳制到对话流左缘左侧）并 112 实测通过
 
@@ -70,11 +94,13 @@
 - 涉及路径：`navbar/src/client/index.ts`、`navbar/lib/client.js`、`navbar/README.md`、`AGENTS.md`；112 上 `/root/.dsh/external/navbar`（已同步并重启）
 - 备注：**112 实测全过**（playwright-core + chromium headless，修复前后对比）——修复前 6 视口（1920/1600/1366/1280/1152/1024）：1280 起重叠 4~20px；修复后全视口 overlap=false、gap≥8px（1920/1600/1366 保持 sideDelta=+12 贴侧边栏、1280 bar.left=280 贴 flow 左缘、1152/1024 bar.left=264 gap=8 不碰对话流）、无 console 错误；完整回归（展开 delta=12/折叠跟随/预览朝右弹出/节点数=user 行/active 药丸）全过；112 服务已重启（pid 133397）下发新 rev
 
+
 ### 2026-08-16 describe-image 设置卡极简化：configured 模式默认开启、只显示模型下拉（用户要求"只选已配置模型，不配协议/apikey"）
 
 - 变更内容：用户反馈"现在还是要填写一堆参数，我只希望选择当前已配置的模型即可"——设置卡重构：① `useConfiguredModel` schema 默认改 `true`（新部署开箱即用），未选择模型时 `resolveConfig` 自动降级自定义端点（不报错，首次调用给清晰提示）；② configured 模式**只显示「可用视觉模型」下拉**（选中即填充 provider/模型，端点/密钥/协议全部来自模型设置），其余字段（baseURL/model/apiKey/apiKeyEnv/apiStyle/defaultPrompt/上限）全部隐藏，切到「自定义端点」才显示；③ 修复 boolean 字段渲染 BUG：settings 服务返回 boolean `true` 而 `choiceField` 只认字符串 → 卡片误判为非 configured 分支，改用 `booleanField`；测试 **153 用例全绿**
 - 涉及路径：`describe-image/`（src/config-resolve.ts、src/client/{DescribeImageSettingsCard,locales}.tsx/ts、tests/configured-models.spec.ts、lib/、README.md）、`AGENTS.md`
 - 备注：112 实测全过——设置卡默认「使用已配置模型」、接口地址/API Key/接口协议均隐藏、下拉列出「Xiaomi MiMo / MiMo V2.5」；选模型 → 保存 → settings 用户层写入 `configuredProvider=xiaomi`/`configuredModelId=mimo-v2.5`；真实调用（模型设置解析端点/密钥 → xiaomimimo）返回描述文本；无 console 错误；验证脚本已清理
+
 
 ### 2026-08-16 新增 notify-sound 会话提示音插件（参考 dsh-plugin-notify-sound 裁剪：仅内置音 + 配置全浏览器同步）并测试全绿
 
@@ -82,17 +108,20 @@
 - 涉及路径：`notify-sound/`（package.json、cordis.patch.yml、lib/{index,client}.js、tests/{test-host,test-client}.mjs、README.md、LICENSE）、`AGENTS.md`
 - 备注：测试全绿——宿主 34 断言（schema 默认值/命名空间注册/路由 GET·POST·unset·403·400·405·422·404）+ 浏览器 43 断言（fake window+内存 settings 服务：回合结束默认 chime、quietCurrent/enabled 开关、5 类注意事件、goal blocked 单次不重复、job 完成/失败、定时/聚焦/可见刷新跨浏览器同步、脏数据 sanitize、路由不可达降级默认值、卡片 7 下拉/8 按钮/2 复选）；本地测试经 `node_modules/@deepseek-ai` symlink 解析（@deepseek-ai/* 未发布 npm，部署同流程，见 describe-image README）；**112 已部署验证全过**（link 安装 + schemastery/dsh-settings symlink + 重启；curl GET/POST/unset/403/400/405 + settings.yaml 落盘；playwright chromium 18/18：卡片渲染/默认值/修改持久化/试听发声/刷新回显/双页面同步/无错误，验证后配置已还原默认，验证脚本已清理）；**111 已部署验证通过**（用户确认后重启 dsh-web.service，playwright 5/5：bundle 注入/作用域/样式/卡片渲染/无错误）
 
+
 ### 2026-08-16 111 左侧导航条验证一：16 项实测全过 + pin 精选全链路 + 3 项观察记录
 
 - 变更内容：按用户指示对 111 已部署的左侧导航条（左侧改造版，md5 `779b0905`）做第一轮独立浏览器实测（playwright-core 1.62 + chromium-1234 headless，全程只读，未改动任何部署/代码）——① 部署一致性：部署目录/仓库/服务端下发三方 md5 一致，`__DSH_BOOT__` 登记 `@vlln/dsh-navbar`（rev `e9d1baa1f5fc`，inject dsh-client-runtime/dsh-client-ui-primitives）；② 左侧定位 `bar.left = sidebar.right + 12`（292=280+12）；③ 节点数 = user 行数（2/2、3/3、5/5 多会话一致）；④ 激活药丸恰 1 个；⑤ 悬停预览卡（文本正确、朝对话区右侧弹出、.hover 加长）；⑥ 点击跳转（scrollTop 变化 + 激活跟随 + 目标行贴滚动容器顶 delta=0，容器顶在视口 76px 系页面头部，非缺陷）；⑦ <2 条自动隐藏（0/1 行会话 bar=none）；⑧ **pin 精选全链路**（📌 data-active + 行 data-vlln-pinned + 导航点 .pinned 金色，按序布局会话实测通过并还原）；⑨ 无 console/page 错误、style 唯一
 - 涉及路径：`AGENTS.md`（仅记录，无代码改动；验证脚本 /tmp/navbar-*.mjs）
 - 备注：**观察项（非阻断，均无视觉影响）**：① 切至 <2 行会话时 bar 隐藏但旧 dots 残留 DOM（display:none，下次重建清除）；② 流式进行中（Running）会话的 turnTail 行临时位于流顶部（user 行 0 之前），此刻 pin 金色节点暂不出现，回合落定按序后恢复——瞬态；③ 111 现有会话最多 5 条 user 消息，>11 滑动窗口无法在本机复现（112 已实测 16 条场景）；会话列表全程动态变化（并行会话活跃），多次扫描均按实际行定位
 
+
 ### 2026-08-16 navbar 改造：对话节点导航条移至左侧（贴左侧边栏右缘）并 111/112 双机验证通过
 
 - 变更内容：用户指示"左侧导航条"——navbar 定位由对话区右缘改为**贴左侧边栏右缘**（`sidebarOf()`：定位 `Collapse/Open/Expand sidebar` 按钮所在侧栏实体容器，`bar.left = sidebar.right + 12`，兜底贴对话流左缘内侧）；悬停预览卡由节点左侧弹出改为**右侧弹出**（朝对话区，`preview.left = r.right + 14`）；`sizeObserver` 增观察侧栏容器（折叠/展开实时跟随）；`src/client/index.ts` 与构建产物 `lib/client.js`、README 同步；111/112 已部署（两机 bundle md5 一致 `779b0905`）
 - 涉及路径：`navbar/src/client/index.ts`、`navbar/lib/client.js`、`navbar/README.md`、`AGENTS.md`；111/112 上 `/root/.dsh/external/navbar`（已同步）
 - 备注：**验证全过**——111（playwright-core+chromium headless）**16/16**：左侧定位 delta=12、节点数=user 行、悬停预览右侧弹出、点击跳转目标行贴滚动容器顶 **delta=0**、折叠侧边栏导航条跟随左移（292→67）且折叠态仍保持 +12、展开还原、style 唯一、无 console 错误；112 功能项全过（定位/悬停/折叠跟随/还原，跳转在可滚动场景 delta=0 精确）；两处测试环境误报已澄清：① 跳转对齐断言原写"目标行距视口顶 ≤60"，实际滚动容器顶在视口 76px（页面头部），修正为对比容器顶 → delta=0 精确；② 112 现有会话均为短会话（maxScroll=0 无法滚动），缩小视口复测 dot[0] 跳转 delta=0、dot[1] 因目标已完全可见不滚动（scrollIntoView 语义，非缺陷）
+
 
 ### 2026-08-16 describe-image 支持复用 DSH 模型设置中已配置的视觉模型（configured 模式）并 112 实测通过
 
@@ -101,11 +130,13 @@
 - 备注：112 实测全过——`settings.yaml` 写入 `llm-pi-ai.providers.xiaomi`（apiKeyEnv: XIAOMI_MIMO_API_KEY、mimo-v2.5 `input: [text,image]`）后 `/describe-image/models` 返回 mimo-v2.5；真实 dsh-llm + pi-ai adapter 组合下 configured 模式工具端到端调用成功（模型设置解析 baseURL/密钥 → xiaomimimo 返回描述）；浏览器设置卡「模型来源」切换 + 下拉列出「Xiaomi MiMo / MiMo V2.5（xiaomi / mimo-v2.5）」、无 console 错误；验证脚本已清理；**本次同时执行首次归档**（记录达 30 条：保留最新 20 条，最早 11 条移至 CHANGELOG.md）
 
 
+
 ### 2026-08-16 right-panel 预览列默认折叠：刷新页面后不自动展示（恢复 tab 但列收起）
 
 - 变更内容：用户反馈"有侧边栏+代码查看侧边栏不要默认展示，比如刷新页面默认折叠"——explorer 已默认折叠；预览列（代码查看）根因：preview store `setRoot` 恢复持久化 tabs 时 `open: tabs.length > 0`（刷新后恢复的 tab 自动展开预览列 480px）。修复：恢复 tabs 但 `open: false`（预览列保持折叠；open 状态本就不持久化，用户点文件时 openFile 置 true 展开）；冒烟测试新增两条断言（不再按 tabs 自动展开 + open: false）
 - 涉及路径：`right-panel/lib/client.js`、`right-panel/tests/smoke.mjs`、`right-panel/README.md`、`AGENTS.md`；112 上 `/root/.dsh/external/right-panel`（同步）
 - 备注：112 实测 **4/4 断言全过**——打开文件预览列展开 480px、刷新后预览列默认折叠 1px、再次点文件重新展开 480px、无页面错误；**按部署流程：待用户确认后再部署 111**
+
 
 ### 2026-08-16 right-panel 语法高亮 + 文件类型补充（.config 等）并 112 实测通过
 
@@ -113,11 +144,13 @@
 - 涉及路径：`right-panel/lib/client.js`、`right-panel/tests/smoke.mjs`、`right-panel/README.md`、`AGENTS.md`；112 上 `/root/.dsh/external/right-panel`（同步）
 - 备注：112 实测 **11/11 断言全过**——.ts 打开且 24 个高亮 span、.py 12 个 span、.config 正常打开（不再 unsupported）、markdown 代码块高亮、XSS 安全（含 `<script>` 文本无注入）、高亮 style 注入、暗色下关键字配色生效 rgb(77,159,255)、无 console 错误；测试文件（rp-test.*）已清理；验证中发现 112 当前会话已是 ruoyi-vue-pro 项目（并行会话创建），测试文件临时放项目目录测完即删；**按新部署流程：待用户确认后再部署 111**
 
+
 ### 2026-08-16 修订部署流程：112 验证通过后先询问，用户同意才部署 111
 
 - 变更内容：第三节第 6 点"部署验证"规则修订——明确 112 验证通过后**必须询问用户是否部署 111**，用户同意后才可部署；原因：111 部署需重启 dsh-web.service，会中断该机其他进行中的任务，不得自动执行
 - 涉及路径：`AGENTS.md`
 - 备注：用户指示"插件开发完成不要安装到111，先在112上验证好，问我要不要部署到111，我同意后再部署111"
+
 
 ### 2026-08-16 describe-image 修复：设置卡新增 /describe-image/settings 读写接缝（绕过官方命名空间白名单）并 112 实测通过
 
@@ -125,11 +158,13 @@
 - 涉及路径：`describe-image/`（src/settings-routes.ts、src/client/settings-scope.ts、src/{index,attach-routes,client/index}.ts、tests/{settings-routes,client-scope}.spec.ts、lib/、README.md）、`AGENTS.md`
 - 备注：112 实测全过——curl GET/POST settings 路由（写入 baseURL/model → 用户层生效、redacted 视图不泄密钥）；浏览器（playwright-core+chromium headless）设置 → Plugins 卡渲染「图像理解」卡、展开显示 9 字段表单、已写入的 `baseURL=https://api.xiaomimimo.com/v1` `model=mimo-v2.5` 正确回显、无 notExposed 提示、无 console 错误（排查期间用 apply 探针确认 bundle apply/effect/样式注入均正常，此前"卡片未渲染"判断系 playwright tab 点击方式误报，原生 el.click() 正常）；describe-image 宿主依赖修复（`@deepseek-ai/schemastery` scoped + symlink）已随 112 部署生效，不再拖垮启动
 
+
 ### 2026-08-16 新增 navbar 对话节点导航条插件（零修改复用 vlln/dsh-navbar）并部署 112 验证 + 111 正式使用
 
 - 变更内容：新建 `navbar/` 文件夹（用户指示"参考 https://github.com/vlln/dsh-navbar 实现对话节点导航条"）——**零修改复用**上游（MIT，上游提交 `10e9d1546db2`）：官方 bundle 插件形态（`dsh.bundle.patch`→cordis.patch.yml insert `dsh-navbar`/`@vlln/dsh-navbar`，Node half 空 apply，client bundle 24KB 为 tsdown 构建产物，包名保留 `@vlln/dsh-navbar` 以保持 `__ModuleLoader__.load({id})` 与包名强绑定）；功能 = 对话区右缘等距节点串（每 user 消息一节点）、激活药丸跟随阅读位置、悬停预览卡（6 行截断）、整条连续悬停（间隙无死区）、滚轮切换、整条可点跳转（按最近节点）、>11 节点滑动窗口、<2 条 user 消息自动隐藏、精选 pin（assistant 操作条 📌，金色节点 + localStorage 按会话持久化）；零数据通道依赖，只靠官方锚点（`data-time-hover-root`/`data-chat-flow`/`data-turn-tail`/`conversation.chat.assistant-actions` 插槽，均已核对本机 0.1.0-rc.6 bundle 存在）；随仓库保留上游 src/ 与 tsdown.config.ts 以便改版重建
 - 涉及路径：`navbar/`（package.json、cordis.patch.yml、lib/{client.js,index.mjs}、src/{client/index.ts,index.mjs}、tsdown.config.ts、pnpm-workspace.yaml、README.md、LICENSE）、`AGENTS.md`；111/112 上 `/root/.dsh/external/navbar`（安装）、`/root/.dsh/profiles/web/`（依赖与 bundles 登记）
 - 备注：**112 实测全过**（playwright-core + chromium，多轮验证：无 stub 真实浏览器 5/5——bundle 注入、节点数=user 消息数、悬停预览、点击跳转+active 药丸、无页面错误；16 条消息长对话验证窗口截断 10 dots+more 细点、滚轮切换、间隙整条可点、active 跟随滚动到顶=首节点、样式单一 style 标签；<2 条 user 消息自动隐藏为设计行为）——验证期 112 为共享验证机，并行会话部署 right-panel/describe-image 多次重启服务致验证中断，重跑通过；期间发现并**临时移除** 112 上损坏的 dsh-right-panel（bundle id 未注册，UI 阻断）与缺 `@deepseek-ai/dsh-settings` 依赖的 dsh-describe-image（拖垮启动，并行会话已处理并恢复），验证完成后均已还原；**112 测试会话已清理**（删除 6 个验证创建的会话目录 + workspace.json/session_projcache.json 索引同步清理，备份 `.bak-navbar-cleanup`，112 现仅剩原有「验证通过」会话）；111 部署完成（delayed detach 重启 dsh-web.service 避免中断回合），111 实测 10/10 全过（bundle 注入、元素存在、1 条隐藏/2 条出现、节点数正确、悬停预览、点击跳转+active、无错误）；**用户看不到导航条的排查结论：需 Ctrl+Shift+R 强制刷新（bundle 仅页面加载时获取，自动重连不重拉）+ 打开 ≥2 条 user 消息的会话**；112 当前若重启会因 describe-image 缺依赖崩溃（并行会话处理中）
+
 
 ### 2026-08-16 right-panel 默认折叠侧边栏；目录问题澄清（用户确认展示的就是会话目录）
 
@@ -137,11 +172,13 @@
 - 涉及路径：`right-panel/lib/client.js`、`right-panel/tests/smoke.mjs`、`AGENTS.md`；112 上 `/root/.dsh/external/right-panel`（同步）
 - 备注：112 实测默认折叠 PASS——无持久化时 explorer 1px（折叠）+ 浮动展开按钮 flex + grid 5 轨含 0px；显式展开后 localStorage 写 `project-panel-collapse:<root>=expanded`，刷新后仍展开 260px；若用户浏览器存过 expanded 会记住展开（Ctrl+Shift+R 后仍展开可手动折叠一次，或清 localStorage）
 
+
 ### 2026-08-16 right-panel 主题适配：补齐 harbor/trading 两款皮肤的 --aion-* 面板变量
 
 - 变更内容：用户反馈"修改主题后右侧面板与主题不匹配"——调查确认 theme-center 10 款皮肤中 8 款自带面板适配（bundle 定义 `--aion-*` 变量 + `body[data-dsh-x] [data-aionui-*]` 微调样式，xp 实测跟随），**harbor（夕港）/ trading（交易终端）两款上游 bundle 完全缺适配**（0 变量，上游 npm 0.1.16 最新版同样缺失，为上游固有缺口）；实测 harbor 亮色下官方 UI 为深色半透明纱（`--dsw-alias-bg-layer-1:#181f36b3`、body color-scheme:dark）而面板白色 #f9fafb。方案：在 right-panel 浏览器半区新增**皮肤适配层**（`SKIN_ADAPT_CSS` 常量 + `skin-adapt` effect）——静态注入选择器限定的变量补丁（`body[data-dsh-harbor]` / `body[data-dsh-trading]` / `body[data-dsh-trading][data-ds-dark-theme]`），取值优先引用皮肤自身变量（var(--dsw-alias-*)/var(--dsh-trd-*)，皮肤调色实时跟随），fallback 为实测值；仅这两款皮肤应用时生效，其余 8 款不受干扰，style 随 disposer 收回（卸载/热重载无残留）
 - 涉及路径：`right-panel/lib/client.js`、`right-panel/tests/smoke.mjs`、`right-panel/README.md`、`AGENTS.md`；112 上 `/root/.dsh/external/right-panel`（同步）
 - 备注：112 实测 **16/16 断言全过**——harbor 面板背景 rgba(24,31,54,.7) 深蓝半透明+浅色文字（与官方 UI 一致）、trading 亮色 #fff/#1b2431、trading 暗色 #10151d/#dbe2ec、xp 等已适配皮肤回归不受影响、官方默认完全还原、无 console 错误；目录问题调查结论：面板根 = 会话创建时的静态 cwd（DSH 无会话内动态 workdir 机制，112 唯一 workspace=/root），目录问题后续澄清：用户确认看错，面板展示的就是当前会话目录（会话 cwd），无需代码改动（见下一条记录）
+
 
 ### 2026-08-16 新增 right-panel 右侧面板插件（复用 dsh-web-ui aionui-panel 产物）并部署 112 验证
 
@@ -149,79 +186,7 @@
 - 涉及路径：`right-panel/`（package.json、cordis.patch.yml、lib/index.js、lib/client.js、tests/smoke.mjs、README.md、LICENSE）、`AGENTS.md`；112 上 `/root/.dsh/external/right-panel`（安装）
 - 备注：112 部署验证通过——**link 安装注意：首次 `dsh plugin add link:` 只登记依赖、可能未进 `dsh.profile.bundles`（本次即如此），重跑一次 add（幂等）即补齐，装完务必 `dsh plugin list` / `--dump-config` 确认 bundle 已登记**；playwright-core + chromium 实测 21/21 断言全过（两列挂载/5 轨 grid/260px 默认/目录展开/预览 480px 与内容渲染/搜索命中/拖拽 1:1 与双击复位/折叠 1px 边框与浮动展开/SCM 非仓库降级/localStorage 持久化与刷新恢复/xp 皮肤并存）+ 拖文件入输入框 PASS；宿主路由全流程 curl 验证（读写/mtime 冲突/搜索/删除/门卫越界 403/SCM status·diff·stage·unstage·discard/untracked 删除/跨站 403/同源放行/SSE）；测试仓库 /root/rp-git-test 已清理；验证期间并行会话部署 describe-image 多次重启 112 服务致测试中断，重跑通过；⚠️ 112 当前 describe-image host bundle 引用 `@deepseek-ai/dsh-settings` 解析失败会拖垮启动（其部署会话处理中，与本插件无关），如遇 112 服务反复掉线可临时 `dsh plugin remove dsh-describe-image` 排查
 
-### 2026-08-16 新增 web-lan 局域网直连插件（免反代）并部署 112 验证 + 111 正式使用
 
-- 变更内容：新建 `web-lan/` 文件夹（host 插件 `@user/dsh-web-lan` v1.0.0）——dsh Web 局域网直连（免反代）三件套：① index.html 注入 crypto.randomUUID polyfill（纯 HTTP 局域网来源无安全上下文）；② 15 个特权 /api 方法（settings/credentials/host/agentPreset/llm.discoverModels）经 apiProxy relay 放行局域网客户端配置模型与插件；③ 重写 dsh-client-connection client.js 使浏览器端 isLoopback 恒为 true（插件配置卡片非本机可渲染）；bundle patch（cordis.patch.yml）自带 webserver 0.0.0.0:3080 配置，`dsh plugin add link:` 安装后自动应用，无需再手动改 profile patch；README/LICENSE 齐全，单元测试 node:test 9/9 通过（polyfill 注入、isLoopback 重写、relay 转发/500 兜底、特权方法清单）
-- 涉及路径：`web-lan/`（lib/index.js、package.json、cordis.patch.yml、README.md、LICENSE、test/index.test.js）、`AGENTS.md`；111/112 上 `/root/.dsh/external/web-lan`（安装）、`/root/.dsh/profiles/web/`（package.json 依赖与 bundles 登记、cordis.patch.yml 清空为 []）
-- 备注：旧临时版（`/root/AI/deepseek/dsh-web-lan` symlink + profile patch 手动安装）已按用户要求在 111/112 卸载（删 symlink、patch 清空，备份 `.bak-web-lan-v1`）；112 实测 4 项全过（polyfill marker、`isLoopback: true`、局域网来源 settings.describe/credentials.describe 返回业务响应、插件列表登记），111 同 4 项验证通过（111 安装由用户手动完成：安装命令中断后用户手动 `dsh plugin add` 并启动服务，安装结果与标准流程一致）
-
-### 2026-08-16 新增 describe-image 图像理解插件（参考 dsh-web-ui dsh-tool-describe-image 移植）
-
-- 变更内容：新建 `describe-image/` 文件夹（用户指示"参考 zhu1090093659/dsh-web-ui 实现图像理解插件"，对应其 `packages/dsh-tool-describe-image`，Apache-2.0 注明出处）——host 半区注册 `describe_image` 工具（本地路径 / http(s) URL / 附件引用 / 裸附件 id 四种输入 → OpenAI 兼容视觉端点，chat-completions / responses 双协议，只返回文本进对话，图片字节绝不进会话记录）+ `installSettingsSection` 注册 `describe-image` 设置命名空间 + `/describe-image` prefix 路由（POST attach 上传→附件存储→markdown 引用；GET raw/<id> 回读渲染；同源护栏）；浏览器半区（tsdown 构建，`window.__ModuleLoader__.load` 官方 bundle 格式）：发送改写（拖拽/粘贴图片 → describe-image 引用）+ 「图像理解」设置卡（官方槽位 `settings.plugin.item`，id `describe-image`，order 40，9 字段 staged form，secret 字段不回读）+ 中英词典；适配点：上游全家桶槽位 `web-ui.plugin.item` 改为官方槽位、CSS Modules 改内联样式（`body[data-dsh-describe-image]` 作用域）、新增同源护栏、包名 `dsh-describe-image`；配置默认留空可挂载，设置卡填写即时生效（端点为知识库已配置的 xiaomimimo `mimo-v2.5`，密钥走环境变量/设置卡 secret，不写明文）；测试 123 用例全绿（工具端到端 / attach 路由 / 设置 section / 真实 Loader+cordis.yml 组合 / 语义缓存 / 发送改写），`@deepseek-ai/dsh-*` 经 vitest alias 从本机 DSH 全局安装树解析（npm root -g）
-- 涉及路径：`describe-image/`（package.json、cordis.patch.yml、pnpm-workspace.yaml、tsdown.config.ts、tsconfig.json、vitest.config.ts、src/×15、tests/×8、lib/{index,invariant,client}.js、README.md、LICENSE）、`AGENTS.md`
-- 备注：构建产物 lib/ 随源码提交（link 安装直接可用）；本机 pnpm store 曾因共享挂载 `.pnpm-store/v11/index.db` 权限 000 报 SQLITE_ERROR，chmod 644 修复；测试需 DSH 环境（README 注明）；部署目标 112（验证）+ 111（正式使用），密钥建议 `XIAOMI_MIMO_API_KEY` 环境变量注入
-
-### 2026-08-15 theme-center 部署到 111（AI 主机，正式使用）
-
-- 变更内容：插件部署到本机 111（AI，`/root/.dsh/external/theme-center`，`dsh plugin add link:` 安装，bundles 已登记，client.js md5 与 112 验证版本一致）；延迟 detach 触发 `systemctl restart dsh-web.service`（避免中断当前回合，前端自动重连恢复）；README 部署目标更新为 112（验证）+ 111（正式使用）
-- 涉及路径：`theme-center/README.md`、`AGENTS.md`；111 上 `/root/.dsh/external/theme-center`（安装）
-- 备注：111 为 systemd 服务（dsh-web.service）；重启后需验证服务 active 与页面注入 `theme-center/client.js`
-
-### 2026-08-15 新增 theme-center 主题插件：集成 dsh-web-ui 全部 10 款皮肤 + 「主题」设置卡片
-
-- 变更内容：新建 `theme-center/` 文件夹（个人主题插件，纯视觉、不含宽度定制）——按用户指示参考 zhu1090093659/dsh-web-ui 的皮肤中心（skin-center）实现：在「设置 > 插件配置」注册「主题」卡片（官方槽位 `settings.plugin.item`，id `theme`，参考官方 bash/agent-loop 卡片外框与皮肤中心交互），内置该仓库全部 10 款皮肤（蓝色幻想/龙的传人/夕港/初音未来/Minecraft/QQ2008/同花顺/交易终端/鲸吟/XP，bundle 原样复用，BSD-3-Clause 注明出处），支持试穿/应用/持久记忆（localStorage `dsh-theme-center:active:v1`）、亮暗预览（官方 theme 服务）与背景遮罩滑杆（`--dsw-skin-scrim`）；宿主半区注册同源路由 `/api/theme-center/bundle/<id>`（webServer，带同源护栏）按需分发 `lib/skins/` 内 bundle，浏览器半区走内核 `__ModuleLoader__`/`__DSH_MODULES__` 执行（同皮肤中心 try-on 路径，无 eval、无配置写入、无页面重载）；miniCtx.get 委托真实上下文（ths/trading 可读 connection，缺失降级）
-- 涉及路径：`theme-center/`（package.json、cordis.patch.yml、lib/index.js、lib/client.js、lib/skins/×10、lib/meta/×10、README.md、LICENSE）、`AGENTS.md`
-- 备注：皮肤 bundle 约 1.3MB 原样内置；与 dsh-web-ui 皮肤中心不建议并存（README 已注明）；**已在 112 部署验证通过**（`/root/.dsh/external/theme-center` link 安装，bundle rev `ba60879d425c`；playwright-core + chromium headless 共 3 轮 40+ 断言全过：主题卡片 11 行、试穿/退出试穿完全还原、应用/持久化/刷新恢复、官方默认干净还原、亮暗预览、遮罩滑杆、10 款皮肤全量冒烟、xp/miku DOM 与标题链还原）；开发中发现并修复标题还原链缺陷（连续切换时后装皮肤会快照前一皮肤标题，挂载前统一重置为引擎基线）；ths/trading 行情请求 404/405/CORS 为上游 fail-safe 预期降级（未装 dsh-fun-ticker/dsh-longbridge），不影响使用
-
-### 2026-08-15 chat-width-customizer 部署到 111（AI 主机）并修复 pnpm 状态文件损坏
-
-- 变更内容：插件同步部署到 111（192.168.31.111，`/root/.dsh/external/chat-width-customizer`，`dsh plugin add link:` 安装，bundles 已登记）；修复 111 profile 的 `node_modules/.modules.yaml`（pnpm 状态文件损坏导致 pnpm 崩溃，备份为 `.modules.yaml.bak` 后删除重建）；重启 dsh-web.service（detach 延迟触发，避免中断当前回合）后验证通过：服务 active、页面注入 `chat-width-customizer/client.js?rev=979d48e91068`（与 112 同版本）；README 部署目标更新为 112（验证）+ 111（正式使用）
-- 涉及路径：`chat-width-customizer/README.md`、`AGENTS.md`；111 上 `/root/.dsh/external/chat-width-customizer`、`/root/.dsh/profiles/web/`（安装与修复）
-- 备注：111 为 systemd 服务（dsh-web.service，unit 自带 DEEPSEEK_API_KEY）；重启中断了运行中的会话回合，前端自动重连恢复；git 提交后按约定推送
-
-### 2026-08-15 在 112 实测验证自动重连并写入机制与方法
-
-- 变更内容：第五节新增"前端自动重连机制（已在 112 实测验证 PASS）"条目——记录重连机制细节（dsh-client-connection 指数退避无限重试 500ms→10s、dsh-client-runtime onConnected → resync 重建会话内容）与实测结果（kill 服务后 console 出现 retry #1→#3，端口 3s 恢复后自动重连、API 同步恢复，全程未刷新浏览器）；"服务重启前处理"补充 112 手动进程说明（/root/restart-dsh.sh，setsid 触发）
-- 涉及路径：`AGENTS.md`、112 上 `/root/restart-dsh.sh`（新建）
-- 备注：用户要求"重连机制和方法写入 AGENTS.md，写入前先在 112 验证"；用 playwright-core + chromium headless 实测（页面临听 console 与 API 请求）
-
-### 2026-08-15 修订"服务重启前处理"：前端自动重连恢复，无需刷新浏览器
-
-- 变更内容：第五节"服务重启前处理"规则更新——明确 DSH Web 前端内置自动重连机制（dsh-client-connection：断线后指数退避无限重试，500ms 起、10s 封顶；dsh-client-runtime：重连成功后 onConnected 触发 resync 重建会话内容，数据来自服务端持久化的 /root/.dsh/sessions），重启后无需刷新浏览器即可自动继续；补充标签页被浏览器冻结时重连暂停的说明
-- 涉及路径：`AGENTS.md`
-- 备注：用户咨询"重启后不刷新浏览器能否自动继续"；经代码探查确认自动重连机制后更新规则
-
-### 2026-08-15 修订"服务重启前处理"：重启无需提交 git、刷新由用户自行处理
-
-- 变更内容：第五节"服务重启前处理"规则修订——移除"提交未提交的 git 变更"步骤；重启后会话恢复由用户自行刷新浏览器完成，不再由 Agent 处理
-- 涉及路径：`AGENTS.md`
-- 备注：用户指示"不需重启时提交git变更，重启后我自己会手动刷新浏览器"
-
-### 2026-08-15 新增"服务重启前处理"约定
-
-- 变更内容：第五节新增"服务重启前处理"规则——重启 dsh web 前先收尾（终止后台任务/子代理、提交 git、goal 记录未完成目标）；会话历史持久化于 /root/.dsh/sessions，重启后恢复原会话继续
-- 涉及路径：`AGENTS.md`
-- 备注：用户咨询"111 重启服务时会话中断如何处理"；111 上 dsh web 为 systemd 服务 dsh-web.service（Restart=on-failure）
-
-### 2026-08-15 变更记录支持折叠
-
-- 变更内容：历史记录条目包入 `<details>` 折叠块，默认折叠点击展开；记录格式说明与归档机制规则保留在折叠块外
-- 涉及路径：`AGENTS.md`
-- 备注：用户反馈变更记录内容太多影响阅读
-
-> 最新记录在最上面。
-
-### 2026-08-15 降低 GitHub 推送频率
-
-- 变更内容：第七节"远程仓库同步"规则由"每次提交后必须推送"改为"功能开发完成（DoD）后推送一次"；文档类小变更随功能批次一起推送
-- 涉及路径：`AGENTS.md`
-- 备注：用户指示"降低推送GitHub频率"；本次规则变更按新约定本地提交、不立即推送
-
-### 2026-08-15 chat-width-customizer 调整：默认宽度改 896px、移除跨标签页同步
-
-- 变更内容：按用户反馈调整 client.js——默认宽度由 748px 改为 896px（PRESETS 改为 `[896, 1024, 1152, 1280, 1440, 1600]`，`PRESETS[0]` 即默认）；localStorage 键升级为 `dsh-chat-width-customizer:width:v2`（旧值自动失效回到新默认）；移除先前添加的 storage 事件跨标签页同步（用户确认不需要跨浏览器同步）；README 同步更新预设与默认宽度描述；已同步 112 的 `/root/.dsh/external/chat-width-customizer/` 并重启 dsh web，client bundle rev 已更新生效
-- 涉及路径：`chat-width-customizer/lib/client.js`、`chat-width-customizer/README.md`、`AGENTS.md`
-- 备注：112 上需浏览器强制刷新（Ctrl+Shift+R）加载新 bundle；旧 localStorage 值（748 等）因 v2 键自动失效
 </details>
 
 ---
