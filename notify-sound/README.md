@@ -120,7 +120,7 @@ npm run check  # 语法检查
 ## 📜 部署记录
 
 - 2026-08-16：112（AI-2，192.168.31.112）**验证全过**——curl：GET 视图（默认值完整）、POST set/unset（用户层落盘 `/root/.dsh/settings.yaml`、unset 回退 base 默认）、跨站 403 / 坏体 400 / PUT 405；浏览器（playwright-core + chromium headless）18/18：bundle 注入、`body[data-dsh-notify-sound]` 作用域与样式注入、设置 → 插件配置「提示音」卡片渲染/展开、7 下拉/2 复选/7 试听、默认值 chime·ding·跟随×3·bell·alert、下拉修改 → POST → 服务端持久化、试听真实发声（AudioContext 振荡器探针）、刷新后服务端回显、双页面跨浏览器同步（focus 刷新即跟随）、无 console 错误
-- 111（AI 主机，正式使用）：按部署流程待用户确认
+- 111（AI 主机，正式使用）**已部署**：2026-08-16 用户确认后重启 `dsh-web.service`，验证 5/5 全过（bundle 注入、body 作用域、样式注入、插件配置卡片渲染、无错误）
 
 ## 📄 License
 
