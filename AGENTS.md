@@ -26,8 +26,15 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 25 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 26 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
 
+### 2026-08-16 notify-sound 皮肤适配实测：10 款皮肤 + 暗色模式全过（ns-card 与主题卡逐项一致）
+
+- 变更内容：用户询问"切换其他样式会适配主题吗"——112 实测（playwright，逐皮肤设置 `dsh-theme-center:active:v1` 后刷新对比计算样式）——**11 款外观（官方默认 + 10 款皮肤，亮色）33/33 全过**：每款下 ns-card 与 tc-card 的边框色/背景/圆角/名称色字号/header padding-gap 逐项相等，卡片背景随皮肤变化（10 种不同背景值：blue-fantasy 半透明、harbor 深蓝半透明、minecraft 深绿、xp 米黄…）；**官方默认暗色 3/3 全过**（Appearance 切 Dark：背景 rgb(44,44,46)/边框 rgb(67,69,74)/名称 rgb(249,250,251) 两张卡完全一致，无错误）。机制确认：样式全部走 `--dsw-alias-*` 官方皮肤令牌，皮肤 bundle 覆盖变量即自动跟随；期间捕获的 404 均为 trading/whale-song 皮肤 `dsh-ticker` 行情请求（404/405 + Binance CORS），属 AGENTS.md 已记录的**上游 fail-safe 预期降级**，与本插件无关
+- 涉及路径：`AGENTS.md`（仅记录，验证脚本已清理）
+- 备注：样式修复版仅部署 112；按流程待用户确认后部署 111（样式统一 + 皮肤适配验证版）
+
+### 2026-08-16 navbar 修复
 ### 2026-08-16 notify-sound 样式统一：卡片改用官方皮肤令牌体系（对齐 theme-center/官方卡）并 112 实测通过
 
 - 变更内容：用户反馈"提示音卡片和其他卡片样式不统一"——实测对比（playwright 计算样式）：官方 Shell 卡与 theme-center 主题卡均用 `--dsw-alias-*` 皮肤令牌（border-l2 边框、bg-layer-3/2 背景、label-dimmed hover/展开边框、label-primary 15px 600 名称、label-tertiary 描述），而 ns-card 误用不存在的 `--dsw-alias-line-divider`（fallback #e5e5e5 生效）+ 硬编码字号/间距（名称 14px、header padding 12/14 gap 10、无 hover/focus-visible/展开态区分）。修复：`lib/client.js` 卡片 CSS 整体换用与 theme-center 相同的令牌与数值——卡片 `border:1px solid var(--dsw-alias-border-l2)` + `bg-layer-3` + `border-radius:12px` + hover 边框 `label-dimmed` + 展开态 `bg-layer-2`；header `padding:14px 16px;gap:12px;border-radius:12px` + focus-visible 品牌色 outline；名称 15px/600 `label-primary`、描述 13px `label-tertiary`；body `border-top` + `margin:0 16px` 同 theme；行改透明边框 + hover `interactive-bg-hover`；按钮/下拉同 tc-pill/tc-btn 令牌（border-l2、13px、hover label-dimmed）；字符箭头换 theme 同款 SVG chevron（rotate 180deg）
