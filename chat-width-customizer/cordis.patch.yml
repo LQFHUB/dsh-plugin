@@ -1,0 +1,6 @@
+# dsh-chat-width-customizer bundle patch: mounts the chat-width utility in the
+# conversation session header (browser-only plugin; no host behavior).
+# Remove this entry to disable the surface.
+- insert:
+    - id: chat-width-customizer
+      name: 'dsh-chat-width-customizer'

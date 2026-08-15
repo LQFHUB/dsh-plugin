@@ -27,6 +27,12 @@
 
 > 最新记录在最上面。
 
+### 2026-08-15 新增 chat-width-customizer 主题插件 v1（复用上游仓库并部署 112）
+
+- 变更内容：新建 `chat-width-customizer/` 文件夹，复用 magicOF2/dsh-chat-width-customizer（MIT）全部代码作为主题插件 v1（第一版零修改）；README 注明复用来源与部署目标；已安装到 AI-2（192.168.31.112）的 dsh web profile（`dsh plugin add link:/root/.dsh/external/chat-width-customizer`，112 上补装 pnpm 11.21.0），重启 dsh web 后页面已注入插件 client bundle，待用户浏览器验证效果；`.gitignore` 的 `lib/` 规则修正为 `/lib/`（避免忽略功能文件夹的 lib 代码）
+- 涉及路径：`chat-width-customizer/`（package.json、lib/index.js、lib/client.js、cordis.patch.yml、README.md、LICENSE）、`.gitignore`、`AGENTS.md`
+- 备注：112 上插件目录位于 `/root/.dsh/external/chat-width-customizer`（link 方式安装），后续迭代只需同步该目录并重启 dsh web 即可生效；回滚可用 `dsh plugin --profile web remove dsh-chat-width-customizer`
+
 ### 2026-08-15 新增"部署验证"约定：插件先装到 AI-2 (31.112) 验证
 
 - 变更内容：第三节新增第 6 点"部署验证（适用时）"——功能完成且满足 DoD 后，如需实际环境验证，先安装到 AI-2（192.168.31.112）检查验证，验证通过才视为交付完成；登录方式指向知识库 autu.md
