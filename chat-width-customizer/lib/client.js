@@ -29,8 +29,10 @@ window.__ModuleLoader__.load({
 		/** Required services before mounting. */
 		const inject = ["slots"];
 
-		const PRESETS = [748, 896, 1024, 1152, 1280, 1440, 1600];
-		const STORAGE_KEY = "dsh-chat-width-customizer:width";
+		/** 宽度预设：PRESETS[0] 即默认宽度（896px）。 */
+		const PRESETS = [896, 1024, 1152, 1280, 1440, 1600];
+		/** v2 键：配合新默认宽度，旧版 localStorage 值自动失效（回到默认 896px）。 */
+		const STORAGE_KEY = "dsh-chat-width-customizer:width:v2";
 
 		const STATIC_CSS =
 			".cwx-util{border:1px solid var(--dsw-alias-border-l2);height:32px;color:var(--dsw-alias-label-primary);font-family:var(--dsw-font-family);cursor:pointer;background:0 0;border-radius:18px;justify-content:center;align-items:center;gap:4px;padding:6px 12px;font-size:13px;font-weight:400;line-height:20px;display:inline-flex}" +

@@ -27,6 +27,12 @@
 
 > 最新记录在最上面。
 
+### 2026-08-15 chat-width-customizer 调整：默认宽度改 896px、移除跨标签页同步
+
+- 变更内容：按用户反馈调整 client.js——默认宽度由 748px 改为 896px（PRESETS 改为 `[896, 1024, 1152, 1280, 1440, 1600]`，`PRESETS[0]` 即默认）；localStorage 键升级为 `dsh-chat-width-customizer:width:v2`（旧值自动失效回到新默认）；移除先前添加的 storage 事件跨标签页同步（用户确认不需要跨浏览器同步）；README 同步更新预设与默认宽度描述；已同步 112 的 `/root/.dsh/external/chat-width-customizer/` 并重启 dsh web，client bundle rev 已更新生效
+- 涉及路径：`chat-width-customizer/lib/client.js`、`chat-width-customizer/README.md`、`AGENTS.md`
+- 备注：112 上需浏览器强制刷新（Ctrl+Shift+R）加载新 bundle；旧 localStorage 值（748 等）因 v2 键自动失效
+
 ### 2026-08-15 新增 chat-width-customizer 主题插件 v1（复用上游仓库并部署 112）
 
 - 变更内容：新建 `chat-width-customizer/` 文件夹，复用 magicOF2/dsh-chat-width-customizer（MIT）全部代码作为主题插件 v1（第一版零修改）；README 注明复用来源与部署目标；已安装到 AI-2（192.168.31.112）的 dsh web profile（`dsh plugin add link:/root/.dsh/external/chat-width-customizer`，112 上补装 pnpm 11.21.0），重启 dsh web 后页面已注入插件 client bundle，待用户浏览器验证效果；`.gitignore` 的 `lib/` 规则修正为 `/lib/`（避免忽略功能文件夹的 lib 代码）

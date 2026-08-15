@@ -20,7 +20,7 @@
 
 ## ✨ 特性 / Features
 
-- **一键加宽**：点击标题栏按钮循环切换宽度档位（748 → 1600 px），无需进设置页
+- **一键加宽**：点击标题栏按钮循环切换宽度档位（896 → 1600 px），无需进设置页
 - **整列联动**：对话消息区、底部输入框（Composer）、用户气泡同步加宽，观感统一
 - **全局共享**：宽度是全局状态 —— 在 A 会话调到 1600，切到 B 会话依然 1600，按钮显示一致
 - **持久记忆**：选择写入 `localStorage`，刷新页面 / 重开浏览器后自动恢复，不丢失
@@ -69,14 +69,14 @@ dsh plugin --profile web add link:C:/Users/<你的用户名>/.dsh/external/dsh-c
 ## 🖱️ 使用 / Usage
 
 1. 打开任意会话，点击标题栏右侧的「宽度 · NNNpx」按钮
-2. 每点一次循环到下一档：`748 → 896 → 1024 → 1152 → 1280 → 1440 → 1600 → 748 …`
+2. 每点一次循环到下一档：`896 → 1024 → 1152 → 1280 → 1440 → 1600 → 896 …`
 3. 宽度**立即生效**，且全局共享：
    - 切换会话 → 宽度与按钮显示保持一致
    - 刷新页面 → 自动恢复上次选择的宽度
 
 ## ⚙️ 自定义宽度档位 / Custom presets
 
-默认预设为 `[748, 896, 1024, 1152, 1280, 1440, 1600]`（单位 px）。
+默认预设为 `[896, 1024, 1152, 1280, 1440, 1600]`（单位 px），即默认宽度 896px。
 想改档位、增减档数，编辑 `lib/client.js` 顶部的 `PRESETS` 常量即可：
 
 ```js
@@ -87,7 +87,7 @@ const PRESETS = [748, 1024, 1280, 1600]; // 例如只保留 4 档
 
 ## 🔧 工作原理 / How it works
 
-- **宽度控制**：产品自带样式把对话列限制在 `--dsh-chat-content-width`（默认 748px）并居中。
+- **宽度控制**：产品自带样式把对话列限制在 `--dsh-chat-content-width`（默认 896px）并居中。
   插件在页面级 `<style>` 中覆盖该变量，同时联动 `--dsh-composer-card-max-width`（输入框宽度），
   并解除用户消息气泡栈默认的 `max-width: 525px` 上限，让两类消息都铺满加宽后的列：
 
@@ -147,7 +147,7 @@ git add -A && git commit -m "your change" && git push   # 同步到 GitHub
 
 A lightweight **DSH (DeepSeek Harness) web plugin** that adds a **"宽度 · NNNpx"** button
 to the conversation session header. Click it to cycle through 7 width presets
-(748–1600 px) and widen the chat column, composer, and user bubbles together.
+(896–1600 px) and widen the chat column, composer, and user bubbles together.
 
 **Highlights**: no host logic · theme-aware · width shared across sessions and
 remembered across reloads (`localStorage`) · standard `dsh.bundle` plugin package,
