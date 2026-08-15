@@ -402,121 +402,8 @@ function PluginSettingsCard(props) {
 		}) : null]
 	});
 }
-/** A staged value field. `numeric` only hints the keypad: which drafts a field accepts is decided by its spec. */
-function ValueField(props) {
-	return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
-		className: S.field,
-		children: [
-			/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
-				className: S.head,
-				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("label", {
-					className: S.label,
-					htmlFor: props.id,
-					children: props.label
-				}), props.overridden ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
-					className: S.badges,
-					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-						className: S.badge,
-						children: props.overriddenLabel
-					}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
-						type: "button",
-						className: S.reset,
-						disabled: props.disabled,
-						onClick: props.onReset,
-						children: props.resetLabel
-					})]
-				}) : null]
-			}),
-			/* @__PURE__ */ (0, react_jsx_runtime.jsx)("input", {
-				id: props.id,
-				className: props.invalid ? S.inputInvalid : S.input,
-				type: "text",
-				...props.numeric === true ? { inputMode: "numeric" } : {},
-				...props.invalid ? { "aria-invalid": true } : {},
-				value: props.text,
-				placeholder: props.placeholder ?? "",
-				disabled: props.disabled,
-				onChange: (event) => {
-					props.onEdit(event.target.value);
-				}
-			}),
-			/* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
-				className: props.invalid ? S.invalid : S.hint,
-				children: props.invalid ? props.invalidLabel : props.hint
-			})
-		]
-	});
-}
-/** A staged enumerated field rendered as a select. */
-function ChoiceField(props) {
-	return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
-		className: S.field,
-		children: [
-			/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
-				className: S.head,
-				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("label", {
-					className: S.label,
-					htmlFor: props.id,
-					children: props.label
-				}), props.overridden ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
-					className: S.badges,
-					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
-						className: S.badge,
-						children: props.overriddenLabel
-					}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
-						type: "button",
-						className: S.reset,
-						disabled: props.disabled,
-						onClick: props.onReset,
-						children: props.resetLabel
-					})]
-				}) : null]
-			}),
-			/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("select", {
-				id: props.id,
-				className: S.select,
-				value: props.text,
-				disabled: props.disabled,
-				onChange: (event) => {
-					props.onEdit(event.target.value);
-				},
-				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("option", {
-					value: "",
-					children: props.inheritLabel
-				}), props.choices.map((choice) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)("option", {
-					value: choice.value,
-					children: choice.label
-				}, choice.value))]
-			}),
-			/* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
-				className: props.invalid ? S.invalid : S.hint,
-				children: props.invalid ? props.invalidLabel : props.hint
-			})
-		]
-	});
-}
 //#endregion
 //#region src/client/settings-form.ts
-/** A whole- or decimal-number field. An empty draft clears the field; any other draft that is not a finite number within the constraints blocks the save. */
-function numberField(field, constraints = {}) {
-	const { integer = false, min } = constraints;
-	return {
-		field,
-		format: (value) => typeof value === "number" ? String(value) : "",
-		parse: (text) => {
-			const trimmed = text.trim();
-			if (trimmed === "") return { kind: "clear" };
-			const parsed = Number(trimmed);
-			if (!Number.isFinite(parsed)) return void 0;
-			if (integer && !Number.isInteger(parsed)) return void 0;
-			if (min !== void 0 && parsed < min) return void 0;
-			return {
-				kind: "set",
-				value: parsed
-			};
-		}
-	};
-}
 /** A free-text field. An empty draft clears the field. */
 function textField(field) {
 	return {
@@ -529,18 +416,6 @@ function textField(field) {
 				value: trimmed
 			};
 		}
-	};
-}
-/**
-* A free-text field the Host treats as a secret and redacts from the read-back
-* (role('secret') in the section schema). The card still edits it like text,
-* but a save never compares the redacted value back and relies on the scope
-* reporting the write landed.
-*/
-function secretField(field) {
-	return {
-		...textField(field),
-		secret: true
 	};
 }
 /** A boolean field, edited through true/false draft text. */
@@ -559,20 +434,6 @@ function booleanField(field) {
 				kind: "set",
 				value: false
 			};
-		}
-	};
-}
-/** An enumerated string field; only the listed choices are accepted. An empty draft clears the field. */
-function choiceField(field, choices) {
-	return {
-		field,
-		format: (value) => typeof value === "string" && choices.includes(value) ? value : "",
-		parse: (text) => {
-			if (text === "") return { kind: "clear" };
-			return choices.includes(text) ? {
-				kind: "set",
-				value: text
-			} : void 0;
 		}
 	};
 }
@@ -949,44 +810,33 @@ var DescribeImageSettingsCardController = class {
 		this.form = new CardForm(scope, [
 			booleanField("useConfiguredModel"),
 			textField("configuredProvider"),
-			textField("configuredModelId"),
-			textField("baseURL"),
-			textField("model"),
-			choiceField("apiStyle", ["chat-completions", "responses"]),
-			secretField("apiKey"),
-			textField("apiKeyEnv"),
-			textField("defaultPrompt"),
-			numberField("maxBytes"),
-			numberField("maxOutputTokens"),
-			numberField("timeoutMs")
+			textField("configuredModelId")
 		]);
 		this.store = this.form.bind(() => this.projection());
 	}
 	projection() {
 		return {
 			...this.form.shell(),
-			baseURL: this.form.field("baseURL"),
-			model: this.form.field("model"),
-			apiStyle: this.form.field("apiStyle"),
-			apiKey: this.form.field("apiKey"),
-			apiKeyEnv: this.form.field("apiKeyEnv"),
-			defaultPrompt: this.form.field("defaultPrompt"),
-			maxBytes: this.form.field("maxBytes"),
-			maxOutputTokens: this.form.field("maxOutputTokens"),
-			timeoutMs: this.form.field("timeoutMs"),
 			useConfiguredModel: this.form.field("useConfiguredModel"),
 			configuredProvider: this.form.field("configuredProvider"),
 			configuredModelId: this.form.field("configuredModelId")
 		};
 	}
 	/**
-	* Build the face the card's slot registration injects.
+	* Build the face the card's slot registration injects. 保存始终把
+	* useConfiguredModel 置 true（隐藏写入：卡片只支持已配置模型，兼容历史
+	* 上切到过「自定义端点」的旧配置）。
 	* @returns the card's snapshot and its form actions.
 	*/
 	inject() {
+		const actions = this.form.actions();
 		return {
 			hooks: { describeImageSettingsCard: this.store },
-			...this.form.actions()
+			...actions,
+			save: () => {
+				actions.edit("useConfiguredModel", "true");
+				actions.save();
+			}
 		};
 	}
 };
@@ -1064,20 +914,14 @@ function ConfiguredModelPicker(props) {
 	});
 }
 /**
-* Render the describe-image card.
+* Render the describe-image card: 只显示「可用视觉模型」下拉（模型全部来自
+* DSH 模型设置，选中即保存，无其他任何参数）。
 * @param props - the card snapshot and its form actions.
 * @returns the card.
 */
 function DescribeImageSettingsCard(props) {
 	const state = props.useDescribeImageSettingsCard((snapshot) => snapshot);
 	const disabled = !state.writable;
-	const usingConfigured = state.useConfiguredModel.text === "true";
-	const fieldProps = {
-		overriddenLabel: t("settings.overridden"),
-		resetLabel: t("settings.reset"),
-		invalidLabel: t("settings.invalidNumber"),
-		disabled
-	};
 	return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(PluginSettingsCard, {
 		t,
 		titleKey: "card.title",
@@ -1085,27 +929,7 @@ function DescribeImageSettingsCard(props) {
 		state,
 		onSave: props.save,
 		onDiscard: props.discard,
-		children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ChoiceField, {
-			id: "settings-describe-image-source",
-			label: t("field.useConfiguredModel"),
-			hint: t("field.useConfiguredModel.hint"),
-			inheritLabel: t("settings.inherit"),
-			choices: [{
-				value: "false",
-				label: t("field.useConfiguredModel.plugin")
-			}, {
-				value: "true",
-				label: t("field.useConfiguredModel.configured")
-			}],
-			...fieldProps,
-			...state.useConfiguredModel,
-			onEdit: (text) => {
-				props.edit("useConfiguredModel", text);
-			},
-			onReset: () => {
-				props.resetField("useConfiguredModel");
-			}
-		}), usingConfigured ? /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ConfiguredModelPicker, {
+		children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ConfiguredModelPicker, {
 			disabled,
 			selectedProvider: state.configuredProvider.text,
 			selectedModel: state.configuredModelId.text,
@@ -1116,137 +940,7 @@ function DescribeImageSettingsCard(props) {
 		}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("p", {
 			className: S.hint,
 			children: t("configured.picker.usesConfigured")
-		})] }) : /* @__PURE__ */ (0, react_jsx_runtime.jsxs)(react_jsx_runtime.Fragment, { children: [
-			/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ValueField, {
-				id: "settings-describe-image-baseurl",
-				label: t("field.baseURL"),
-				hint: t("field.baseURL.hint"),
-				placeholder: "https://api.example.com/v1",
-				...fieldProps,
-				...state.baseURL,
-				onEdit: (text) => {
-					props.edit("baseURL", text);
-				},
-				onReset: () => {
-					props.resetField("baseURL");
-				}
-			}),
-			/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ValueField, {
-				id: "settings-describe-image-model",
-				label: t("field.model"),
-				hint: t("field.model.hint"),
-				...fieldProps,
-				...state.model,
-				onEdit: (text) => {
-					props.edit("model", text);
-				},
-				onReset: () => {
-					props.resetField("model");
-				}
-			}),
-			/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ChoiceField, {
-				id: "settings-describe-image-apistyle",
-				label: t("field.apiStyle"),
-				hint: t("field.apiStyle.hint"),
-				inheritLabel: t("settings.inherit"),
-				choices: [{
-					value: "chat-completions",
-					label: t("field.apiStyle.chatCompletions")
-				}, {
-					value: "responses",
-					label: t("field.apiStyle.responses")
-				}],
-				...fieldProps,
-				...state.apiStyle,
-				onEdit: (text) => {
-					props.edit("apiStyle", text);
-				},
-				onReset: () => {
-					props.resetField("apiStyle");
-				}
-			}),
-			/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ValueField, {
-				id: "settings-describe-image-apikey",
-				label: t("field.apiKey"),
-				hint: t("field.apiKey.hint"),
-				...fieldProps,
-				...state.apiKey,
-				onEdit: (text) => {
-					props.edit("apiKey", text);
-				},
-				onReset: () => {
-					props.resetField("apiKey");
-				}
-			}),
-			/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ValueField, {
-				id: "settings-describe-image-apikeyenv",
-				label: t("field.apiKeyEnv"),
-				hint: t("field.apiKeyEnv.hint"),
-				...fieldProps,
-				...state.apiKeyEnv,
-				onEdit: (text) => {
-					props.edit("apiKeyEnv", text);
-				},
-				onReset: () => {
-					props.resetField("apiKeyEnv");
-				}
-			}),
-			/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ValueField, {
-				id: "settings-describe-image-defaultprompt",
-				label: t("field.defaultPrompt"),
-				hint: t("field.defaultPrompt.hint"),
-				...fieldProps,
-				...state.defaultPrompt,
-				onEdit: (text) => {
-					props.edit("defaultPrompt", text);
-				},
-				onReset: () => {
-					props.resetField("defaultPrompt");
-				}
-			}),
-			/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ValueField, {
-				id: "settings-describe-image-maxbytes",
-				label: t("field.maxBytes"),
-				hint: t("field.maxBytes.hint"),
-				numeric: true,
-				...fieldProps,
-				...state.maxBytes,
-				onEdit: (text) => {
-					props.edit("maxBytes", text);
-				},
-				onReset: () => {
-					props.resetField("maxBytes");
-				}
-			}),
-			/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ValueField, {
-				id: "settings-describe-image-maxoutputtokens",
-				label: t("field.maxOutputTokens"),
-				hint: t("field.maxOutputTokens.hint"),
-				numeric: true,
-				...fieldProps,
-				...state.maxOutputTokens,
-				onEdit: (text) => {
-					props.edit("maxOutputTokens", text);
-				},
-				onReset: () => {
-					props.resetField("maxOutputTokens");
-				}
-			}),
-			/* @__PURE__ */ (0, react_jsx_runtime.jsx)(ValueField, {
-				id: "settings-describe-image-timeoutms",
-				label: t("field.timeoutMs"),
-				hint: t("field.timeoutMs.hint"),
-				numeric: true,
-				...fieldProps,
-				...state.timeoutMs,
-				onEdit: (text) => {
-					props.edit("timeoutMs", text);
-				},
-				onReset: () => {
-					props.resetField("timeoutMs");
-				}
-			})
-		] })]
+		})]
 	});
 }
 //#endregion
@@ -1300,30 +994,70 @@ var DescribeImageSettingsScope = class {
 			op: "unset"
 		}]);
 	}
-	/** 批量写（串行：并发写按调用顺序落盘）。 */
+	/**
+	* 批量写：一次 POST 提交全部写入，按读回视图逐字段报告落盘结果。
+	*
+	* 这是 settings-form 探测的批量写表面（duck typing：`typeof scope.mutate
+	* === 'function'`），必须完整实现 BatchResult 契约——若只是返回
+	* Promise<void>，CardForm.save 会拿到 undefined 并抛 TypeError，卡片
+	* 永远停在「保存中」。写按调用顺序串行（tail 链），并发写不会交错。
+	* @param writes - 本次保存的全部写入。
+	* @returns 批量结果：ok=false 时 fields 为空、携带服务端 code/message。
+	*/
 	async mutate(writes) {
-		this.tail = this.tail.then(async () => {
+		return this.serialize(async () => {
+			let envelope;
 			try {
-				const response = await fetch(this.endpoint, {
+				envelope = await (await fetch(this.endpoint, {
 					method: "POST",
 					headers: { "content-type": "application/json" },
 					body: JSON.stringify({ writes })
-				});
-				if (!response.ok) {
-					this.publishUnavailable();
-					return;
-				}
-				const envelope = await response.json();
-				if (envelope.ok !== true) {
-					this.publishUnavailable();
-					return;
-				}
-				this.accept(envelope.value);
+				})).json();
 			} catch {
 				this.publishUnavailable();
+				return {
+					ok: false,
+					fields: [],
+					code: "rejected"
+				};
 			}
+			if (envelope === void 0 || envelope.ok !== true) {
+				if (envelope === void 0) this.publishUnavailable();
+				return {
+					ok: false,
+					fields: [],
+					code: typeof envelope?.error?.code === "string" ? envelope.error.code : "rejected",
+					message: typeof envelope?.error?.message === "string" ? envelope.error.message : void 0
+				};
+			}
+			this.accept(envelope.value);
+			return this.fieldResults(writes, envelope.value);
 		});
-		await this.tail;
+	}
+	/** 按读回视图判定每条写入是否落盘。 */
+	fieldResults(writes, view) {
+		const user = view.user ?? {};
+		const secretPaths = new Set((view.secrets ?? []).filter((secret) => secret.path.length === 1).map((secret) => secret.path[0]));
+		return {
+			ok: true,
+			fields: writes.map((write) => {
+				let landed;
+				if (write.op === "unset") landed = !Object.hasOwn(user, write.field);
+				else if (write.field === "apiKey" && (write.value === "" || write.value === void 0)) landed = true;
+				else if (write.field === "apiKey") landed = secretPaths.has("apiKey");
+				else landed = user[write.field] === write.value;
+				return {
+					field: write.field,
+					landed
+				};
+			})
+		};
+	}
+	/** 把一条写任务串到 tail 链上并等待它自己完成（前序写先落盘）。 */
+	serialize(task) {
+		const run = this.tail.then(task);
+		this.tail = run.then(() => void 0, () => void 0);
+		return run;
 	}
 	/** 拉取最新视图。 */
 	async refresh() {

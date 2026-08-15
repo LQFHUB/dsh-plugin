@@ -37,6 +37,23 @@ interface ViewEnvelope {
   error?: { code?: unknown; message?: unknown } | null
 }
 
+/** 一次批量写中单个字段的落盘结果（settings-form 的 BatchedFieldResult 契约）。 */
+export interface ScopeBatchFieldResult {
+  field: string
+  landed: boolean
+}
+
+/**
+ * 批量写结果（settings-form 的 BatchResult 契约）：一次 POST 提交全部
+ * 写入，按读回视图逐字段报告是否落盘；服务端拒绝时携带 code/message。
+ */
+export interface ScopeBatchResult {
+  ok: boolean
+  fields: ScopeBatchFieldResult[]
+  code?: string
+  message?: string
+}
+
 /**
  * 直连 /describe-image/settings 的设置作用域。初始状态 loading，首次
  * GET 成功后 ready；路由不可达/未暴露答 unavailable（卡片显示说明而非
@@ -83,30 +100,75 @@ export class DescribeImageSettingsScope<T> implements SettingsScope<T> {
     await this.mutate([{ field, op: 'unset' }])
   }
 
-  /** 批量写（串行：并发写按调用顺序落盘）。 */
-  private async mutate(writes: readonly ScopeWrite[]): Promise<void> {
-    this.tail = this.tail.then(async () => {
+  /**
+   * 批量写：一次 POST 提交全部写入，按读回视图逐字段报告落盘结果。
+   *
+   * 这是 settings-form 探测的批量写表面（duck typing：`typeof scope.mutate
+   * === 'function'`），必须完整实现 BatchResult 契约——若只是返回
+   * Promise<void>，CardForm.save 会拿到 undefined 并抛 TypeError，卡片
+   * 永远停在「保存中」。写按调用顺序串行（tail 链），并发写不会交错。
+   * @param writes - 本次保存的全部写入。
+   * @returns 批量结果：ok=false 时 fields 为空、携带服务端 code/message。
+   */
+  async mutate(writes: readonly ScopeWrite[]): Promise<ScopeBatchResult> {
+    return this.serialize(async () => {
+      let envelope: ViewEnvelope | undefined
       try {
         const response = await fetch(this.endpoint, {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ writes }),
         })
-        if (!response.ok) {
-          this.publishUnavailable()
-          return
-        }
-        const envelope = await response.json() as ViewEnvelope
-        if (envelope.ok !== true) {
-          this.publishUnavailable()
-          return
-        }
-        this.accept(envelope.value)
+        envelope = await response.json() as ViewEnvelope
       } catch {
+        // 网络故障 / 响应不是 JSON：命名空间视为不可达。
         this.publishUnavailable()
+        return { ok: false, fields: [], code: 'rejected' }
       }
+      if (envelope === undefined || envelope.ok !== true) {
+        // 服务端拒绝（403/422/…）：保持当前快照，由卡片显示失败原因，
+        // 不降级为 unavailable（仅网络故障才视为命名空间不可达）。
+        if (envelope === undefined) this.publishUnavailable()
+        return {
+          ok: false,
+          fields: [],
+          code: typeof envelope?.error?.code === 'string' ? envelope.error.code : 'rejected',
+          message: typeof envelope?.error?.message === 'string' ? envelope.error.message : undefined,
+        }
+      }
+      this.accept(envelope.value)
+      return this.fieldResults(writes, envelope.value as SettingsView)
     })
-    await this.tail
+  }
+
+  /** 按读回视图判定每条写入是否落盘。 */
+  private fieldResults(writes: readonly ScopeWrite[], view: SettingsView): ScopeBatchResult {
+    const user = (view.user ?? {}) as Record<string, unknown>
+    const secretPaths = new Set((view.secrets ?? [])
+      .filter(secret => secret.path.length === 1)
+      .map(secret => secret.path[0]))
+    const fields = writes.map(write => {
+      let landed: boolean
+      if (write.op === 'unset') {
+        landed = !Object.hasOwn(user, write.field)
+      } else if (write.field === 'apiKey' && (write.value === '' || write.value === undefined)) {
+        landed = true // 空密钥 no-op：保持当前密钥，无写入即已达成
+      } else if (write.field === 'apiKey') {
+        // secret 值不回读，以 redacted 视图的 secret-set 标记判定落盘。
+        landed = secretPaths.has('apiKey')
+      } else {
+        landed = user[write.field] === write.value
+      }
+      return { field: write.field, landed }
+    })
+    return { ok: true, fields }
+  }
+
+  /** 把一条写任务串到 tail 链上并等待它自己完成（前序写先落盘）。 */
+  private serialize<T>(task: () => Promise<T>): Promise<T> {
+    const run = this.tail.then(task)
+    this.tail = run.then(() => undefined, () => undefined)
+    return run
   }
 
   /** 拉取最新视图。 */

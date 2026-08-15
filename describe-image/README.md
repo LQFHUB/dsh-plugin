@@ -61,8 +61,8 @@ dsh plugin --profile web add link:/root/.dsh/external/describe-image
 | `maxBytes` | `10485760` | 图片字节上限（本地文件与下载一致） |
 | `maxOutputTokens` | `1024` | 输出 token 上限：`chat-completions` 发 `max_tokens`，`responses` 发 `max_output_tokens` |
 | `timeoutMs` | `60000` | 单次视觉请求超时 |
-| `useConfiguredModel` | `false` | 复用 DSH 模型设置（设置 > 模型）中已配置的视觉模型；开启后忽略 `baseURL`/`model`/`apiKey` |
-| `configuredProvider` | — | 已配置模型所在 provider（如 pi-ai 的 providers 键 `xiaomi`） |
+| `useConfiguredModel` | `true` | 复用 DSH 模型设置（设置 > 模型）中已配置的视觉模型；开启后忽略 `baseURL`/`model`/`apiKey`。设置卡保存时恒写 `true`（卡片只支持已配置模型） |
+| `configuredProvider` | — | 已配置模型所在 provider（如 pi-ai 的 providers 键 `opencode-go`） |
 | `configuredModelId` | — | 该 provider 中支持图像输入的模型 id（如 `mimo-v2.5`） |
 
 带配置的挂载示例（profile 的 `cordis.patch.yml` / 组合文件；密钥经环境变量注入，不写明文）：
@@ -96,9 +96,9 @@ dsh plugin --profile web add link:/root/.dsh/external/describe-image
 「诊断这个 UI 的布局问题」、「把文字翻译成中文」。针对性指令远胜泛泛描述；工具描述会引导
 文本模型优先传指令。未传 `prompt` 的调用回退到 `defaultPrompt`。
 
-### 复用 DSH 模型设置中已配置的模型（默认，开箱即用）
+### 复用 DSH 模型设置中已配置的模型（唯一方式，开箱即用）
 
-在 设置 → 模型 中配置任意 OpenAI 兼容视觉 provider（如 Xiaomi MiMo：`baseURL=https://api.xiaomimimo.com/v1`、密钥走 `apiKeyEnv` 凭证引用、模型声明 `input: [text, image]`）。**「图像理解」卡默认即「使用已配置模型」模式，只需在「可用视觉模型」下拉里选一个模型即可**——端点、密钥、协议全部来自模型设置，卡片上不显示也不需要填写任何其他参数。未选择模型时自动回退自定义端点模式（此时才显示 baseURL/model/apiKey 等字段）。
+在 设置 → 模型 中配置任意 OpenAI 兼容视觉 provider（如 opencode-go / Xiaomi MiMo：`baseURL`（必填，如 `https://opencode.ai/zen/go/v1`、`https://api.xiaomimimo.com/v1`）、密钥走 `apiKeyEnv` 凭证引用、模型声明 `input: [text, image]`）。**「图像理解」卡只显示「可用视觉模型」下拉，选中即保存**——端点、密钥、协议全部来自模型设置，卡片上没有任何其他参数，也没有「自定义端点」选项。未选择模型时调用会给出提示。
 
 ### 从输入框发送图片
 
@@ -148,8 +148,8 @@ pnpm test       # vitest（123 用例：工具端到端 / attach 路由 / 设置
 
 - **验证**：AI-2（192.168.31.112，`/root/.dsh/external/describe-image` link 安装）
 - **正式使用**：AI（192.168.31.111，systemd `dsh-web.service`）
-- 密钥：部署时经环境变量注入（如 `XIAOMI_MIMO_API_KEY`）或设置卡内填写（secret role），
-  不写入仓库、不写进配置文件明文。
+- 密钥：经凭证服务/环境变量注入（provider 的 `apiKeyEnv` 凭证引用，如
+  `OPENCODE_GO_API_KEY` / `XIAOMI_MIMO_API_KEY`），不写入仓库、不写进配置文件明文。
 
 ### 部署步骤（link 方式）
 

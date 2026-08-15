@@ -26,7 +26,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 27 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 28 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-08-16 describe-image 保存卡死修复 + 设置卡只留模型下拉（去掉「模型来源」）+ opencode-go baseURL 配置并 112 实测通过
+
+- 变更内容：用户反馈"修改图像理解模型后保存一直卡在保存中"——根因：`CardForm.save()` 以鸭子类型探测批量写接口（`typeof scope.mutate === 'function'`），而 `DescribeImageSettingsScope` 恰有一个 private `mutate`（编译后即原型方法）→ 误判命中 batch 路径 → `await batch.mutate(...)` 拿到 `Promise<void>` 的 undefined → `result.ok` 抛 TypeError（unhandled）→ `saving` 永远 true。修复：scope 真正实现 `BatchResult` 契约（`mutate` 返回 `{ok, fields:[{field,landed}], code?, message?}`：一次 POST 提交全部写入、按读回视图逐字段判 landed、apiKey 以 secret-set 标记判、服务端拒绝返回 code/message 不误降级 unavailable、网络故障才降级；`set`/`unset` 复用同一实现）。同时按用户新需求**去掉「模型来源」下拉**：设置卡只显示「可用视觉模型」下拉（选中即填 provider/模型），自定义端点 9 字段与切换项全部移除（表单 specs 精简为 useConfiguredModel/configuredProvider/configuredModelId，保存时隐藏写 useConfiguredModel=true 兼容历史 false 状态），schema/路由不变；测试 **159 用例全绿**（新增批量写契约 6 条）
+- 涉及路径：`describe-image/`（src/client/settings-scope.ts、src/client/DescribeImageSettingsCard.tsx、tests/client-scope.spec.ts、lib/client.js、README.md）、`AGENTS.md`；112 上 `/root/.dsh/external/describe-image`（已同步并重启）
+- 备注：112 实测全过——**保存链路**（playwright 真实 selectOption + .di-save 点击：切 kimi-k3 → 保存 → 服务端落盘 → 刷新回显；切回 mimo-v2.5 → 保存 → 还原；无 console 错误；排查时发现「保存」正则误匹配卡片标题"有未保存的修改"子串导致误点标题=折叠卡片，验证脚本须用 `.di-save` 精确选择）；**卡片只显示模型下拉**（无「模型来源」toggle）；**configured 模式真实调用链路打通**——opencode-go 是 pi-ai 内置 catalog provider（端点 `https://opencode.ai/zen/go`，mimo-v2.5 目录声明 openai-completions + `input:[text,image]`），但其 profile 无 baseURL 会触发 resolveConfiguredVision 报错，已用 DSH 自己的 yaml setIn 序列化路径给 111/112 的 `llm-pi-ai.providers.opencode-go` 补 `baseURL: https://opencode.ai/zen/go/v1`（带 /v1；实测 `…/v1/chat/completions` + 凭证 → HTTP 200 返回 "Red"，不带 /v1 为 404；settings.yaml 为 DSH 自定义 flow 风格，手写行会被 yaml 包报 "Missing , between flow map items" 而 settings-file 解析即抛错——必须经 setIn 规范化写入）；两机凭证均含 OPENCODE_GO_API_KEY；**111 部署文件已同步（client.js md5 `43378e11`），需重启 dsh-web.service 生效——待用户确认**；112 验证后配置已还原 configuredProvider=opencode-go / configuredModelId=mimo-v2.5；验证脚本已清理
 
 ### 2026-08-16 新增"主题适配（必须）"开发契约：插件 UI 必须跟随 theme-center 主题切换
 
