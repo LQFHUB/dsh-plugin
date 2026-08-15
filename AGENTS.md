@@ -26,7 +26,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 15 条，点击展开，最新在最上面）</summary>
+<summary>📜 变更记录（共 16 条，点击展开，最新在最上面）</summary>
+
+### 2026-08-15 在 112 实测验证自动重连并写入机制与方法
+
+- 变更内容：第五节新增"前端自动重连机制（已在 112 实测验证 PASS）"条目——记录重连机制细节（dsh-client-connection 指数退避无限重试 500ms→10s、dsh-client-runtime onConnected → resync 重建会话内容）与实测结果（kill 服务后 console 出现 retry #1→#3，端口 3s 恢复后自动重连、API 同步恢复，全程未刷新浏览器）；"服务重启前处理"补充 112 手动进程说明（/root/restart-dsh.sh，setsid 触发）
+- 涉及路径：`AGENTS.md`、112 上 `/root/restart-dsh.sh`（新建）
+- 备注：用户要求"重连机制和方法写入 AGENTS.md，写入前先在 112 验证"；用 playwright-core + chromium headless 实测（页面临听 console 与 API 请求）
 
 ### 2026-08-15 修订"服务重启前处理"：前端自动重连恢复，无需刷新浏览器
 
@@ -157,7 +163,8 @@
 - 修改现有代码前，先阅读相关文件夹内的说明文档和现有代码，理解后再动手。
 - 不在未询问用户的情况下删除、移动或重命名已有文件夹/文件（`AGENTS.md` 本身除外）。
 - **敏感信息安全**：API key、token、密码、凭证等不得硬编码进代码、文档或配置（含本文件）；需要持久保存时放入个人知识库或环境变量。
-- **服务重启前处理**：111 上 dsh web 为 systemd 服务 `dsh-web.service`（`Restart=on-failure`，崩溃自动拉起）。重启服务前先收尾：① 收集/终止后台任务与子代理；② 未完成目标如需继续，用 goal 记录。**重启时无需专门提交 git 变更**。**前端具备自动重连机制**：断线后指数退避无限重试（500ms 起、10s 封顶），服务恢复后自动重连并重建会话内容，**无需刷新浏览器**；页面标签页被浏览器冻结时重连暂停，切回标签页即恢复。
+- **服务重启前处理**：111 上 dsh web 为 systemd 服务 `dsh-web.service`（`Restart=on-failure`，崩溃自动拉起）；112 上为手动进程（`node /usr/local/bin/dsh web`，cwd=/root，日志 /root/dsh-web.log），可用 `/root/restart-dsh.sh` 重启（setsid 触发，ssh 立即返回）。重启服务前先收尾：① 收集/终止后台任务与子代理；② 未完成目标如需继续，用 goal 记录。**重启时无需专门提交 git 变更**。
+- **前端自动重连机制（已在 112 实测验证 PASS）**：DSH Web 前端内置自动重连——断线后指数退避无限重试（`dsh-client-connection`：500ms 起、10s 封顶，`while (running)` 无次数上限）；重连成功后 `dsh-client-runtime` 的 `onConnected` 触发 sessions/workspaces 重新同步与 `resync()` 重建会话内容（数据来自服务端持久化的 `/root/.dsh/sessions`）。**实测**（2026-08-15，112）：kill 服务后页面 console 出现 `connection lost, retry #1→#3`，端口 3s 恢复后自动重连、API 同步恢复，全程无需刷新浏览器。注意：页面标签页被浏览器冻结时重连暂停，切回标签页即恢复。
 - **语言约定**：功能文件夹内的文档（README 等）与代码注释默认使用中文。
 - **`AGENTS.md` 的更新由 Agent 自行决定，无需询问用户**：包括新增/修改/删除规则、调整结构、修订内容等；但每次更新仍必须在"四、变更记录"中追加一条记录。
 - 本文件本身的内容更新（如约定变更）也属于变更记录，需同步记录。
