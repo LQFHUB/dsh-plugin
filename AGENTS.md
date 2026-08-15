@@ -27,6 +27,12 @@
 
 > 最新记录在最上面。
 
+### 2026-08-15 降低 GitHub 推送频率
+
+- 变更内容：第七节"远程仓库同步"规则由"每次提交后必须推送"改为"功能开发完成（DoD）后推送一次"；文档类小变更随功能批次一起推送
+- 涉及路径：`AGENTS.md`
+- 备注：用户指示"降低推送GitHub频率"；本次规则变更按新约定本地提交、不立即推送
+
 ### 2026-08-15 chat-width-customizer 调整：默认宽度改 896px、移除跨标签页同步
 
 - 变更内容：按用户反馈调整 client.js——默认宽度由 748px 改为 896px（PRESETS 改为 `[896, 1024, 1152, 1280, 1440, 1600]`，`PRESETS[0]` 即默认）；localStorage 键升级为 `dsh-chat-width-customizer:width:v2`（旧值自动失效回到新默认）；移除先前添加的 storage 事件跨标签页同步（用户确认不需要跨浏览器同步）；README 同步更新预设与默认宽度描述；已同步 112 的 `/root/.dsh/external/chat-width-customizer/` 并重启 dsh web，client bundle rev 已更新生效
@@ -173,7 +179,7 @@
 ## 七、Git 版本管理约定
 
 - 本目录使用 git 管理（默认分支 `main`，本地提交；仓库级身份已配置 `LQFHUB` / 15809601162@163.com）。
-- **远程仓库同步**：`origin` = https://github.com/LQFHUB/dsh-plugin.git；每次提交后**必须推送**（`git push`），保持本地与远程一致。
+- **远程仓库同步（降低推送频率）**：`origin` = https://github.com/LQFHUB/dsh-plugin.git；本地每次变更照常提交，但**不必每次提交都推送**——统一在**每个功能开发完成（满足"第三节第 5 点 DoD"）后推送一次**；AGENTS.md 等文档类小变更可随功能批次一起推送；推送时 `git push` 会把全部累积提交一次性推上去。
 - 认证：GitHub token 存于本地凭据存储 `/root/.git-credentials`（0600 权限，不入库、不写进任何代码/文档）；token 失效时提示用户更新。
 - **每个功能/变更一次提交**：功能开发完成且满足"第三节第 5 点 DoD"后提交；AGENTS.md 的更新可与同批变更一起提交。
 - 提交信息格式：`<type>: <描述>`，type 取值 `feat`（新功能）/ `fix`（修复）/ `docs`（文档）/ `chore`（杂项、基础设施）。
