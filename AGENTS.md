@@ -26,15 +26,19 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 29 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 30 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-08-16 navbar 修复：中文界面 sidebarOf 匹配失败致导航条落入对话流（两级锚点：按钮中英 aria-label + 分隔条兜底）并 112 双语言实测通过
+
+- 变更内容：用户反馈"112 上导航条在会话流区域展示，位置明显有问题"（此前英文 headless 全过但中文浏览器复现失败）——根因：`sidebarOf()` 只查英文 aria-label（`Collapse/Open/Expand sidebar`），中文界面（`lang=zh-CN`）按钮标签为「收起/打开/展开侧边栏」→ 选择器匹配失败 → 返回 null → 兜底 `flow.left + 12` → 导航条落入对话流内部。修复：`sidebarOf()` 两级定位——① 首选按钮 aria-label（**英文 + 中文**）所在列容器（`hHd-Xa_root`，0~280）；② 兜底官方分隔条 `[data-side="sidebar"]`（与语言无关），`position()` 对分隔条路径按其**中心 x** 取侧边栏右缘（实测 handle 276~284 中心 280 = 右缘；注意其父容器 `pI_x6G_frame` 是 AppFrame 全宽，不能向上找容器，第一版实现因此误取 frame.right=1920 被钳制贴对话流）；`src/client/index.ts` 与构建产物 `lib/client.js`（md5 `bb064ccc`）同步、README 更新
+- 涉及路径：`navbar/src/client/index.ts`、`navbar/lib/client.js`、`navbar/README.md`、`AGENTS.md`；112 上 `/root/.dsh/external/navbar`（已同步并重启）
+- 备注：**112 实测全过（双语言）**——zh-CN 与 en-US × 1920/1280 视口：**展开态 bar.left = sidebar.right + 12（292=280+12，两语言一致）**、窄窗口钳制 gap=8 不侵入对话流、无 console 错误；中文环境折叠跟随（「收起侧边栏」→ bar 67=56+11）与还原（「打开侧边栏」→ 292 delta=12）完整通过；opencode-go mimo-v2.5 视觉模型实看 zh-1920 截图确认「导航条位于侧边栏右缘紧邻位置（+10~15px）、未遮挡消息、布局协调」；修复过程发现 112 会话树类名 `.YDXeBa_sessionRow` 为真实会话节点（`projectRow` 是工作区分组，误点无对话流）
 
 ### 2026-08-16 新增 theme-center/AGENTS.md 主题开发规范（以后主题开发按此执行）
 
 - 变更内容：新建 `theme-center/AGENTS.md`（用户指示"以后主题开发都按照这个规范来"）——沉淀 theme-center 开发全过程的规范：① 定位边界（纯视觉呈现层、纯浏览器切换、不写配置不重载）；② 包结构与文件职责表；③ 新增/更新皮肤流程（上游 bundle 零修改复用 + THEMES 注册表 + lib/meta 元数据 + 验证 + 记录）；④ 主题引擎机制（同源护栏分发路由、内核模块执行路径、miniCtx、串行泵、切换/残留回滚语义、持久化键、标题链基线）；⑤ 皮肤/UI 契约（--dsw-alias-* 令牌、body 属性作用域、disposer 全量收回、主题适配必须、内联资源）；⑥ 112 验证清单与 111 部署流程（含延迟 detach 重启）；⑦ 本目录变更记录机制；该文件已随工作区指令注入 theme-center 目录上下文
 - 涉及路径：`theme-center/AGENTS.md`、`AGENTS.md`
 - 备注：规范内容源自 2026-08-15 theme-center 开发与 112 验证全过程（含标题还原链缺陷修复、同源护栏、残留回滚配方等实测结论）
-
-</details>
 
 ### 2026-08-16 describe-image 保存卡死修复 + 设置卡只留模型下拉（去掉「模型来源」）+ opencode-go baseURL 配置并 112 实测通过
 

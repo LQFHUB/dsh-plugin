@@ -151,17 +151,29 @@ window.__ModuleLoader__.load({
 				};
 				const allRows = () => [...document.querySelectorAll("[data-time-hover-root]")].filter((row) => !row.hasAttribute("data-pending-steering"));
 				const userRows = () => allRows().filter((row) => !row.hasAttribute("data-turn-tail") && row.querySelector("[class*=\"bubble\"]") !== null);
-				// 定位参照：左侧侧边栏实体容器（Collapse/Open/Expand 按钮所在列）。
+				// 定位参照：左侧侧边栏实体容器。
+				// 两级定位，摆脱对英文 aria-label 的依赖（中文界面按钮标签为「收起/打开/
+				// 展开侧边栏」，旧选择器只认英文导致匹配失败 → 兜底 flow.left+12 → 导航条
+				// 落入对话流内部）：
+				// ① 首选按钮 aria-label（英文 + 中文）所在列容器（hHd-Xa_root，0~280）；
+				// ② 兜底官方分隔条 [data-side="sidebar"]（与语言无关，position 按其中心 x
+				//    取侧边栏右缘——注意其父容器是 AppFrame 全宽，不能向上找容器）。
 				const sidebarOf = () => {
-					const btn = document.querySelector('button[aria-label="Collapse sidebar"], button[aria-label="Open sidebar"], button[aria-label="Expand sidebar"]');
-					if (btn === null) return null;
-					let n = btn.parentElement;
-					while (n !== null && n !== document.body) {
-						const r = n.getBoundingClientRect();
-						if (r.width > 40 && r.left <= 10) return n;
-						n = n.parentElement;
+					const containerOf = (start) => {
+						let n = start;
+						while (n !== null && n !== document.body) {
+							const r = n.getBoundingClientRect();
+							if (r.width > 40 && r.left <= 10) return n;
+							n = n.parentElement;
+						}
+						return null;
+					};
+					const btn = document.querySelector('button[aria-label="Collapse sidebar"], button[aria-label="Open sidebar"], button[aria-label="Expand sidebar"], button[aria-label="收起侧边栏"], button[aria-label="打开侧边栏"], button[aria-label="展开侧边栏"]');
+					if (btn !== null) {
+						const c = containerOf(btn.parentElement);
+						if (c !== null) return c;
 					}
-					return null;
+					return document.querySelector('[data-side="sidebar"]');
 				};
 				const position = () => {
 					const flow = flowOf();
@@ -173,9 +185,14 @@ window.__ModuleLoader__.load({
 					// 保证导航条右缘绝不越过对话流左缘；空间充足时保持贴侧边栏 +12。
 					const sidebar = sidebarOf();
 					const flowLeft = flow.getBoundingClientRect().left;
-					const anchor = sidebar !== null
-						? sidebar.getBoundingClientRect().right + 12
-						: flowLeft + 12;
+					// 侧边栏右缘：实体容器取 rect.right；分隔条 [data-side="sidebar"]（兜底
+					// 路径）取中心 x（实测 276~284，中心 280 = 侧边栏右缘）。
+					let right = null;
+					if (sidebar !== null) {
+						const r = sidebar.getBoundingClientRect();
+						right = sidebar.hasAttribute('data-side') ? r.left + r.width / 2 : r.right;
+					}
+					const anchor = right !== null ? right + 12 : flowLeft + 12;
 					const maxLeft = flowLeft - bar.offsetWidth - 8;
 					const next = Math.round(Math.min(anchor, maxLeft));
 					const nextLeft = `${Math.max(8, next)}px`;

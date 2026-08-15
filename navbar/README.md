@@ -2,7 +2,7 @@
 
 对话区左缘的等距节点串（每 user 消息一节点，贴左侧边栏右缘展示）：激活药丸跟随阅读位置、悬停预览卡、点击平滑滚动跳转。实现 [dsh-external/issues#144](https://github.com/deepseek-ai/dsh-external/issues/144) 规格，形态为官方 **bundle 插件**（`dsh.bundle` + dshClient 通道，**纯浏览器端**，Node half 为空 apply）。
 
-> **复用声明**：本插件基于 [vlln/dsh-navbar](https://github.com/vlln/dsh-navbar)（MIT License，上游提交 `10e9d1546db2`，2026-08-15）——初始零修改复用；**2026-08-16 本地化改造**：定位由对话区右缘改为**贴左侧边栏右缘**（`sidebar.right + 12`，折叠态自动跟随窄条；窄窗口时钳制在对话流左缘左侧 8px，绝不侵入对话流），悬停预览卡由节点左侧弹出改为**右侧弹出**（朝对话区），定位参照与尺寸观察同步扩展（`src/client/index.ts` 与构建产物 `lib/client.js` 已同步）。所有代码、资源与许可归属上游；本目录仅做随仓库分发、部署与说明。
+> **复用声明**：本插件基于 [vlln/dsh-navbar](https://github.com/vlln/dsh-navbar)（MIT License，上游提交 `10e9d1546db2`，2026-08-15）——初始零修改复用；**2026-08-16 本地化改造**：定位由对话区右缘改为**贴左侧边栏右缘**（`sidebar.right + 12`，折叠态自动跟随窄条；窄窗口时钳制在对话流左缘左侧 8px，绝不侵入对话流；侧边栏定位两级锚点——按钮 aria-label 英文+中文，兜底官方分隔条 `[data-side="sidebar"]`），悬停预览卡由节点左侧弹出改为**右侧弹出**（朝对话区），定位参照与尺寸观察同步扩展（`src/client/index.ts` 与构建产物 `lib/client.js` 已同步）。所有代码、资源与许可归属上游；本目录仅做随仓库分发、部署与说明。
 
 ## 功能
 
