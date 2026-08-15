@@ -68,4 +68,11 @@ assert.match(clientSrc, /tag\.remove\(\)/, '适配层 style 应随 disposer 收�
 assert.match(clientSrc, /explorerCollapsed: true/, 'explorer 应默认折叠')
 assert.match(clientSrc, /!== "expanded"/, '恢复逻辑应仅显式 expanded 才展开（默认关闭）')
 
-console.log('✓ dsh-right-panel smoke ok（package.json / patch / host 导出 / 护栏适配 / client 形态与模块 id / 皮肤适配层 / 默认折叠）')
+// 8. 语法高亮与文件类型补充：highlightCode 引擎、hljs 类名配色、config 扩展名。
+assert.match(clientSrc, /function highlightCode\(/, '应含 highlightCode 高亮函数')
+assert.match(clientSrc, /"config",/, 'CODE_EXT 应含 config 扩展名')
+assert.match(clientSrc, /dsh-right-panel\/highlight/, '应含高亮配色 style 注入')
+assert.match(clientSrc, /hljs-keyword/, '高亮应使用 hljs-* 兼容类名')
+assert.match(clientSrc, /highlightCode\(content, language\)/, 'CodeViewer 应输出高亮')
+
+console.log('✓ dsh-right-panel smoke ok（package.json / patch / host 导出 / 护栏适配 / client 形态与模块 id / 皮肤适配层 / 默认折叠 / 语法高亮与文件类型）')

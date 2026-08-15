@@ -26,7 +26,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 28 条，点击展开，最新在最上面）</summary>
+<summary>📜 变更记录（共 29 条，点击展开，最新在最上面）</summary>
+
+### 2026-08-16 right-panel 语法高亮 + 文件类型补充（.config 等）并 112 实测通过
+
+- 变更内容：用户反馈"侧边栏有些文件不支持打开、没有语法高亮是否正常"——调查确认均属上游设计（未知扩展名 → unsupported 占位「此格式暂不支持预览」+ 下载提示；CodeViewer 纯 `<pre><code>` 无高亮，markdown 代码块仅 language-xxx 类名）。用户确认加语法高亮并补充文件类型（.config 打不开：其 ext=`config` 不在 CODE_EXT）。实现（全部在 `lib/client.js`）：① **轻量语法高亮** `highlightCode`（自研正则 tokenizer，无外部依赖，避免引入 hljs ~200KB）：13 个语言组（js 家族/json/python/go/rust/c 家族/shell/配置类/sql/html/css/diff/通用 fallback），token 分类（注释/字符串/数字/关键字/大写类型/函数调用），逐个 escapeHtml 后包 `hljs-*` span（无注入面），CodeViewer 与 markdown fenced code 均接入；配色 `dsh-right-panel/highlight` style 引用 `--aion-*` 变量（官方亮/暗 + theme-center 全部皮肤自动适配），disposer 收回；② CODE_EXT 补充 7 个扩展名：`config`/`json5`/`webmanifest`/`properties`/`desktop`/`service`/`ipynb`；冒烟测试新增 5 条断言（highlightCode/config 扩展名/highlight style/hljs 类名/CodeViewer 接入）
+- 涉及路径：`right-panel/lib/client.js`、`right-panel/tests/smoke.mjs`、`right-panel/README.md`、`AGENTS.md`；112 上 `/root/.dsh/external/right-panel`（同步）
+- 备注：112 实测 **11/11 断言全过**——.ts 打开且 24 个高亮 span、.py 12 个 span、.config 正常打开（不再 unsupported）、markdown 代码块高亮、XSS 安全（含 `<script>` 文本无注入）、高亮 style 注入、暗色下关键字配色生效 rgb(77,159,255)、无 console 错误；测试文件（rp-test.*）已清理；验证中发现 112 当前会话已是 ruoyi-vue-pro 项目（并行会话创建），测试文件临时放项目目录测完即删；**按新部署流程：待用户确认后再部署 111**
 
 ### 2026-08-16 修订部署流程：112 验证通过后先询问，用户同意才部署 111
 

@@ -387,7 +387,14 @@ window.__ModuleLoader__.load({
 			"npmrc",
 			"nix",
 			"lock",
-			"map"
+			"map",
+			"config",
+			"json5",
+			"webmanifest",
+			"properties",
+			"desktop",
+			"service",
+			"ipynb"
 		]);
 		/** No-extension names that are plain text. */
 		const TEXT_NAMES = /* @__PURE__ */ new Set([
@@ -3825,7 +3832,7 @@ window.__ModuleLoader__.load({
 					}
 					i += 1;
 					const langAttr = lang === "" ? "" : ` class="language-${escapeHtml(lang)}"`;
-					out.push(`<pre${langAttr}><code>${escapeHtml(code.join("\n"))}</code></pre>`);
+					out.push(`<pre${langAttr}><code>${highlightCode(code.join("\n"), lang)}</code></pre>`);
 					continue;
 				}
 				const heading = /^(#{1,6})\s+(.*)$/.exec(line);
@@ -4105,10 +4112,108 @@ window.__ModuleLoader__.load({
 			});
 		}
 		/** Plain code/text viewer. */
+		//#region src/client/highlight.ts（本仓库追加：轻量语法高亮，无外部依赖）
+		/** 语言族 -> 高亮规则（kw 关键字空格分隔；hash 启用 # 注释；tick 启用反引号串；html 启用 <!-- --> 注释；caps 大写开头标识符视为类型）。 */
+		const HL_GROUPS = {
+			js: { kw: "break case catch class const continue debugger default delete do else export extends finally for function if import in instanceof let new of return super switch this throw try typeof var void while with async await yield static get set null true false undefined NaN", hash: false, tick: true, triple: false, html: false, caps: true },
+			json: { kw: "true false null", hash: false, tick: false, triple: false, html: false, caps: false },
+			py: { kw: "and as assert async await break class continue def del elif else except finally for from global if import in is lambda nonlocal not or pass raise return try while with yield None True False self", hash: true, tick: false, triple: false, html: false, caps: true },
+			go: { kw: "break case chan const continue default defer else fallthrough for func go goto if import interface map package range return select struct switch type var", hash: false, tick: true, triple: false, html: false, caps: true },
+			rs: { kw: "as async await break const continue crate dyn else enum extern false fn for if impl in let loop match mod move mut pub ref return self Self static struct super trait true type unsafe use where while", hash: false, tick: false, triple: false, html: false, caps: true },
+			c: { kw: "auto break case char const continue default do double else enum extern float for goto if inline int long register return short signed sizeof static struct switch typedef union unsigned void volatile while class public private protected virtual using namespace template typename bool true false new delete this throw try catch", hash: false, tick: false, triple: false, html: false, caps: true },
+			sh: { kw: "if then else elif fi for while do done case esac function in select until export local readonly unset set eval exec exit return trap source", hash: true, tick: false, triple: false, html: false, caps: false },
+			cfg: { kw: "true false null yes no on off", hash: true, tick: false, triple: false, html: false, caps: false },
+			sql: { kw: "select from where insert into values update delete create table index view join inner left right outer on group by order having limit union all distinct as and or not null primary key foreign references", hash: false, tick: false, triple: false, html: false, caps: true },
+			html: { kw: "html head body div span a img p h1 h2 h3 h4 h5 h6 ul ol li table tr td th form input button script style link meta title section article nav header footer main aside code pre class id", hash: false, tick: false, triple: false, html: true, caps: false },
+			css: { kw: "@media @import @keyframes @font-face color background display position margin padding border width height font text align justify content flex grid opacity transform transition animation overflow z-index", hash: false, tick: false, triple: false, html: false, caps: false },
+			diff: { kw: "", hash: false, tick: false, triple: false, html: false, caps: false },
+			fallback: { kw: "", hash: false, tick: false, triple: false, html: false, caps: false }
+		};
+		/** 扩展名/语言名 -> 语言族。未知语言走 fallback（基础高亮）。 */
+		function highlightGroupFor(lang) {
+			const l = String(lang ?? "").toLowerCase().split(/[\s.]/)[0];
+			switch (l) {
+				case "js": case "jsx": case "ts": case "tsx": case "mjs": case "cjs": case "vue": case "astro": case "javascript": case "typescript": return HL_GROUPS.js;
+				case "json": case "jsonc": case "json5": case "ipynb": return HL_GROUPS.json;
+				case "py": case "python": return HL_GROUPS.py;
+				case "go": case "golang": return HL_GROUPS.go;
+				case "rs": case "rust": return HL_GROUPS.rs;
+				case "c": case "h": case "cpp": case "hpp": case "cc": case "java": case "cs": case "kt": case "kotlin": case "swift": case "dart": case "php": case "rb": case "ruby": case "lua": case "r": return HL_GROUPS.c;
+				case "sh": case "bash": case "zsh": case "fish": case "shell": return HL_GROUPS.sh;
+				case "yml": case "yaml": case "toml": case "ini": case "env": case "conf": case "cfg": case "config": case "properties": case "desktop": case "service": case "makefile": case "dockerfile": case "gitignore": return HL_GROUPS.cfg;
+				case "sql": return HL_GROUPS.sql;
+				case "html": case "htm": case "xml": case "svg": case "svelte": case "markup": return HL_GROUPS.html;
+				case "css": case "scss": case "less": return HL_GROUPS.css;
+				case "diff": case "patch": return HL_GROUPS.diff;
+				default: return HL_GROUPS.fallback;
+			}
+		}
+		/** 按语言族拼装 token 正则（交替匹配：注释/字符串/数字/标识符）。 */
+		function hlPattern(group) {
+			const parts = [];
+			if (group.html) parts.push(/<!--[\s\S]*?-->/);
+			parts.push(/"(?:[^"\\\n]|\\.)*"/, /'(?:[^'\\\n]|\\.)*'/);
+			if (group.tick) parts.push(/`(?:[^`\\]|\\.)*`/);
+			parts.push(/\/\/[^\n]*/, /\/\*[\s\S]*?\*\//);
+			if (group.hash) parts.push(/#[^\n]*/);
+			parts.push(/0[xX][0-9a-fA-F]+/, /\b\d[\d_]*(?:\.[\d_]+)?(?:[eE][+-]?\d+)?\b/, /[A-Za-z_$][\w$]*/);
+			return new RegExp(parts.map((r) => r.source).join("|"), "g");
+		}
+		/** 判断一个 token 的高亮类名（空串 = 普通文本，不包 span）。 */
+		function hlClass(token, group, nextChar) {
+			const ch = token[0];
+			if (ch === "\"" || ch === "'" || ch === "`") return "hljs-string";
+			if (ch === "/" || ch === "#" || token.startsWith("<!--")) return "hljs-comment";
+			if (/^(\d|0[xX])/.test(token)) return "hljs-number";
+			if (group.kw.includes(token)) return "hljs-keyword";
+			if (group.caps && /^[A-Z]/.test(token)) return "hljs-title";
+			if (nextChar === "(" && group !== HL_GROUPS.cfg && group !== HL_GROUPS.html) return "hljs-function";
+			return "";
+		}
+		/** diff 专用：按行着色（+ 增 / - 删 / @@ 元信息）。 */
+		function highlightDiff(code) {
+			return code.split("\n").map((line) => {
+				const esc = escapeHtml(line);
+				if (line.startsWith("@@")) return `<span class="hljs-meta">${esc}</span>`;
+				if (line.startsWith("+")) return `<span class="hljs-addition">${esc}</span>`;
+				if (line.startsWith("-")) return `<span class="hljs-deletion">${esc}</span>`;
+				return esc;
+			}).join("\n");
+		}
+		/**
+		 * 轻量语法高亮：单遍扫描，token 分类后逐个 escapeHtml 再包 span。
+		 * 输出为安全 HTML（所有用户内容均已转义，无注入面）。
+		 * @param code - 原始文本（未转义）。
+		 * @param lang - 语言名/扩展名。
+		 */
+		function highlightCode(code, lang) {
+			if (typeof code !== "string" || code === "") return "";
+			const group = highlightGroupFor(lang);
+			if (group === HL_GROUPS.diff) return highlightDiff(code);
+			const pattern = hlPattern(group);
+			let out = "";
+			let last = 0;
+			let match;
+			while ((match = pattern.exec(code)) !== null) {
+				const token = match[0];
+				if (token === "") { pattern.lastIndex += 1; continue; }
+				out += escapeHtml(code.slice(last, match.index));
+				const cls = hlClass(token, group, code[pattern.lastIndex] ?? "");
+				out += cls === "" ? escapeHtml(token) : `<span class="${cls}">${escapeHtml(token)}</span>`;
+				last = match.index + token.length;
+			}
+			out += escapeHtml(code.slice(last));
+			return out;
+		}
+		//#endregion
+		/** Code preview: highlighted by the built-in lightweight tokenizer. */
 		function CodeViewer({ content, language }) {
+			const html = highlightCode(content, language);
 			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("pre", {
 				className: preview_module_css_default.codeViewer,
-				children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("code", { children: content })
+				children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("code", {
+					dangerouslySetInnerHTML: { __html: html }
+				})
 			});
 		}
 		/**
@@ -4792,7 +4897,17 @@ body[data-dsh-trading][data-ds-dark-theme]{--aion-bg-base:#10151d;--aion-bg-1:va
 			tag.textContent = SKIN_ADAPT_CSS;
 			document.head.appendChild(tag);
 			return () => { tag.remove(); };
-		}, "dsh-right-panel: skin adaptation");
+		}, "dsh-right-panel: skin adaptation");		// 高亮配色：跟随 --aion-* 变量（官方亮/暗与 theme-center 全部皮肤自动适配），
+		// 仅作用于预览列，disposer 收回。
+		const HIGHLIGHT_CSS = `[data-aionui-preview-col] .hljs-comment{color:var(--aion-text-tertiary,#737373);font-style:italic}[data-aionui-preview-col] .hljs-string{color:var(--aion-success,#23c343)}[data-aionui-preview-col] .hljs-number{color:var(--aion-warning,#ff9a2e)}[data-aionui-preview-col] .hljs-keyword{color:var(--aion-primary,#4d9fff);font-weight:600}[data-aionui-preview-col] .hljs-title{color:var(--aion-brand,#a1aacb)}[data-aionui-preview-col] .hljs-function{color:var(--aion-primary,#4d9fff)}[data-aionui-preview-col] .hljs-addition{color:var(--aion-success,#23c343)}[data-aionui-preview-col] .hljs-deletion{color:var(--aion-danger,#f76560)}[data-aionui-preview-col] .hljs-meta{color:var(--aion-warning,#ff9a2e)}`;
+		ctx.effect(() => {
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "dsh-right-panel/highlight";
+			tag.dataset.pluginCss = "dsh-right-panel/highlight";
+			tag.textContent = HIGHLIGHT_CSS;
+			document.head.appendChild(tag);
+			return () => { tag.remove(); };
+		}, "dsh-right-panel: highlight styles");
 		}
 		//#endregion
 		exports.apply = apply;
