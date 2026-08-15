@@ -138,6 +138,36 @@ pnpm test       # vitest（123 用例：工具端到端 / attach 路由 / 设置
 - 密钥：部署时经环境变量注入（如 `XIAOMI_MIMO_API_KEY`）或设置卡内填写（secret role），
   不写入仓库、不写进配置文件明文。
 
+### 部署步骤（link 方式）
+
+```sh
+# 1) 同步插件目录（排除 node_modules / .git）
+rsync -az --exclude node_modules --exclude .git describe-image/ root@<host>:/root/.dsh/external/describe-image/
+
+# 2) 安装（注意：首次 add 可能只登记依赖、未进 dsh.profile.bundles，
+#    重跑一次 add 幂等补齐，装完用 dsh plugin list 或 --dump-config 确认）
+dsh plugin --profile web add link:/root/.dsh/external/describe-image
+dsh plugin --profile web add link:/root/.dsh/external/describe-image
+
+# 3) 宿主依赖 symlink（@deepseek-ai/dsh-* 未发布到 npm，运行时由 DSH 安装树提供）
+cd /root/.dsh/external/describe-image/node_modules/@deepseek-ai
+for p in dsh-settings dsh-tools dsh-credentials dsh-launch-environment \
+         dsh-llm dsh-system-prompt cordis; do
+  ln -sfn /usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/$p $p
+done
+ln -sfn /usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/schemastery \
+  /root/.dsh/external/describe-image/node_modules/@deepseek-ai/schemastery
+
+# 4) 密钥注入启动环境（112：/root/restart-dsh.sh 首行 export；111：systemd unit 环境）
+#    export XIAOMI_MIMO_API_KEY='<key>'
+
+# 5) 重启 dsh web（112：sh /root/restart-dsh.sh；111：systemctl restart dsh-web.service）
+```
+
+> 说明：`@deepseek-ai/dsh-settings` 等宿主包在 DSH 安装树中位于
+> `@deepseek-ai` 作用域下（含 `@deepseek-ai/schemastery`），插件代码统一
+> 以 scoped 名 import（与 dsh-settings 内部一致），部署时经 symlink 解析。
+
 ## 来源与版权
 
 - **来源**：本包移植自 [zhu1090093659/dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui)

@@ -1,6 +1,6 @@
 import { installSettingsSection, settingsNamespace } from "@deepseek-ai/dsh-settings";
 import { defineTool } from "@deepseek-ai/dsh-tools";
-import z from "schemastery";
+import z from "@deepseek-ai/schemastery";
 import { credentialRef } from "@deepseek-ai/dsh-credentials";
 import { launchEnvironmentOf } from "@deepseek-ai/dsh-launch-environment";
 import { readFile, stat } from "node:fs/promises";

@@ -54,8 +54,8 @@ export default defineConfig([
     platform: 'node',
     outDir: 'lib',
     deps: {
-      // @deepseek-ai/dsh-* 与 schemastery：运行时由宿主模块表 / 宿主安装提供。
-      neverBundle: [/^@deepseek-ai\//, 'schemastery'],
+      // @deepseek-ai/*（含 @deepseek-ai/schemastery）：运行时由宿主安装树提供。
+      neverBundle: [/^@deepseek-ai\//],
     },
     outExtension: () => ({ js: '.js' }),
     clean: true,

@@ -21,6 +21,8 @@ export default defineConfig({
       // @deepseek-ai/dsh-* 与 @deepseek-ai/dsh-*/<子路径> → 本机 DSH 安装树。
       { find: /^@deepseek-ai\/(dsh-[a-z0-9-]+)$/, replacement: `${dshPkgs}/$1` },
       { find: /^@deepseek-ai\/(dsh-[a-z0-9-]+)\/(.+)$/, replacement: `${dshPkgs}/$1/$2` },
+      // @deepseek-ai/schemastery → 本机 DSH 安装树（宿主同款 scoped 包）。
+      { find: /^@deepseek-ai\/schemastery$/, replacement: `${dshPkgs}/schemastery` },
     ],
   },
 })

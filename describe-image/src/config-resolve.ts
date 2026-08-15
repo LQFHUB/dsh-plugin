@@ -7,7 +7,8 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import z from 'schemastery'
+// 与宿主 dsh-settings 一致的 scoped 包名（DSH 安装树以 @deepseek-ai/schemastery 提供）。
+import z from '@deepseek-ai/schemastery'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import type { CredentialRef } from '@deepseek-ai/dsh-credentials'
 import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
