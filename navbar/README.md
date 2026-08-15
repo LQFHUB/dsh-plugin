@@ -1,14 +1,14 @@
 # navbar — 对话节点导航条
 
-对话区右缘的等距节点串（每 user 消息一节点）：激活药丸跟随阅读位置、悬停预览卡、点击平滑滚动跳转。实现 [dsh-external/issues#144](https://github.com/deepseek-ai/dsh-external/issues/144) 规格，形态为官方 **bundle 插件**（`dsh.bundle` + dshClient 通道，**纯浏览器端**，Node half 为空 apply）。
+对话区左缘的等距节点串（每 user 消息一节点，贴左侧边栏右缘展示）：激活药丸跟随阅读位置、悬停预览卡、点击平滑滚动跳转。实现 [dsh-external/issues#144](https://github.com/deepseek-ai/dsh-external/issues/144) 规格，形态为官方 **bundle 插件**（`dsh.bundle` + dshClient 通道，**纯浏览器端**，Node half 为空 apply）。
 
-> **复用声明**：本插件**零修改复用** [vlln/dsh-navbar](https://github.com/vlln/dsh-navbar)（MIT License，上游提交 `10e9d1546db2`，2026-08-15）。所有代码、资源与许可归属上游；本目录仅做随仓库分发、部署与说明。如上游更新，可重新同步或按需重建（见「构建」）。
+> **复用声明**：本插件基于 [vlln/dsh-navbar](https://github.com/vlln/dsh-navbar)（MIT License，上游提交 `10e9d1546db2`，2026-08-15）——初始零修改复用；**2026-08-16 本地化改造**：定位由对话区右缘改为**贴左侧边栏右缘**（`sidebar.right + 12`，折叠态自动跟随窄条；窄窗口时钳制在对话流左缘左侧 8px，绝不侵入对话流），悬停预览卡由节点左侧弹出改为**右侧弹出**（朝对话区），定位参照与尺寸观察同步扩展（`src/client/index.ts` 与构建产物 `lib/client.js` 已同步）。所有代码、资源与许可归属上游；本目录仅做随仓库分发、部署与说明。
 
 ## 功能
 
 | 功能 | 说明 |
 |---|---|
-| 节点导航条 | 对话区右缘纵向节点串，每 user 消息一个圆点节点 |
+| 节点导航条 | 对话区左缘纵向节点串（贴左侧边栏右缘，窄窗口自动避让对话流），每 user 消息一个圆点节点 |
 | 跟随阅读位置 | 激活药丸（品牌蓝胶囊）随当前阅读位置移动 |
 | 悬停预览 | 悬停节点显示消息预览卡（6 行截断，对齐官方 HoverCard 视觉） |
 | 连续悬停 | 整条导航条（含节点间隙）连续响应悬停：预览随最近节点切换 + 对应药丸加长（灰色）指示点击落点，无死区 |
@@ -40,7 +40,7 @@ dsh plugin --profile web add link:/root/.dsh/external/navbar
 
 ## 使用
 
-安装即用，无命令、无工具。对话页（Chat 视图）右缘出现节点条；悬停看预览、点击跳转。`prefers-reduced-motion` 下禁用动画。
+安装即用，无命令、无工具。对话页（Chat 视图）左缘（贴左侧边栏右侧）出现节点条；悬停看预览、点击跳转。`prefers-reduced-motion` 下禁用动画。
 
 **精选 pin**：hover assistant 消息操作条，点 📌 把该回复选为精选——对应轮次的导航节点变为金色细长椭圆盘（点击直达该回复；预览卡显示 📌 徽标与回复文本）。精选状态按会话保存在浏览器 localStorage，刷新后保留；再点一次取消精选。
 

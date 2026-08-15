@@ -166,12 +166,33 @@ export default {
         !row.hasAttribute('data-turn-tail') &&
         row.querySelector('[class*="bubble"]') !== null)
 
-    // 位置：贴近对话流列右缘 + 12px，钳制视口内（列移动时触发，不进每帧路径）。
+    // 定位参照：左侧侧边栏实体容器（Collapse/Open/Expand 按钮所在列）。
+    const sidebarOf = (): HTMLElement | null => {
+      const btn = document.querySelector<HTMLElement>('button[aria-label="Collapse sidebar"], button[aria-label="Open sidebar"], button[aria-label="Expand sidebar"]')
+      if (btn === null) return null
+      let n: HTMLElement | null = btn.parentElement
+      while (n !== null && n !== document.body) {
+        const r = n.getBoundingClientRect()
+        if (r.width > 40 && r.left <= 10) return n
+        n = n.parentElement
+      }
+      return null
+    }
+    // 位置：靠左边栏展示——导航条左缘贴左侧边栏右缘 + 12px（折叠态自动跟随
+    // 窄条）；sidebar 缺失（异常布局）时兜底贴对话流左缘内侧。
+    // 钳制：对话流 896px 固定居中，窄窗口时左缘左移，若仍取 sidebar.right+12
+    // 会侵入对话流（覆盖消息）。取 min(侧边栏锚点, 对话流左缘 - bar 宽 - 8)，
+    // 保证导航条右缘绝不越过对话流左缘；空间充足时保持贴侧边栏 +12。
     const position = (): void => {
       const flow = flowOf()
       if (flow === null) return
-      const right = flow.getBoundingClientRect().right
-      const next = Math.round(Math.min(right + 12, window.innerWidth - bar.offsetWidth - 8))
+      const sidebar = sidebarOf()
+      const flowLeft = flow.getBoundingClientRect().left
+      const anchor = sidebar !== null
+        ? sidebar.getBoundingClientRect().right + 12
+        : flowLeft + 12
+      const maxLeft = flowLeft - bar.offsetWidth - 8
+      const next = Math.round(Math.min(anchor, maxLeft))
       const nextLeft = `${Math.max(8, next)}px`
       if (bar.style.left !== nextLeft) bar.style.left = nextLeft
     }
@@ -255,8 +276,8 @@ export default {
     // 无行属性，按 data-turn-tail 从 store 读）。
     const positionPreview = (anchor: HTMLElement): void => {
       const r = anchor.getBoundingClientRect()
-      // right 定位：卡片右缘贴 dot 左缘 - 14px（内容短的卡片也贴紧）。
-      preview.style.right = `${window.innerWidth - r.left + 14}px`
+      // left 定位（导航条在左）：卡片左缘贴 dot 右缘 + 14px，朝对话区弹出。
+      preview.style.left = `${r.right + 14}px`
       preview.style.top = `${Math.min(window.innerHeight - 120, r.top - 12)}px`
     }
     const showPreview = (row: HTMLElement, anchor: HTMLElement, pinnedRow: HTMLElement | null = null): void => {
@@ -454,6 +475,9 @@ export default {
           sizeObserver.observe(el)
           el = el.parentElement
         }
+        // 观察左侧边栏实体容器：折叠/展开改变其宽度，导航条需跟随其右缘。
+        const sidebar = sidebarOf()
+        if (sidebar !== null) sizeObserver.observe(sidebar)
       }
       position()
       return true

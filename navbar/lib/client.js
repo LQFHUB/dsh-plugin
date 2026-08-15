@@ -151,11 +151,33 @@ window.__ModuleLoader__.load({
 				};
 				const allRows = () => [...document.querySelectorAll("[data-time-hover-root]")].filter((row) => !row.hasAttribute("data-pending-steering"));
 				const userRows = () => allRows().filter((row) => !row.hasAttribute("data-turn-tail") && row.querySelector("[class*=\"bubble\"]") !== null);
+				// 定位参照：左侧侧边栏实体容器（Collapse/Open/Expand 按钮所在列）。
+				const sidebarOf = () => {
+					const btn = document.querySelector('button[aria-label="Collapse sidebar"], button[aria-label="Open sidebar"], button[aria-label="Expand sidebar"]');
+					if (btn === null) return null;
+					let n = btn.parentElement;
+					while (n !== null && n !== document.body) {
+						const r = n.getBoundingClientRect();
+						if (r.width > 40 && r.left <= 10) return n;
+						n = n.parentElement;
+					}
+					return null;
+				};
 				const position = () => {
 					const flow = flowOf();
 					if (flow === null) return;
-					const right = flow.getBoundingClientRect().right;
-					const next = Math.round(Math.min(right + 12, window.innerWidth - bar.offsetWidth - 8));
+					// 靠左边栏展示：导航条左缘贴 sidebar 右缘 +12px（折叠态自动跟随窄条）；
+					// sidebar 缺失（非对话页/异常布局）时兜底贴对话流左缘内侧。
+					// 钳制：对话流 896px 固定居中，窄窗口时左缘左移，若仍取 sidebar.right+12
+					// 会侵入对话流（覆盖消息）。取 min(侧边栏锚点, 对话流左缘 - bar 宽 - 8)，
+					// 保证导航条右缘绝不越过对话流左缘；空间充足时保持贴侧边栏 +12。
+					const sidebar = sidebarOf();
+					const flowLeft = flow.getBoundingClientRect().left;
+					const anchor = sidebar !== null
+						? sidebar.getBoundingClientRect().right + 12
+						: flowLeft + 12;
+					const maxLeft = flowLeft - bar.offsetWidth - 8;
+					const next = Math.round(Math.min(anchor, maxLeft));
 					const nextLeft = `${Math.max(8, next)}px`;
 					if (bar.style.left !== nextLeft) bar.style.left = nextLeft;
 				};
@@ -235,7 +257,8 @@ window.__ModuleLoader__.load({
 				};
 				const positionPreview = (anchor) => {
 					const r = anchor.getBoundingClientRect();
-					preview.style.right = `${window.innerWidth - r.left + 14}px`;
+					// 导航条在左：预览卡从节点右侧弹出（朝对话区）。
+					preview.style.left = `${r.right + 14}px`;
 					preview.style.top = `${Math.min(window.innerHeight - 120, r.top - 12)}px`;
 				};
 				const showPreview = (row, anchor, pinnedRow = null) => {
@@ -378,6 +401,9 @@ window.__ModuleLoader__.load({
 							sizeObserver.observe(el);
 							el = el.parentElement;
 						}
+						// 观察左侧边栏实体容器：折叠/展开改变其宽度，导航条需跟随其右缘。
+						const sidebar = sidebarOf();
+						if (sidebar !== null) sizeObserver.observe(sidebar);
 					}
 					position();
 					return true;

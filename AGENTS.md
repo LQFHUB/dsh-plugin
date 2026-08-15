@@ -26,7 +26,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 23 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 24 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-08-16 navbar 修复：窄窗口导航条侵入对话流（position 钳制到对话流左缘左侧）并 112 实测通过
+
+- 变更内容：用户反馈"112 上导航条在对话流中展示，位置明显有问题"——复现定位根因：对话流 896px 固定居中，视口 ≤1280px 时其左缘左移（1280px：flow.left=328；1152/1024px：flow.left=312），而导航条固定在 `sidebar.right + 12`（292~332）→ **1280px 重叠 4px、1152/1024px 重叠 20px**，压住对话消息。修复：`position()` 增加钳制 `next = min(anchor, flowLeft - bar.offsetWidth - 8)`——导航条右缘**绝不越过对话流左缘**（保留 8px 间隙）；空间充足（视口 ≥1366px）行为不变仍贴侧边栏 +12，空间不足时导航条左移（1280px 贴 flow 左缘、1152/1024px 微盖侧边栏右缘 16px，两害相权不碰消息）；`src/client/index.ts` 与构建产物 `lib/client.js`（md5 `1fe8d5e0`）同步、README 更新
+- 涉及路径：`navbar/src/client/index.ts`、`navbar/lib/client.js`、`navbar/README.md`、`AGENTS.md`；112 上 `/root/.dsh/external/navbar`（已同步并重启）
+- 备注：**112 实测全过**（playwright-core + chromium headless，修复前后对比）——修复前 6 视口（1920/1600/1366/1280/1152/1024）：1280 起重叠 4~20px；修复后全视口 overlap=false、gap≥8px（1920/1600/1366 保持 sideDelta=+12 贴侧边栏、1280 bar.left=280 贴 flow 左缘、1152/1024 bar.left=264 gap=8 不碰对话流）、无 console 错误；完整回归（展开 delta=12/折叠跟随/预览朝右弹出/节点数=user 行/active 药丸）全过；112 服务已重启（pid 133397）下发新 rev
 
 ### 2026-08-16 describe-image 设置卡极简化：configured 模式默认开启、只显示模型下拉（用户要求"只选已配置模型，不配协议/apikey"）
 
