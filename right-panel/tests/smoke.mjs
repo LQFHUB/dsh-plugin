@@ -57,4 +57,11 @@ assert.match(clientSrc, /__ModuleLoader__\.load\(/, 'client.js 应为 __ModuleLo
 assert.match(clientSrc, /id: "dsh-right-panel"/, 'client.js 模块 id 应等于包名 dsh-right-panel')
 assert.doesNotMatch(clientSrc, /linxin666/, 'client.js 不应残留上游包名')
 
-console.log('✓ dsh-right-panel smoke ok（package.json / patch / host 导出 / 护栏适配 / client 形态与模块 id）')
+// 6. 皮肤适配层：harbor/trading 的 --aion-* 补丁存在且随 disposer 收回。
+assert.match(clientSrc, /dsh-right-panel\/skin-adapt/, 'client.js 应含皮肤适配层标记')
+assert.match(clientSrc, /body\[data-dsh-harbor\]/, '适配层应覆盖 harbor（夕港）')
+assert.match(clientSrc, /body\[data-dsh-trading\]/, '适配层应覆盖 trading（交易终端）')
+assert.match(clientSrc, /body\[data-dsh-trading\]\[data-ds-dark-theme\]/, '适配层应含 trading 暗色变体')
+assert.match(clientSrc, /tag\.remove\(\)/, '适配层 style 应随 disposer 收回')
+
+console.log('✓ dsh-right-panel smoke ok（package.json / patch / host 导出 / 护栏适配 / client 形态与模块 id / 皮肤适配层）')

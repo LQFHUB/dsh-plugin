@@ -26,7 +26,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 24 条，点击展开，最新在最上面）</summary>
+<summary>📜 变更记录（共 25 条，点击展开，最新在最上面）</summary>
+
+### 2026-08-16 right-panel 主题适配：补齐 harbor/trading 两款皮肤的 --aion-* 面板变量
+
+- 变更内容：用户反馈"修改主题后右侧面板与主题不匹配"——调查确认 theme-center 10 款皮肤中 8 款自带面板适配（bundle 定义 `--aion-*` 变量 + `body[data-dsh-x] [data-aionui-*]` 微调样式，xp 实测跟随），**harbor（夕港）/ trading（交易终端）两款上游 bundle 完全缺适配**（0 变量，上游 npm 0.1.16 最新版同样缺失，为上游固有缺口）；实测 harbor 亮色下官方 UI 为深色半透明纱（`--dsw-alias-bg-layer-1:#181f36b3`、body color-scheme:dark）而面板白色 #f9fafb。方案：在 right-panel 浏览器半区新增**皮肤适配层**（`SKIN_ADAPT_CSS` 常量 + `skin-adapt` effect）——静态注入选择器限定的变量补丁（`body[data-dsh-harbor]` / `body[data-dsh-trading]` / `body[data-dsh-trading][data-ds-dark-theme]`），取值优先引用皮肤自身变量（var(--dsw-alias-*)/var(--dsh-trd-*)，皮肤调色实时跟随），fallback 为实测值；仅这两款皮肤应用时生效，其余 8 款不受干扰，style 随 disposer 收回（卸载/热重载无残留）
+- 涉及路径：`right-panel/lib/client.js`、`right-panel/tests/smoke.mjs`、`right-panel/README.md`、`AGENTS.md`；112 上 `/root/.dsh/external/right-panel`（同步）
+- 备注：112 实测 **16/16 断言全过**——harbor 面板背景 rgba(24,31,54,.7) 深蓝半透明+浅色文字（与官方 UI 一致）、trading 亮色 #fff/#1b2431、trading 暗色 #10151d/#dbe2ec、xp 等已适配皮肤回归不受影响、官方默认完全还原、无 console 错误；目录问题调查结论：面板根 = 会话创建时的静态 cwd（DSH 无会话内动态 workdir 机制，112 唯一 workspace=/root），如需面板显示项目目录应在新建会话时选择项目目录作为 workspace（方案 A，待用户最终确认；方案 B「跟随 agent 动态 cd」需宿主侧新增机制，本次不做）
 
 ### 2026-08-16 新增 right-panel 右侧面板插件（复用 dsh-web-ui aionui-panel 产物）并部署 112 验证
 

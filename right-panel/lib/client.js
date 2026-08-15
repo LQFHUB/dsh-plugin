@@ -4649,6 +4649,19 @@ window.__ModuleLoader__.load({
 		//#region src/client/index.ts
 		/** Required services: sessions for the project root, locale for the copy. */
 		const inject = ["sessions", "locale"];
+
+		/**
+		 * 皮肤适配层（本仓库追加，替代上游缺适配）：
+		 * harbor（夕港）与 trading（交易终端）两款皮肤的上游 bundle 未定义
+		 * --aion-* 面板变量，导致右侧面板保持官方默认亮/暗色、与皮肤观感不匹配。
+		 * 本层按皮肤自身变量补齐 --aion-*（优先引用 var(--dsw-alias-*) /
+		 * var(--dsh-trd-*)，皮肤调色实时跟随；缺失时回退实测值）。选择器限定
+		 * body[data-dsh-harbor] / body[data-dsh-trading]，未应用这两款皮肤时
+		 * 不生效；其余 8 款皮肤自带适配，本层不覆盖。
+		 */
+		const SKIN_ADAPT_CSS = `body[data-dsh-harbor]{--aion-bg-base:var(--dsw-alias-bg-base,#141a2eb3);--aion-bg-1:var(--dsw-alias-bg-layer-1,#181f36b3);--aion-bg-2:var(--dsw-alias-bg-layer-2,#1d2540b8);--aion-bg-3:var(--dsw-alias-bg-layer-3,#222b4ac7);--aion-bg-hover:#ffffff0f;--aion-text-primary:#fff5ec;--aion-text-secondary:#ffffffcc;--aion-text-tertiary:#ffffff8c;--aion-text-disabled:#ffffff59;--aion-primary:var(--dsw-alias-brand-primary,#ff9d5c);--aion-brand:var(--dsw-alias-brand-primary,#ff9d5c);--aion-border-base:var(--dsw-alias-border-l2,#ffffff1f)}
+body[data-dsh-trading]{--aion-bg-base:#f5f7fa;--aion-bg-1:var(--dsh-trd-panel,#fff);--aion-bg-2:#eef1f5;--aion-bg-3:#e7ebf0;--aion-bg-hover:#1018240d;--aion-text-primary:var(--dsh-trd-text,#1b2431);--aion-text-secondary:var(--dsh-trd-dim,#6b7788);--aion-text-tertiary:var(--dsh-trd-dim,#6b7788);--aion-text-disabled:var(--dsh-trd-dim,#6b7788);--aion-primary:var(--dsh-trd-brand,#e02e3d);--aion-brand:var(--dsh-trd-brand,#e02e3d);--aion-success:var(--dsh-trd-down,#089981);--aion-danger:var(--dsh-trd-up,#e02e3d);--aion-border-base:var(--dsh-trd-border,#d4dce5)}
+body[data-dsh-trading][data-ds-dark-theme]{--aion-bg-base:#10151d;--aion-bg-1:var(--dsh-trd-panel,#10151d);--aion-bg-2:#1a222e;--aion-bg-3:#1f2836;--aion-bg-hover:#ffffff0d;--aion-text-primary:var(--dsh-trd-text,#dbe2ec);--aion-text-secondary:var(--dsh-trd-dim,#7c8897);--aion-text-tertiary:var(--dsh-trd-dim,#7c8897);--aion-text-disabled:var(--dsh-trd-dim,#7c8897);--aion-primary:var(--dsh-trd-up,#f23645);--aion-brand:var(--dsh-trd-up,#f23645);--aion-success:var(--dsh-trd-down,#089981);--aion-danger:var(--dsh-trd-up,#f23645);--aion-border-base:var(--dsh-trd-border,#222b39)}`;
 		/** Apply the browser half. */
 		function apply(ctx) {
 			ctx.effect(() => ctx.locale.register(NS, dictionaries), "dsh-aionui-panel: dictionaries");
@@ -4770,6 +4783,16 @@ window.__ModuleLoader__.load({
 					layout.dispose();
 				};
 			}, "dsh-aionui-panel: wiring");
+		// 皮肤适配层：注入 harbor/trading 的 --aion-* 变量补丁（选择器限定，皮肤
+		// 属性驱动生效/失效，无需观察器）；disposer 收回，卸载/热重载无残留。
+		ctx.effect(() => {
+			const tag = document.createElement("style");
+			tag.dataset.plugin = "dsh-right-panel/skin-adapt";
+			tag.dataset.pluginCss = "dsh-right-panel/skin-adapt";
+			tag.textContent = SKIN_ADAPT_CSS;
+			document.head.appendChild(tag);
+			return () => { tag.remove(); };
+		}, "dsh-right-panel: skin adaptation");
 		}
 		//#endregion
 		exports.apply = apply;
