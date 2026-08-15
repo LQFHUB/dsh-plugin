@@ -1,0 +1,140 @@
+# AGENTS.md
+
+本文件是本目录（`dsh-plugin`）的**开发约定与变更记录**，供 AI 助手（Agent）在本目录工作时遵循。
+
+## 一、目录用途
+
+- 本目录用于开发**用户个人使用的 DSH 插件**。
+- 只存放与插件开发相关的内容（代码、配置、文档、测试等），不得存放与本目录用途无关的文件。
+
+## 二、目录结构约定
+
+- **每个新功能创建一个独立文件夹**，文件夹内包含该功能的全部代码、配置和说明文档。
+- 文件夹命名使用语义化、可读的名称（如 `audio-player`、`clipboard-manager`），避免无意义命名。
+- 每个功能文件夹内应有自己的说明文档（如 `README.md`），描述该功能的用途和使用方法。
+- 通用、跨功能共享的代码或配置，应放在单独的 `shared/`（或明确命名的）目录中，避免在功能目录间复制。
+
+## 三、添加新功能的流程（必须遵守）
+
+1. **先询问，再动手**：在添加任何新功能之前，Agent 必须先询问用户：是否创建一个新文件夹来开发该功能（还是放进现有文件夹）。
+2. 若用户同意创建新文件夹：按照"目录结构约定"创建文件夹，并在其中开发。
+3. 若用户选择放入现有文件夹：说明原因，并只对现有文件夹做最小必要的修改。
+4. 开发完成后，**必须**在本文件"四、变更记录"中追加一条记录。
+5. **功能完成标准（Definition of Done）**：以下全部满足才算功能完成——功能代码可用且可正常加载；功能文件夹内 README 已写好（用途、使用方法）；必要的测试通过（如有）；变更记录已追加。
+
+## 四、变更记录
+
+> 最新记录在最上面。
+
+### 2026-08-15 补充完成标准、敏感信息安全与语言约定
+
+- 变更内容：第三节新增第 5 点"功能完成标准（DoD）"（代码可用、README 写好、测试通过、变更记录追加）；第五节新增"敏感信息安全"（凭证不硬编码，存入知识库/环境变量）与"语言约定"（文档与注释默认中文）两条规则
+- 涉及路径：`AGENTS.md`
+- 备注：用户询问 AGENTS.md 还缺什么，评估后补充
+
+### 2026-08-15 社区参考内容内联化：删除"社区参考仓库"小节
+
+- 变更内容：按用户指示删除"社区参考仓库"小节，将其有价值的规范直接内联进"核心规范要点"：新增"插件包标准结构"（dsh.bundle.patch + cordis.patch.yml + tsdown 自包含构建）、"皮肤/UI 插件开发契约"（纯呈现层、body 属性作用域样式、ctx.effect 全部收回、内联资源）、"插件测试"（apply 契约测试）三个小节
+- 涉及路径：`AGENTS.md`
+- 备注：用户口头指示（不新增社区参考仓库小节，有价值的内容直接写入 AGENTS.md）
+
+### 2026-08-15 添加社区参考仓库 zhu1090093659/dsh-web-ui
+
+- 变更内容：在"六、官方文档索引"新增"社区参考仓库"小节，收录 dsh-web-ui 仓库及其插件包结构、皮肤开发契约、契约测试等参考价值说明
+- 涉及路径：`AGENTS.md`
+- 备注：用户提供仓库链接，评估后认为有参考价值（插件/皮肤开发契约），已注明其 skill 仅抽取规范结论
+
+### 2026-08-15 建立变更记录归档机制
+
+- 变更内容：新增归档规则（见本节末尾"归档机制"），防止 AGENTS.md 无限膨胀占用会话上下文
+- 涉及路径：`AGENTS.md`
+- 备注：AGENTS.md 会被作为工作区指令完整注入每个会话，需控制体积
+
+### 2026-08-15 修订规则：AGENTS.md 更新无需询问用户
+
+- 变更内容：新增规则"AGENTS.md 的更新由 Agent 自行决定，无需询问用户"；删除/移动/重命名文件需询问的规则明确排除 `AGENTS.md` 本身
+- 涉及路径：`AGENTS.md`
+- 备注：用户口头指示（改 AGENTS.md 不需要问，Agent 自行决定是否更新）
+
+### 2026-08-15 添加"六、官方文档索引"章节
+
+- 变更内容：新增官方文档索引章节，收录 DSH（DeepSeek Harness）官方插件开发文档链接（开发基础、框架层、Cordis 教程、Cookbook）与核心规范要点
+- 涉及路径：`AGENTS.md`
+- 备注：官方仓库 [deepseek-ai/DeepSeek-Harness](https://github.com/deepseek-ai/DeepSeek-Harness)，文档位于其 `docs/` 目录
+
+### 2026-08-15 创建 AGENTS.md，确立本目录开发约定
+
+- 变更内容：创建本文件，确立目录用途（个人插件开发）、每功能一个文件夹的结构约定、添加新功能前先询问用户、变更必须记录等规则
+- 涉及路径：`AGENTS.md`
+
+---
+
+- 本目录下的**每一次变更**（新建/修改/删除文件夹、文件、配置等）都必须记录到本节。
+- 记录格式如下，按时间倒序追加（最新记录在最上面）：
+
+```markdown
+### YYYY-MM-DD 变更描述（一句话标题）
+
+- 变更内容：具体做了什么
+- 涉及路径：涉及的文件/文件夹
+- 备注：其他需要说明的信息（可选）
+```
+
+### 归档机制（防止本文件无限膨胀）
+
+- AGENTS.md 会被作为工作区指令**完整注入每个会话的上下文**，体积必须控制。
+- 当变更记录条数 **超过 30 条** 时，Agent 应执行归档：将最早的历史记录（保留最新 20 条）移动到同目录的 `CHANGELOG.md`（按原格式、时间倒序存放），并在本节顶部注明"更早记录见 `CHANGELOG.md`"。
+- `CHANGELOG.md` 仅作历史存档，不会被注入会话上下文；归档动作本身在 AGENTS.md 中记录一条即可。
+
+## 五、其他规则
+
+- 修改现有代码前，先阅读相关文件夹内的说明文档和现有代码，理解后再动手。
+- 不在未询问用户的情况下删除、移动或重命名已有文件夹/文件（`AGENTS.md` 本身除外）。
+- **敏感信息安全**：API key、token、密码、凭证等不得硬编码进代码、文档或配置（含本文件）；需要持久保存时放入个人知识库或环境变量。
+- **语言约定**：功能文件夹内的文档（README 等）与代码注释默认使用中文。
+- **`AGENTS.md` 的更新由 Agent 自行决定，无需询问用户**：包括新增/修改/删除规则、调整结构、修订内容等；但每次更新仍必须在"四、变更记录"中追加一条记录。
+- 本文件本身的内容更新（如约定变更）也属于变更记录，需同步记录。
+- 如果本文件与用户口头指示冲突，以用户最新指示为准，并更新本文件保持一致。
+
+## 六、官方文档索引（参考资料）
+
+本目录开发基于 DSH（DeepSeek Harness），官方文档位于 [deepseek-ai/DeepSeek-Harness](https://github.com/deepseek-ai/DeepSeek-Harness) 仓库的 `docs/` 目录，中英双语。开发前如需查阅规范，优先使用以下文档：
+
+**开发基础（入门必读）**
+- [第一个插件](https://github.com/deepseek-ai/DeepSeek-Harness/blob/master/docs/user/develop/basic/index.zh.md)：插件本质、三种形态（函数/对象/类）、inject 依赖、自动清理
+- [开发一个工具](https://github.com/deepseek-ai/DeepSeek-Harness/blob/master/docs/user/develop/basic/tool.zh.md)：工具定义 DSL
+- [插件配置](https://github.com/deepseek-ai/DeepSeek-Harness/blob/master/docs/user/develop/basic/config.zh.md)
+- [插件发布](https://github.com/deepseek-ai/DeepSeek-Harness/blob/master/docs/user/develop/basic/publish.zh.md)
+
+**框架层**
+- [插件与生命周期](https://github.com/deepseek-ai/DeepSeek-Harness/blob/master/docs/user/develop/framework/index.zh.md)：Fiber 状态机（PENDING → LOADING → ACTIVE/FAILED → UNLOADING → DISPOSED）
+- [服务与依赖](https://github.com/deepseek-ai/DeepSeek-Harness/blob/master/docs/user/develop/framework/service.zh.md)
+- [事件](https://github.com/deepseek-ai/DeepSeek-Harness/blob/master/docs/user/develop/framework/events.zh.md)
+
+**底层框架（Cordis）**
+- [Cordis 入门](https://github.com/deepseek-ai/DeepSeek-Harness/blob/master/docs/cordis-primer.zh.md)
+- [Cordis 教程](https://github.com/deepseek-ai/DeepSeek-Harness/blob/master/docs/cordis-tutorial/index.md)：01 第一个插件 / 02 生命周期与副作用 / 03 服务 / 04 事件
+
+**实践食谱（Cookbook）**：`docs/cookbook/`（adding-a-tool、adding-a-package、adding-an-llm-adapter 等）
+
+**核心规范要点**
+- 插件 = 导出 `apply(ctx)` 的模块，三种形态：函数 / 对象 / 类（类形式用于向其他插件提供服务）
+- 依赖用 `inject` 声明，框架保证依赖就绪后才加载；依赖消失会自动卸载重载
+- 一切注册自动清理（事件、工具、定时器）；自定义资源用 `ctx.effect()` 返回 disposer
+- 通过 `cordis.yml` 注册插件（`- insert` 或 `- plugin` 行），作为 patch 层叠加；插件路径必须是绝对路径
+- 本环境内开发动态插件/编辑组合时，遵循会话内置技能 `cordis-plugin-development` 与 `editing-cordis-compositions`
+
+**插件包标准结构（参照社区实战落地，官方 publish 规范的实践形态）**
+- `package.json` 声明 `dsh.bundle.patch` → `cordis.patch.yml`（安装时自动插入插件行）
+- 用 tsdown 自包含构建 `lib/`（host 入口 + client bundle），无项目引用、无类型检查
+- 构建时 `@deepseek-ai/dsh-*` 一律作 external（未发布到 npm，运行时由宿主模块表提供）
+- devDependencies 只用真实发布版本（tsdown / cordis / vitest 等）
+
+**皮肤/UI 插件开发契约**
+- 纯呈现层：不注入服务、不发 Cordis 事件、不触及模型请求
+- 样式全部挂在 `body[data-dsh-<name>]` 属性下，暗色变体用 `body[data-dsh-<name>][data-ds-dark-theme]`；不得用裸类名/全局选择器污染其他皮肤与官方 UI
+- 所有写入（body 属性、注入的 DOM、favicon、document.title）必须在 `ctx.effect()` 的 disposer 里**全部收回**（标题仅在仍是自己设置时才还原）
+- 不携带静态资源文件：内联 SVG / data URI
+
+**插件测试**
+- apply 契约测试（vitest + jsdom）：至少断言 body 属性设置/收回、DOM 注入/收回、标题固定/还原成对出现
