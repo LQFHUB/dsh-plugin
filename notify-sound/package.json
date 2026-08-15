@@ -1,0 +1,52 @@
+{
+  "name": "dsh-notify-sound",
+  "version": "0.1.0",
+  "description": "DSH 会话提示音插件：会话完成 / 需要人介入（审批、提问、计划评审、目标受阻、后台任务失败）时播放内置合成提示音，按情况区分、默认配置一套，配置服务端持久化并在所有浏览器同步。参考 ldchaowin/dsh-plugin-notify-sound（MIT）裁剪改造：去掉自定义音频上传、TTS 与按工作区配置，改为内置音 + 设置 > 插件 > 插件配置卡片。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-slots"
+      ],
+      "platform": "web"
+    }
+  },
+  "scripts": {
+    "test": "node tests/test-host.mjs && node tests/test-client.mjs",
+    "check": "node --check lib/index.js && node --check lib/client.js"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "react": "^18.2.0"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "plugin",
+    "notification",
+    "sound",
+    "ringtone"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LQFHUB/dsh-plugin.git"
+  }
+}

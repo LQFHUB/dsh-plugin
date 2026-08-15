@@ -26,7 +26,25 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 21 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 22 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-08-16 新增 notify-sound 会话提示音插件（参考 dsh-plugin-notify-sound 裁剪：仅内置音 + 配置全浏览器同步）并测试全绿
+
+- 变更内容：新建 `notify-sound/` 文件夹（用户确认：参考 ldchaowin/dsh-plugin-notify-sound，去掉自定义音频上传/TTS/按工作区配置，仅内置合成音、区分情况提示音 + 默认配置一套、配置放设置>插件>插件配置卡片，并新增需求"配置所有浏览器同步"）——宿主半区 `lib/index.js`：`installSettingsSection` 注册 `notify-sound` 设置命名空间（schemastery schema 带默认值）+ `/notify-sound/settings` 路由（GET redacted 视图 value/base/user/revision/writable；POST 批量 set/unset 写用户层、revision 栅栏、经 dsh-settings `replace` 提交；同源护栏；settings/webServer 缺失静默不注册）；浏览器半区 `lib/client.js`（`__ModuleLoader__.load` id `dsh-notify-sound`，inject slots+sessions）：`NotifyConfigScope`（SettingsScope 契约直连路由：启动 GET、写即 POST、每 30s + focus/visibilitychange 刷新 → 跨浏览器/设备同步）+ Web Audio 合成 6 音（叮咚/风铃/铃铛/完成/成功/警示，前 5 个沿用参考合成参数、新增 alert 低频方波）+ 事件监听（回合结束、后台任务完成/失败、pendingInteraction 审批/提问/评审、goal 投影 blocked，600ms 同源去抖；注意类不受 quietCurrent 限制）+「提示音」卡片（官方槽位 `settings.plugin.item`，id `notify-sound`，order 35：总开关/当前会话完成不响/完成铃声/通用注意音/5 行注意事件，每行下拉+试听，`body[data-dsh-notify-sound]` 作用域样式 disposer 收回）；默认配置：完成=chime、通用注意=ding、审批/提问/评审=跟随通用、受阻=bell、失败=alert
+- 涉及路径：`notify-sound/`（package.json、cordis.patch.yml、lib/{index,client}.js、tests/{test-host,test-client}.mjs、README.md、LICENSE）、`AGENTS.md`
+- 备注：测试全绿——宿主 34 断言（schema 默认值/命名空间注册/路由 GET·POST·unset·403·400·405·422·404）+ 浏览器 43 断言（fake window+内存 settings 服务：回合结束默认 chime、quietCurrent/enabled 开关、5 类注意事件、goal blocked 单次不重复、job 完成/失败、定时/聚焦/可见刷新跨浏览器同步、脏数据 sanitize、路由不可达降级默认值、卡片 7 下拉/8 按钮/2 复选）；本地测试经 `node_modules/@deepseek-ai` symlink 解析（@deepseek-ai/* 未发布 npm，部署同流程，见 describe-image README）；待部署 112 验证 → 按流程询问用户后部署 111
+
+### 2026-08-16 111 左侧导航条验证一：16 项实测全过 + pin 精选全链路 + 3 项观察记录
+
+- 变更内容：按用户指示对 111 已部署的左侧导航条（左侧改造版，md5 `779b0905`）做第一轮独立浏览器实测（playwright-core 1.62 + chromium-1234 headless，全程只读，未改动任何部署/代码）——① 部署一致性：部署目录/仓库/服务端下发三方 md5 一致，`__DSH_BOOT__` 登记 `@vlln/dsh-navbar`（rev `e9d1baa1f5fc`，inject dsh-client-runtime/dsh-client-ui-primitives）；② 左侧定位 `bar.left = sidebar.right + 12`（292=280+12）；③ 节点数 = user 行数（2/2、3/3、5/5 多会话一致）；④ 激活药丸恰 1 个；⑤ 悬停预览卡（文本正确、朝对话区右侧弹出、.hover 加长）；⑥ 点击跳转（scrollTop 变化 + 激活跟随 + 目标行贴滚动容器顶 delta=0，容器顶在视口 76px 系页面头部，非缺陷）；⑦ <2 条自动隐藏（0/1 行会话 bar=none）；⑧ **pin 精选全链路**（📌 data-active + 行 data-vlln-pinned + 导航点 .pinned 金色，按序布局会话实测通过并还原）；⑨ 无 console/page 错误、style 唯一
+- 涉及路径：`AGENTS.md`（仅记录，无代码改动；验证脚本 /tmp/navbar-*.mjs）
+- 备注：**观察项（非阻断，均无视觉影响）**：① 切至 <2 行会话时 bar 隐藏但旧 dots 残留 DOM（display:none，下次重建清除）；② 流式进行中（Running）会话的 turnTail 行临时位于流顶部（user 行 0 之前），此刻 pin 金色节点暂不出现，回合落定按序后恢复——瞬态；③ 111 现有会话最多 5 条 user 消息，>11 滑动窗口无法在本机复现（112 已实测 16 条场景）；会话列表全程动态变化（并行会话活跃），多次扫描均按实际行定位
+
+### 2026-08-16 navbar 改造：对话节点导航条移至左侧（贴左侧边栏右缘）并 111/112 双机验证通过
+
+- 变更内容：用户指示"左侧导航条"——navbar 定位由对话区右缘改为**贴左侧边栏右缘**（`sidebarOf()`：定位 `Collapse/Open/Expand sidebar` 按钮所在侧栏实体容器，`bar.left = sidebar.right + 12`，兜底贴对话流左缘内侧）；悬停预览卡由节点左侧弹出改为**右侧弹出**（朝对话区，`preview.left = r.right + 14`）；`sizeObserver` 增观察侧栏容器（折叠/展开实时跟随）；`src/client/index.ts` 与构建产物 `lib/client.js`、README 同步；111/112 已部署（两机 bundle md5 一致 `779b0905`）
+- 涉及路径：`navbar/src/client/index.ts`、`navbar/lib/client.js`、`navbar/README.md`、`AGENTS.md`；111/112 上 `/root/.dsh/external/navbar`（已同步）
+- 备注：**验证全过**——111（playwright-core+chromium headless）**16/16**：左侧定位 delta=12、节点数=user 行、悬停预览右侧弹出、点击跳转目标行贴滚动容器顶 **delta=0**、折叠侧边栏导航条跟随左移（292→67）且折叠态仍保持 +12、展开还原、style 唯一、无 console 错误；112 功能项全过（定位/悬停/折叠跟随/还原，跳转在可滚动场景 delta=0 精确）；两处测试环境误报已澄清：① 跳转对齐断言原写"目标行距视口顶 ≤60"，实际滚动容器顶在视口 76px（页面头部），修正为对比容器顶 → delta=0 精确；② 112 现有会话均为短会话（maxScroll=0 无法滚动），缩小视口复测 dot[0] 跳转 delta=0、dot[1] 因目标已完全可见不滚动（scrollIntoView 语义，非缺陷）
 
 ### 2026-08-16 describe-image 支持复用 DSH 模型设置中已配置的视觉模型（configured 模式）并 112 实测通过
 

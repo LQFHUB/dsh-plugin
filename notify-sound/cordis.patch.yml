@@ -1,0 +1,12 @@
+# dsh-notify-sound bundle patch: 把 notify-sound 插件行插入 web profile 名册。
+# 作为 profile bundle 层应用（dsh.bundle.patch 清单字段），安装方式：
+# `dsh plugin --profile web add link:<本插件目录>`。
+#
+# 一个包、两个半区：node 半区（exports "."）在宿主进程注册 notify-sound
+# 设置命名空间与 /notify-sound/settings 读写路由（配置服务端持久化，所有
+# 浏览器同步）；浏览器半区（dsh.client 声明、lib/client.js 提供）注册
+# 「设置 > 插件 > 插件配置」的「提示音」卡片并监听会话事件播放内置合成音。
+# 移除本条可禁用该插件。
+- insert:
+    - id: notify-sound
+      name: 'dsh-notify-sound'
