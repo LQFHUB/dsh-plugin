@@ -26,7 +26,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 29 条，点击展开，最新在最上面）</summary>
+<summary>📜 变更记录（共 30 条，点击展开，最新在最上面）</summary>
+
+### 2026-08-16 right-panel 预览列默认折叠：刷新页面后不自动展示（恢复 tab 但列收起）
+
+- 变更内容：用户反馈"有侧边栏+代码查看侧边栏不要默认展示，比如刷新页面默认折叠"——explorer 已默认折叠；预览列（代码查看）根因：preview store `setRoot` 恢复持久化 tabs 时 `open: tabs.length > 0`（刷新后恢复的 tab 自动展开预览列 480px）。修复：恢复 tabs 但 `open: false`（预览列保持折叠；open 状态本就不持久化，用户点文件时 openFile 置 true 展开）；冒烟测试新增两条断言（不再按 tabs 自动展开 + open: false）
+- 涉及路径：`right-panel/lib/client.js`、`right-panel/tests/smoke.mjs`、`right-panel/README.md`、`AGENTS.md`；112 上 `/root/.dsh/external/right-panel`（同步）
+- 备注：112 实测 **4/4 断言全过**——打开文件预览列展开 480px、刷新后预览列默认折叠 1px、再次点文件重新展开 480px、无页面错误；**按部署流程：待用户确认后再部署 111**
 
 ### 2026-08-16 right-panel 语法高亮 + 文件类型补充（.config 等）并 112 实测通过
 

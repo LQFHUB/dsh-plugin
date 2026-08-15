@@ -1312,12 +1312,14 @@ window.__ModuleLoader__.load({
 							savedAt: meta.savedAt
 						}));
 						const activeTabId = tabs.length > 0 ? tabs[tabs.length - 1].id : null;
+						// 本仓库适配：恢复 tabs 但预览列保持折叠（刷新页面默认不展示，
+						// 用户打开文件时才展开；open 状态不持久化）。
 						return {
 							...prev,
 							root,
 							tabs,
 							activeTabId,
-							open: tabs.length > 0
+							open: false
 						};
 					});
 					const state = handle.getSnapshot();

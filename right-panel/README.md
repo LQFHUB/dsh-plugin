@@ -10,7 +10,7 @@
   - 文件树：整行点击展开/收起文件夹，点击文件在预览面板打开；顶部按文件名搜索（防抖 150ms，点击结果定位到树中）。
   - 变更（SCM）：真实 git 状态（porcelain v1），支持 stage / unstage / discard（untracked 走删除，tracked 走 restore，批量放弃有确认）。
 - **拖文件入输入框**：文件树中的文件行可拖拽到聊天输入框，松手即把相对路径插入当前会话草稿（agent 收到消息后自行读取该文件）。
-- **Preview（右二栏，默认 480px，范围 340~1200px）**：多 tab 预览 markdown / html / code / diff / csv / pdf / word / excel / ppt / 图片 / 文本 / url；源码/预览切换、分屏编辑（比例持久化）、保存（mtime 冲突检测）、下载、刷新、dirty 点、中键关闭、右键菜单批量关闭（dirty 确认）。**代码与 markdown 代码块内置轻量语法高亮**（自研 tokenizer，无外部依赖；js/ts 家族、python、go、rust、c 家族、shell、yaml/toml/ini 等配置、markdown、diff 等 13 个语言组，hljs 兼容类名，配色跟随官方亮/暗主题与 theme-center 全部皮肤）。
+- **Preview（右二栏，默认 480px，范围 340~1200px，**刷新后默认折叠**）**：多 tab 预览 markdown / html / code / diff / csv / pdf / word / excel / ppt / 图片 / 文本 / url；源码/预览切换、分屏编辑（比例持久化）、保存（mtime 冲突检测）、下载、刷新、dirty 点、中键关闭、右键菜单批量关闭（dirty 确认）。**代码与 markdown 代码块内置轻量语法高亮**（自研 tokenizer，无外部依赖；js/ts 家族、python、go、rust、c 家族、shell、yaml/toml/ini 等配置、markdown、diff 等 13 个语言组，hljs 兼容类名，配色跟随官方亮/暗主题与 theme-center 全部皮肤）。
 - **布局交互**：拖拽左缘把手调宽（双击把手复位默认宽度）；两级宽度钳位保证聊天区 ≥ 360px；折叠 = 宽度缩 0 且组件保持挂载（树展开态/预览 tab 不丢），折叠后右侧出现浮动展开按钮。
 - **持久化**：宽度、折叠状态、树展开态、SCM 视图、预览 tab 均按项目隔离持久化（localStorage，LRU 上限 12 个 scope），读取一律范围校验，非法值回退默认。
 - **明暗双主题**：跟随 GUI（`body[data-ds-dark-theme]`）；本仓库 theme-center 的 10 款皮肤全部适配右侧面板（8 款由皮肤 bundle 自带适配，harbor/trading 由本插件皮肤适配层补齐，见「与上游的差异」）。
@@ -35,7 +35,7 @@ dsh plugin --profile web add link:/root/.dsh/external/right-panel
 1. **访问护栏**（`lib/index.js`）：上游的 **loopback-only 护栏**（仅 127.0.0.1/localhost 访问可用）替换为**同源护栏**（与 theme-center 一致）——本环境用户经局域网 IP（如 192.168.31.112）访问 GUI，上游护栏会把这类访问全部 403；同源护栏在保留 CSRF 防护（`Sec-Fetch-Site`/Origin 校验）的同时允许局域网访问。
 2. **模块 id 本地化**（`lib/client.js`）：bundle 注册的 `__ModuleLoader__.load({ id })` 由上游包名 `@linxin666/dsh-client-ui-aionui-panel` 统一替换为 `dsh-right-panel`（共 11 处，含 5 个 CSS 注入去重键，均为 bundle 内部自洽标识）——client-modules 要求注册 id 与包名一致，否则插件无法在浏览器端激活。
 3. **皮肤适配层**（`lib/client.js`，`SKIN_ADAPT_CSS` + `dsh-right-panel/skin-adapt` style）：theme-center 的 10 款皮肤中，**harbor（夕港）/ trading（交易终端）两款的上游 bundle 未定义 `--aion-*` 面板变量**（上游 0.1.16 最新版同样缺失），面板会保持官方默认亮/暗色、与皮肤观感不匹配（实测 harbor 下官方 UI 是深色半透明纱而面板是白色）。本层静态注入选择器限定的变量补丁（`body[data-dsh-harbor]` / `body[data-dsh-trading]`，含亮/暗变体），取值优先引用皮肤自身变量（`var(--dsw-alias-*)` / `var(--dsh-trd-*)`，皮肤调色实时跟随），仅在这两款皮肤应用时生效，其余 8 款自带适配不受干扰，官方默认/卸载完全还原（style 随 disposer 收回）。
-4. **默认折叠**：explorer 初始折叠（仅显式展开过才记忆展开态），符合"默认关闭侧边栏"的使用习惯。
+4. **默认折叠**：explorer 初始折叠（仅显式展开过才记忆展开态）；**preview 列刷新后默认折叠**（恢复持久化的 tab 但列收起，点文件即重新展开）——符合"侧边栏不要默认展示、刷新默认折叠"的使用习惯。
 5. **语法高亮**（`highlightCode` + `dsh-right-panel/highlight` style）：上游代码预览为纯文本（无高亮），本插件内置轻量正则 tokenizer（注释/字符串/数字/关键字/类型/函数调用），13 个语言组（js 家族 / json / python / go / rust / c 家族 / shell / 配置类 / sql / html / css / diff / 通用），markdown 代码块同样高亮；hljs 兼容类名，配色引用 `--aion-*` 变量自动跟随主题与皮肤；全部 token 经 HTML 转义（无注入面）。
 6. **文件类型补充**：CODE_EXT 新增 `config`（`.config`/`xxx.config`，上游缺）、`json5`、`webmanifest`、`properties`、`desktop`、`service`、`ipynb`。
 

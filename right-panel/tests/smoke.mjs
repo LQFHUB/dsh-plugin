@@ -75,4 +75,8 @@ assert.match(clientSrc, /dsh-right-panel\/highlight/, '应含高亮配色 style 
 assert.match(clientSrc, /hljs-keyword/, '高亮应使用 hljs-* 兼容类名')
 assert.match(clientSrc, /highlightCode\(content, language\)/, 'CodeViewer 应输出高亮')
 
-console.log('✓ dsh-right-panel smoke ok（package.json / patch / host 导出 / 护栏适配 / client 形态与模块 id / 皮肤适配层 / 默认折叠 / 语法高亮与文件类型）')
+// 9. 预览列默认折叠：setRoot 恢复 tabs 但 open 恒为 false（刷新页面默认不展示）。
+assert.doesNotMatch(clientSrc, /open: tabs\.length > 0/, '不应按恢复的 tabs 自动展开预览列')
+assert.match(clientSrc, /open: false/, '预览列恢复后应保持折叠')
+
+console.log('✓ dsh-right-panel smoke ok（package.json / patch / host 导出 / 护栏适配 / client 形态与模块 id / 皮肤适配层 / 默认折叠 / 语法高亮与文件类型 / 预览列默认折叠）')
