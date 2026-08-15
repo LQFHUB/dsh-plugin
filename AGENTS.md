@@ -26,6 +26,12 @@
 
 > 最新记录在最上面。
 
+### 2026-08-15 关联远程仓库 LQFHUB/dsh-plugin 并推送
+
+- 变更内容：添加远程 `origin`（https://github.com/LQFHUB/dsh-plugin.git）并推送 main；git 身份更新为 LQFHUB / 15809601162@163.com；第七节新增远程同步约定；认证 token 存入本地凭据存储（不入库）
+- 涉及路径：`AGENTS.md`、`.git/config`、`/root/.git-credentials`（仅本地，不入库）
+- 备注：用户新建 GitHub 仓库并提供 token；token 已存本地凭据存储，不写入任何代码/文档/提交
+
 ### 2026-08-15 新增"七、Git 版本管理约定"，初始化 git 仓库
 
 - 变更内容：初始化 git 仓库（main 分支，仓库级身份 dsh-plugin）；新增第七节 Git 约定（每功能一次提交、提交信息 `<type>: <描述>`、提交前检查 status）；新建 `.gitignore`（忽略 IDE 配置与构建产物）
@@ -147,7 +153,9 @@
 
 ## 七、Git 版本管理约定
 
-- 本目录使用 git 管理（默认分支 `main`，本地提交；仓库级身份已配置 `dsh-plugin`）。
+- 本目录使用 git 管理（默认分支 `main`，本地提交；仓库级身份已配置 `LQFHUB` / 15809601162@163.com）。
+- **远程仓库同步**：`origin` = https://github.com/LQFHUB/dsh-plugin.git；每次提交后**必须推送**（`git push`），保持本地与远程一致。
+- 认证：GitHub token 存于本地凭据存储 `/root/.git-credentials`（0600 权限，不入库、不写进任何代码/文档）；token 失效时提示用户更新。
 - **每个功能/变更一次提交**：功能开发完成且满足"第三节第 5 点 DoD"后提交；AGENTS.md 的更新可与同批变更一起提交。
 - 提交信息格式：`<type>: <描述>`，type 取值 `feat`（新功能）/ `fix`（修复）/ `docs`（文档）/ `chore`（杂项、基础设施）。
 - 提交前检查 `git status`，无意外文件（如 IDE 配置、构建产物——已由 `.gitignore` 忽略）。
