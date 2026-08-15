@@ -65,36 +65,43 @@ window.__ModuleLoader__.load({
     var SOUND_FIELDS = ['defaultSound', 'attentionSound', 'approvalSound', 'questionSound',
       'planReviewSound', 'goalBlockedSound', 'failureSound']
 
-    /* ---------------- 样式（body[data-dsh-notify-sound] 作用域） ---------------- */
+    /* ---------------- 样式（body[data-dsh-notify-sound] 作用域，令牌与官方/主题卡一致） ---------------- */
     var CSS = [
-      'body[data-dsh-notify-sound] .ns-card{list-style:none;border:1px solid var(--dsw-alias-line-divider,#e5e5e5);',
-      'border-radius:12px;background:var(--dsw-alias-bg-layer-1,#fff);overflow:hidden;}',
-      'body[data-dsh-notify-sound] .ns-header{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;',
-      'border:0;background:transparent;cursor:pointer;font:inherit;text-align:left;color:inherit;}',
-      'body[data-dsh-notify-sound] .ns-headText{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}',
-      'body[data-dsh-notify-sound] .ns-name{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary,#333);}',
-      'body[data-dsh-notify-sound] .ns-desc{font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary,#888);}',
-      'body[data-dsh-notify-sound] .ns-chevron{flex:none;font-size:12px;color:var(--dsw-alias-label-secondary,#888);',
-      'transition:transform .15s;}',
-      'body[data-dsh-notify-sound] .ns-card.ns-open .ns-chevron{transform:rotate(90deg);}',
-      'body[data-dsh-notify-sound] .ns-body{display:flex;flex-direction:column;gap:12px;padding:0 14px 14px;}',
-      'body[data-dsh-notify-sound] .ns-block{display:flex;flex-direction:column;gap:8px;}',
-      'body[data-dsh-notify-sound] .ns-title{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary,#333);}',
-      'body[data-dsh-notify-sound] .ns-hint{font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary,#888);}',
-      'body[data-dsh-notify-sound] .ns-row{display:flex;align-items:center;gap:10px;padding:10px 12px;',
-      'border:1px solid var(--dsw-alias-line-divider,#e5e5e5);border-radius:10px;',
-      'background:var(--dsw-alias-bg-layer-2,#fff);}',
+      'body[data-dsh-notify-sound] .ns-card{list-style:none;border:1px solid var(--dsw-alias-border-l2);',
+      'background:var(--dsw-alias-bg-layer-3);border-radius:12px;transition:border-color .16s,background .16s;}',
+      'body[data-dsh-notify-sound] .ns-card:hover{border-color:var(--dsw-alias-label-dimmed);}',
+      'body[data-dsh-notify-sound] .ns-card.ns-open{background:var(--dsw-alias-bg-layer-2);',
+      'border-color:var(--dsw-alias-label-dimmed);}',
+      'body[data-dsh-notify-sound] .ns-header{appearance:none;width:100%;font:inherit;color:inherit;text-align:left;',
+      'cursor:pointer;background:0 0;border:0;border-radius:12px;display:flex;align-items:center;gap:12px;padding:14px 16px;}',
+      'body[data-dsh-notify-sound] .ns-header:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:-2px;}',
+      'body[data-dsh-notify-sound] .ns-headText{display:flex;flex-direction:column;flex:1;gap:4px;min-width:0;}',
+      'body[data-dsh-notify-sound] .ns-name{color:var(--dsw-alias-label-primary);font-size:15px;font-weight:600;line-height:1.4;}',
+      'body[data-dsh-notify-sound] .ns-desc{color:var(--dsw-alias-label-tertiary);font-size:13px;line-height:1.5;}',
+      'body[data-dsh-notify-sound] .ns-chevron{color:var(--dsw-alias-label-tertiary);flex:none;display:inline-flex;',
+      'transition:transform .16s;}',
+      'body[data-dsh-notify-sound] .ns-card.ns-open .ns-chevron{transform:rotate(180deg);}',
+      'body[data-dsh-notify-sound] .ns-body{border-top:1px solid var(--dsw-alias-border-l2);margin:0 16px;',
+      'padding:12px 0 8px;display:flex;flex-direction:column;gap:10px;}',
+      'body[data-dsh-notify-sound] .ns-block{display:flex;flex-direction:column;gap:4px;}',
+      'body[data-dsh-notify-sound] .ns-title{color:var(--dsw-alias-label-secondary);font-size:13px;line-height:1.5;}',
+      'body[data-dsh-notify-sound] .ns-hint{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:1.5;}',
+      'body[data-dsh-notify-sound] .ns-row{display:flex;align-items:center;gap:10px;border:1px solid transparent;',
+      'border-radius:10px;padding:8px 10px;min-width:0;}',
+      'body[data-dsh-notify-sound] .ns-row:hover{background:var(--dsw-alias-interactive-bg-hover);}',
       'body[data-dsh-notify-sound] .ns-rowName{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;',
-      'white-space:nowrap;font-size:13px;color:var(--dsw-alias-label-primary,#333);}',
-      'body[data-dsh-notify-sound] .ns-select{max-width:220px;font:inherit;font-size:12px;',
-      'color:var(--dsw-alias-label-primary,#333);background:var(--dsw-alias-bg-layer-2,#fff);',
-      'border:1px solid var(--dsw-alias-line-divider,#ddd);border-radius:8px;padding:6px 8px;}',
-      'body[data-dsh-notify-sound] .ns-btn{font:inherit;font-size:12px;cursor:pointer;flex:none;',
-      'color:var(--dsw-alias-label-primary,#333);background:transparent;',
-      'border:1px solid var(--dsw-alias-line-divider,#ddd);border-radius:8px;padding:6px 10px;}',
-      'body[data-dsh-notify-sound] .ns-btn:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0);}',
+      'white-space:nowrap;color:var(--dsw-alias-label-primary);font-size:13px;font-weight:500;line-height:1.4;}',
+      'body[data-dsh-notify-sound] .ns-select{appearance:none;font:inherit;max-width:220px;cursor:pointer;',
+      'border:1px solid var(--dsw-alias-border-l2);border-radius:8px;padding:4px 12px;font-size:13px;line-height:1.5;',
+      'color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-3);}',
+      'body[data-dsh-notify-sound] .ns-select:hover{border-color:var(--dsw-alias-label-dimmed);}',
+      'body[data-dsh-notify-sound] .ns-btn{appearance:none;font:inherit;cursor:pointer;flex:none;',
+      'border:1px solid var(--dsw-alias-border-l2);border-radius:8px;padding:4px 12px;font-size:13px;line-height:1.5;',
+      'color:var(--dsw-alias-label-secondary);background:0 0;}',
+      'body[data-dsh-notify-sound] .ns-btn:hover:not(:disabled){color:var(--dsw-alias-label-primary);',
+      'border-color:var(--dsw-alias-label-dimmed);}',
       'body[data-dsh-notify-sound] .ns-check{display:flex;align-items:center;gap:8px;font-size:13px;',
-      'color:var(--dsw-alias-label-primary,#333);cursor:pointer;user-select:none;}',
+      'color:var(--dsw-alias-label-primary);cursor:pointer;user-select:none;line-height:1.5;}',
     ].join('\n')
 
     /* ---------------- 配置作用域（服务端持久化，跨浏览器同步） ---------------- */
@@ -414,6 +421,23 @@ window.__ModuleLoader__.load({
       }
     }
 
+    /** 展开箭头（与 theme-center 同款 SVG chevron）。 */
+    function Chevron() {
+      return React.createElement('svg', {
+        width: 14,
+        height: 14,
+        viewBox: '0 0 16 16',
+        'aria-hidden': true,
+      }, React.createElement('path', {
+        d: 'M4 6l4 4 4-4',
+        stroke: 'currentColor',
+        fill: 'none',
+        strokeWidth: 1.5,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+      }))
+    }
+
     /* ---------------- 设置卡片 ---------------- */
     function useSnapshot(source) {
       var pair = React.useState(function () { return source.getSnapshot() })
@@ -488,7 +512,7 @@ window.__ModuleLoader__.load({
             React.createElement('span', { className: 'ns-desc', key: 'd' },
               '会话完成 / 需要人介入（审批、提问、计划评审、目标受阻、任务失败）时播放内置提示音，配置在所有浏览器同步'),
           ]),
-          React.createElement('span', { className: 'ns-chevron', key: 'c' }, '\u25b8'),
+          React.createElement('span', { className: 'ns-chevron', key: 'c' }, React.createElement(Chevron, null)),
         ]
 
         var bodyChildren = []
