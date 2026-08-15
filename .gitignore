@@ -1,0 +1,14 @@
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# 依赖与构建产物
+node_modules/
+lib/
+dist/
+*.tsbuildinfo
+
+# 日志与临时文件
+*.log
+.DS_Store
