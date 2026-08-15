@@ -26,7 +26,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 23 条，点击展开，最新在最上面）</summary>
+<summary>📜 变更记录（共 24 条，点击展开，最新在最上面）</summary>
+
+### 2026-08-16 新增 right-panel 右侧面板插件（复用 dsh-web-ui aionui-panel 产物）并部署 112 验证
+
+- 变更内容：新建 `right-panel/` 文件夹（用户指示"参考 zhu1090093659/dsh-web-ui 开发右侧面板插件"，对应其 `packages/dsh-aionui-panel` / npm `@linxin666/dsh-client-ui-aionui-panel@0.1.16`，Apache-2.0 注明出处）——vendor 上游构建产物：宿主半区 `lib/index.js`（workspace 门卫 + fs/git 服务 + `/aionui-panel/*` 路由（list/read/write/search/delete/git status·diff·stage·unstage·discard/raw）+ SSE 变更流 + systemPrompt 公告，注入 webServer/subprocess/workspaceRegistry/systemPrompt）与浏览器半区 `lib/client.js`（向 shell 三栏 grid 追加「预览 + 文件/变更」两列：文件树/文件名搜索/10+ 格式多 tab 预览/SCM/拖文件入输入框/宽度拖拽与按项目持久化）；两处适配：① 访问护栏由上游 loopback-only 改为同源护栏（Sec-Fetch-Site/Origin 校验，允许局域网 IP 访问，与 theme-center 一致）；② client.js 模块 id 由上游包名本地化为 `dsh-right-panel`（共 11 处含 5 个 CSS 去重键，client-modules 要求注册 id 与包名一致，否则浏览器端无法激活）；包名 `dsh-right-panel`，insert id `ui-dsh-right-panel`，`dsh.client.inject` 保留上游三项；README/LICENSE/冒烟测试（tests/smoke.mjs，node 内置）齐全
+- 涉及路径：`right-panel/`（package.json、cordis.patch.yml、lib/index.js、lib/client.js、tests/smoke.mjs、README.md、LICENSE）、`AGENTS.md`；112 上 `/root/.dsh/external/right-panel`（安装）
+- 备注：112 部署验证通过——**link 安装注意：首次 `dsh plugin add link:` 只登记依赖、可能未进 `dsh.profile.bundles`（本次即如此），重跑一次 add（幂等）即补齐，装完务必 `dsh plugin list` / `--dump-config` 确认 bundle 已登记**；playwright-core + chromium 实测 21/21 断言全过（两列挂载/5 轨 grid/260px 默认/目录展开/预览 480px 与内容渲染/搜索命中/拖拽 1:1 与双击复位/折叠 1px 边框与浮动展开/SCM 非仓库降级/localStorage 持久化与刷新恢复/xp 皮肤并存）+ 拖文件入输入框 PASS；宿主路由全流程 curl 验证（读写/mtime 冲突/搜索/删除/门卫越界 403/SCM status·diff·stage·unstage·discard/untracked 删除/跨站 403/同源放行/SSE）；测试仓库 /root/rp-git-test 已清理；验证期间并行会话部署 describe-image 多次重启 112 服务致测试中断，重跑通过；⚠️ 112 当前 describe-image host bundle 引用 `@deepseek-ai/dsh-settings` 解析失败会拖垮启动（其部署会话处理中，与本插件无关），如遇 112 服务反复掉线可临时 `dsh plugin remove dsh-describe-image` 排查
 
 ### 2026-08-16 新增 web-lan 局域网直连插件（免反代）并部署 112 验证 + 111 正式使用
 

@@ -1,0 +1,9 @@
+# dsh-right-panel bundle patch: mounts the right-panel plugin (host bundle
+# routes + browser explorer/preview/SCM columns) into the web profile roster.
+# The node half (exports ".") runs in the host process (workspace-gated fs/git
+# services + /aionui-panel routes); the browser half (exports "./client") is
+# served by client-modules from the same package's dsh.client declaration.
+# Remove this entry to disable the surface.
+- insert:
+    - id: ui-dsh-right-panel
+      name: 'dsh-right-panel'
