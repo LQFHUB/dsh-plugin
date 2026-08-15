@@ -1094,14 +1094,134 @@ function DescribeImageSettingsCard(props) {
 	});
 }
 //#endregion
+//#region src/client/settings-scope.ts
+/**
+* 直连 /describe-image/settings 的设置作用域。初始状态 loading，首次
+* GET 成功后 ready；路由不可达/未暴露答 unavailable（卡片显示说明而非
+* 表单）。
+*/
+var DescribeImageSettingsScope = class {
+	endpoint;
+	snapshot = {
+		status: "loading",
+		value: void 0,
+		base: void 0,
+		user: void 0,
+		revision: void 0,
+		writable: false,
+		mode: "host"
+	};
+	listeners = /* @__PURE__ */ new Set();
+	tail = Promise.resolve();
+	/** @param endpoint - 宿主设置路由（同源）。 */
+	constructor(endpoint = "/describe-image/settings") {
+		this.endpoint = endpoint;
+		this.refresh();
+	}
+	getSnapshot() {
+		return this.snapshot;
+	}
+	subscribe(listener) {
+		this.listeners.add(listener);
+		return () => {
+			this.listeners.delete(listener);
+		};
+	}
+	/** 写一个字段：apiKey 空值跳过（保持当前密钥）。 */
+	async set(field, value) {
+		if (field === "apiKey" && (value === "" || value === void 0)) return;
+		await this.mutate([{
+			field,
+			op: "set",
+			value
+		}]);
+	}
+	/** 清除一个字段（重新继承 base）；apiKey 不支持清除（保持当前密钥）。 */
+	async unset(field) {
+		if (field === "apiKey") return;
+		await this.mutate([{
+			field,
+			op: "unset"
+		}]);
+	}
+	/** 批量写（串行：并发写按调用顺序落盘）。 */
+	async mutate(writes) {
+		this.tail = this.tail.then(async () => {
+			try {
+				const response = await fetch(this.endpoint, {
+					method: "POST",
+					headers: { "content-type": "application/json" },
+					body: JSON.stringify({ writes })
+				});
+				if (!response.ok) {
+					this.publishUnavailable();
+					return;
+				}
+				const envelope = await response.json();
+				if (envelope.ok !== true) {
+					this.publishUnavailable();
+					return;
+				}
+				this.accept(envelope.value);
+			} catch {
+				this.publishUnavailable();
+			}
+		});
+		await this.tail;
+	}
+	/** 拉取最新视图。 */
+	async refresh() {
+		try {
+			const response = await fetch(this.endpoint);
+			if (!response.ok) {
+				this.publishUnavailable();
+				return;
+			}
+			const envelope = await response.json();
+			if (envelope.ok !== true) {
+				this.publishUnavailable();
+				return;
+			}
+			this.accept(envelope.value);
+		} catch {
+			this.publishUnavailable();
+		}
+	}
+	/** 接受一个视图并发布。 */
+	accept(value) {
+		const view = value;
+		this.snapshot = {
+			status: "ready",
+			value: view.value,
+			base: view.base,
+			user: view.user,
+			revision: view.revision,
+			writable: view.writable,
+			mode: "host"
+		};
+		this.publish();
+	}
+	/** 命名空间不可用：发布 unavailable 快照（卡片显示未暴露说明）。 */
+	publishUnavailable() {
+		this.snapshot = {
+			...this.snapshot,
+			status: "unavailable",
+			writable: false
+		};
+		this.publish();
+	}
+	publish() {
+		for (const listener of [...this.listeners]) listener();
+	}
+};
+//#endregion
 //#region src/client/index.ts
 /** 浏览器半区的 locale 命名空间。 */
 const NS = "describe-image";
-/** 所需服务：slots（设置卡）、conversation（发送改写）、settingsScope 与 locale（卡片文案）。 */
+/** 所需服务：slots（设置卡）、conversation（发送改写）、locale（卡片文案）。 */
 const inject = [
 	"slots",
 	"conversation",
-	"settingsScope",
 	"locale"
 ];
 /** 应用浏览器半区。 */
@@ -1125,16 +1245,14 @@ function apply(ctx) {
 		const conversation = scope.conversation;
 		const slots = scope.slots;
 		installSendHook(conversation);
-		ctx.inject(["settingsScope"], (settingsCtx) => {
-			const settingsCard = new DescribeImageSettingsCardController(settingsCtx.settingsScope.bind({ namespace: NS }));
-			slots.inject("settings.plugin.item", () => slots.register({
-				name: "settings.plugin.item",
-				id: "describe-image",
-				order: 40,
-				locale: NS,
-				inject: () => settingsCard.inject()
-			}, DescribeImageSettingsCard));
-		});
+		const settingsCard = new DescribeImageSettingsCardController(new DescribeImageSettingsScope());
+		slots.inject("settings.plugin.item", () => slots.register({
+			name: "settings.plugin.item",
+			id: "describe-image",
+			order: 40,
+			locale: NS,
+			inject: () => settingsCard.inject()
+		}, DescribeImageSettingsCard));
 	});
 }
 //#endregion

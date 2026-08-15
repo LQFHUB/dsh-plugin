@@ -17,6 +17,7 @@ import { installSettingsSection } from '@deepseek-ai/dsh-settings'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { GenericCallView } from '@deepseek-ai/dsh-tools'
 import { registerAttachRoute } from './attach-routes.ts'
+import { registerSettingsRoute } from './settings-routes.ts'
 import { DEFAULT_MAX_BYTES } from './media.ts'
 import { Config, DESCRIBE_IMAGE_SETTINGS_NAMESPACE, resolveApiKey, resolveConfig, type ResolvedConfig } from './config-resolve.ts'
 import { callVision, createVisionCache, loadImage } from './vision-client.ts'
@@ -57,6 +58,14 @@ export {
   semanticRequestKey,
 } from './vision-client.ts'
 export type { LoadedImage, VisionCache } from './vision-client.ts'
+export {
+  SETTINGS_API_PATH,
+  SETTINGS_NAMESPACE,
+  applySettingsWrites,
+  buildSettingsView,
+  registerSettingsRoute,
+} from './settings-routes.ts'
+export type { SettingsView, SettingsWrite } from './settings-routes.ts'
 
 const DESCRIPTION_HEAD =
   'Inspect one image — a local absolute path, an http(s) URL, or the JSON of an image attachment '
@@ -124,8 +133,9 @@ export function apply(ctx: Context, config: Config = {}): void {
   // 上一次答案，避免重复请求端点。
   const visionCache = createVisionCache()
   // webServer 可选（loader-composition 测试无它也能启动）：仅在服务真正
-  // 挂载时注册 attach 路由。
+  // 挂载时注册 attach 路由与设置读写路由。
   registerAttachRoute(ctx, () => current().maxBytes ?? DEFAULT_MAX_BYTES)
+  registerSettingsRoute(ctx)
   ctx.tools.register(defineTool({
     name: 'describe_image',
     description: DESCRIPTION_HEAD

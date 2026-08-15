@@ -14,15 +14,15 @@
  * @module dsh-describe-image/client
  */
 
-import type { ClientContext, SettingsScope, SettingsScopeSpec } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import { installSendHook } from './send-hook.ts'
 import { DescribeImageSettingsCard, DescribeImageSettingsCardController, type DescribeImageSettings } from './DescribeImageSettingsCard.tsx'
 import { dictionaries, setLanguage, type DescribeImageClientKey } from './locales.ts'
 import { installCardStyles } from './styles.ts'
+import { DescribeImageSettingsScope } from './settings-scope.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -48,8 +48,8 @@ export interface SettingsPluginItemOwnerProps {
 /** 浏览器半区的 locale 命名空间。 */
 export const NS = 'describe-image' as const
 
-/** 所需服务：slots（设置卡）、conversation（发送改写）、settingsScope 与 locale（卡片文案）。 */
-export const inject = ['slots', 'conversation', 'settingsScope', 'locale']
+/** 所需服务：slots（设置卡）、conversation（发送改写）、locale（卡片文案）。 */
+export const inject = ['slots', 'conversation', 'locale']
 
 /** 应用浏览器半区。 */
 export function apply(ctx: ClientContext): void {
@@ -77,19 +77,18 @@ export function apply(ctx: ClientContext): void {
     // describe-image 引用，在到达模型之前完成。
     installSendHook(conversation)
 
-    // 设置卡：绑定到 describe-image 设置命名空间（宿主侧
-    // installSettingsSection 注册），经官方 settingsScope 服务读写。
-    ctx.inject(['settingsScope'], (settingsCtx: ClientContext) => {
-      const settingsScope = settingsCtx.settingsScope.bind<DescribeImageSettings>({ namespace: NS })
-      const settingsCard = new DescribeImageSettingsCardController(settingsScope)
-      slots.inject('settings.plugin.item', () =>
-        slots.register({
-          name: 'settings.plugin.item',
-          id: 'describe-image',
-          order: 40,
-          locale: NS,
-          inject: () => settingsCard.inject(),
-        }, DescribeImageSettingsCard))
-    })
+    // 设置卡：直连宿主 /describe-image/settings 路由的自定义作用域
+    // （官方 apiproxy 的 settings 白名单不含第三方命名空间，官方
+    // settingsScope 只能读到 unavailable——见 settings-routes.ts）。
+    const settingsScope = new DescribeImageSettingsScope<DescribeImageSettings>()
+    const settingsCard = new DescribeImageSettingsCardController(settingsScope)
+    slots.inject('settings.plugin.item', () =>
+      slots.register({
+        name: 'settings.plugin.item',
+        id: 'describe-image',
+        order: 40,
+        locale: NS,
+        inject: () => settingsCard.inject(),
+      }, DescribeImageSettingsCard))
   })
 }

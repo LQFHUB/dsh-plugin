@@ -344,6 +344,130 @@ function registerAttachRoute(ctx, readMaxBytes = () => DEFAULT_MAX_BYTES) {
 	});
 }
 //#endregion
+//#region src/settings-routes.ts
+/** 设置读写 API 路径（浏览器端 GET 视图 / POST 批量写）。 */
+const SETTINGS_API_PATH = "/describe-image/settings";
+/** 本插件设置的命名空间名（与 config-resolve 的 DESCRIBE_IMAGE_SETTINGS_NAMESPACE 一致）。 */
+const SETTINGS_NAMESPACE = "describe-image";
+/** 请求体上限：9 个字段的批量写，64 KiB 富余。 */
+const SETTINGS_BODY_CAP = 64 * 1024;
+/** 读取 describe-image 命名空间的 redacted 视图；命名空间或 settings 服务缺失时返回 null。 */
+function buildSettingsView(ctx) {
+	const settings = ctx.get("settings");
+	if (settings === void 0) return null;
+	const descriptor = settings.describe({ redactSecrets: true }).find((entry) => String(entry.ns) === SETTINGS_NAMESPACE);
+	if (descriptor === void 0) return null;
+	return {
+		ns: String(descriptor.ns),
+		value: descriptor.value,
+		base: descriptor.base,
+		user: descriptor.user,
+		revision: descriptor.revision,
+		writable: settings.writable,
+		secrets: (descriptor.secrets ?? []).map((secret) => ({
+			path: [...secret.path],
+			set: secret.set
+		}))
+	};
+}
+/**
+* 应用一次批量写：克隆当前用户层 → 逐条 set/unset（apiKey 为空串的 set
+* 跳过，保持当前密钥）→ settings.replace 整层提交（revision 栅栏）。
+* @param ctx - 注册上下文（settings 服务）。
+* @param writes - 批量写列表。
+* @returns 提交后的 redacted 视图。
+*/
+async function applySettingsWrites(ctx, writes) {
+	const settings = ctx.get("settings");
+	if (settings === void 0) throw new Error("settings service is absent");
+	const current = buildSettingsView(ctx);
+	if (current === null) throw new Error("describe-image settings namespace is not registered");
+	const user = structuredClone(current.user ?? {});
+	for (const write of writes) {
+		if (write.field === "apiKey" && write.op === "set" && (write.value === "" || write.value === void 0)) continue;
+		if (write.op === "set") user[write.field] = write.value;
+		else delete user[write.field];
+	}
+	await settings.replace(settingsNamespace(SETTINGS_NAMESPACE), user, current.revision);
+	const next = buildSettingsView(ctx);
+	if (next === null) throw new Error("describe-image settings namespace is not registered");
+	return next;
+}
+/** 注册 /describe-image/settings 路由（GET 视图 / POST 批量写，同源护栏）。 */
+function registerSettingsRoute(ctx) {
+	const webserver = ctx.get("webServer");
+	if (webserver === void 0) return;
+	webserver.register({
+		kind: "exact",
+		path: SETTINGS_API_PATH,
+		handler: async (req, res) => {
+			if (!isSameOriginRequest(req)) {
+				json(res, {
+					ok: false,
+					error: {
+						code: "rejected",
+						message: "cross-site request rejected"
+					}
+				}, 403);
+				return;
+			}
+			if (req.method === "GET") {
+				const view = buildSettingsView(ctx);
+				if (view === null) {
+					json(res, {
+						ok: false,
+						error: {
+							code: "unavailable",
+							message: "describe-image settings namespace is not available"
+						}
+					}, 404);
+					return;
+				}
+				json(res, {
+					ok: true,
+					value: view
+				});
+				return;
+			}
+			if (req.method !== "POST") {
+				json(res, {
+					ok: false,
+					error: {
+						code: "internal",
+						message: "only GET and POST are allowed"
+					}
+				}, 405);
+				return;
+			}
+			const writes = (await readJsonBody(req, SETTINGS_BODY_CAP))?.writes;
+			if (!Array.isArray(writes)) {
+				json(res, {
+					ok: false,
+					error: {
+						code: "rejected",
+						message: "request body must be a JSON object with a writes array"
+					}
+				}, 400);
+				return;
+			}
+			try {
+				json(res, {
+					ok: true,
+					value: await applySettingsWrites(ctx, writes)
+				});
+			} catch (error) {
+				json(res, {
+					ok: false,
+					error: {
+						code: "rejected",
+						message: error.message ?? String(error)
+					}
+				}, 422);
+			}
+		}
+	});
+}
+//#endregion
 //#region src/config-resolve.ts
 /** Environment-variable name the API key resolves through when no inline key is configured. */
 const DEFAULT_API_KEY_ENV = "VISION_API_KEY";
@@ -832,6 +956,7 @@ function apply(ctx, config = {}) {
 	const spec = () => resolveConfig(current());
 	const visionCache = createVisionCache();
 	registerAttachRoute(ctx, () => current().maxBytes ?? 10485760);
+	registerSettingsRoute(ctx);
 	ctx.tools.register(defineTool({
 		name: "describe_image",
 		description: "Inspect one image — a local absolute path, an http(s) URL, or the JSON of an image attachment note — and return the text the user needs. Use when the user references an image file or URL, or when a task needs OCR, chart or diagram reading, screenshot or UI analysis, translation of image text, or photo understanding. Always pass an explicit `prompt` with a precise instruction — e.g. \"transcribe all text\", \"extract the table as CSV\", \"diagnose the UI layout problems\", \"translate the text into Chinese\" — instead of leaving it to the default description: a targeted instruction produces a much more useful answer. The image may be a local path, an http(s) URL, the JSON object from an `[image attachment …]` note, or — the common case when the user used this plugin's input-box image button — a short markdown image reference like `![图片](/describe-image/raw/sha256:abc…)` pasted into the conversation. In the markdown form, take the attachment id from the URL and pass that id as the `image` value (never the whole markdown, and never a made-up path); the tool resolves the id to the stored image. The image itself never enters the conversation — only the returned text is shown to you.",
@@ -900,4 +1025,4 @@ function apply(ctx, config = {}) {
 	}));
 }
 //#endregion
-export { API_STYLES, Config, DEFAULT_API_KEY_ENV, DEFAULT_API_STYLE, DEFAULT_CACHE_MAX_ENTRIES, DEFAULT_CACHE_TTL_MS, DEFAULT_MAX_BYTES, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_PROMPT, DEFAULT_TIMEOUT_MS, DESCRIBE_IMAGE_SETTINGS_NAMESPACE, apply, callVision, createVisionCache, describeImageCallView, extractChatCompletionsContent, extractResponsesContent, inject, loadImage, name, parseImageAttachmentRef, readAttachment, readBoundedBody, readBoundedText, resolveApiKey, resolveConfig, semanticRequestKey, sniffMimeType };
+export { API_STYLES, Config, DEFAULT_API_KEY_ENV, DEFAULT_API_STYLE, DEFAULT_CACHE_MAX_ENTRIES, DEFAULT_CACHE_TTL_MS, DEFAULT_MAX_BYTES, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_PROMPT, DEFAULT_TIMEOUT_MS, DESCRIBE_IMAGE_SETTINGS_NAMESPACE, SETTINGS_API_PATH, SETTINGS_NAMESPACE, apply, applySettingsWrites, buildSettingsView, callVision, createVisionCache, describeImageCallView, extractChatCompletionsContent, extractResponsesContent, inject, loadImage, name, parseImageAttachmentRef, readAttachment, readBoundedBody, readBoundedText, registerSettingsRoute, resolveApiKey, resolveConfig, semanticRequestKey, sniffMimeType };

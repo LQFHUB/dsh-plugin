@@ -112,6 +112,11 @@ DSH 输入框对纯文本模型没有图片入口，因此在输入框里拖拽�
 - **设置卡槽位**：上游挂在全家桶槽位 `web-ui.plugin.item`（依赖 dsh-web-ui-settings 组插件）；
   本实现改为官方槽位 `settings.plugin.item`（与官方 bash/agent-loop 卡片同列），
   在官方 DSH Web 上开箱即用。
+- **设置读写接缝**：官方 apiproxy 的 settings 暴露白名单（`WEB_SETTINGS_NAMESPACES`）硬编码、
+  不含第三方命名空间（浏览器端官方 scope 只能读到 unavailable）；本实现新增
+  `/describe-image/settings` 路由（GET redacted 视图 / POST 批量写，revision 栅栏，
+  内部经 dsh-settings 提交，installSettingsSection 的 onChange 随之触发）与浏览器端
+  同款 `SettingsScope` 实现，设置卡不再依赖官方命名空间暴露。
 - **样式**：上游 CSS Modules（全家桶 shared preset + lightningcss 构建）；本实现改为
   内联样式字符串（`body[data-dsh-describe-image]` 作用域，`di-*` 类名前缀），构建不依赖
   全家桶构建设施，符合本仓库 UI 插件契约。

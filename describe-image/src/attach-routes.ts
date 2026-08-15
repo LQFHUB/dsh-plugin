@@ -189,7 +189,7 @@ export async function handleAttach(ctx: Context, maxBytes: number, payload: unkn
 }
 
 /** Read a JSON request body up to a byte cap; null when unparseable or oversized. */
-async function readJsonBody(req: IncomingMessage, cap: number): Promise<unknown> {
+export async function readJsonBody(req: IncomingMessage, cap: number): Promise<unknown> {
   const chunks: Buffer[] = []
   let total = 0
   for await (const chunk of req) {
@@ -208,7 +208,7 @@ async function readJsonBody(req: IncomingMessage, cap: number): Promise<unknown>
 }
 
 /** Write one JSON envelope response. */
-function json(res: ServerResponse, envelope: unknown, status = 200): void {
+export function json(res: ServerResponse, envelope: unknown, status = 200): void {
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8' })
   res.end(JSON.stringify(envelope))
 }
