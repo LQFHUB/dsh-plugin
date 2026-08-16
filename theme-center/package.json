@@ -1,7 +1,7 @@
 {
   "name": "dsh-theme-center",
-  "version": "0.1.0",
-  "description": "DSH web UI 主题插件：设置 > 插件配置新增「主题」卡片，内置 10 款皮肤（集成自 zhu1090093659/dsh-web-ui 的 skin-center），支持试穿 / 应用 / 持久记忆、亮暗预览与背景遮罩调节。",
+  "version": "0.2.0",
+  "description": "DSH web UI 主题插件（一体化）：设置 > 插件配置「主题」卡片双 Tab——「主题」23 款皮肤试穿 / 应用 / 持久记忆、亮暗预览与背景遮罩；「外观」聊天宽度预设（896-1600px）与聊天区精简百分比压制（思考行 / 工具卡 / 上下文注入卡）。",
   "type": "module",
   "main": "lib/index.js",
   "exports": {

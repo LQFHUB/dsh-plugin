@@ -2,8 +2,11 @@
 
 # 🐋 dsh-chat-width-customizer
 
-> 本文件夹为个人主题插件 v1：复用自 [magicOF2/dsh-chat-width-customizer](https://github.com/magicOF2/dsh-chat-width-customizer)（MIT），
-> 后续将在此基础迭代扩展为主题插件。已部署：AI-2（192.168.31.112，效果验证）与 AI（192.168.31.111，正式使用），
+> ⚠️ **本插件已于 2026-08-16 并入 `theme-center`（dsh-theme-center v0.2.0，外观 Tab > 聊天宽度）**：
+> 聊天宽度功能由 theme-center 一体化卡片接管（标题栏快捷按钮已移除，改为卡片内 6 档预设），
+> 111/112 上本插件已不再安装。本文件夹仅作代码归档保留，可回滚参考。
+> 历史说明：本文件夹为个人主题插件 v1：复用自 [magicOF2/dsh-chat-width-customizer](https://github.com/magicOF2/dsh-chat-width-customizer)（MIT），
+> 已部署：AI-2（192.168.31.112，效果验证）与 AI（192.168.31.111，正式使用），
 > 均为 `/root/.dsh/external/chat-width-customizer` link 方式安装；当前版本默认宽度 896px（localStorage 键 `dsh-chat-width-customizer:width:v2`）。
 
 **聊天宽度自定义 · Chat Width Customizer** — 为 DeepSeek Harness Web UI 一键加宽对话内容区的插件

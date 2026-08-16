@@ -121,6 +121,135 @@ window.__ModuleLoader__.load({
 		}
 		//#endregion
 
+		//#region 聊天宽度
+		/** 宽度预设：WIDTH_PRESETS[0] 即默认宽度（896px）。 */
+		const WIDTH_PRESETS = [896, 1024, 1152, 1280, 1440, 1600];
+		const WIDTH_KEY = "dsh-theme-center:width:v1";
+		/** 宽度样式元素（apply 时挂载；null 表示未挂载）。 */
+		let widthStyleEl = null;
+
+		/** 宽度规则：加宽对话列与派生输入框、释放用户气泡上限（作用域限定插件 body 属性）。 */
+		function widthCss(px) {
+			return (
+				"body[data-dsh-theme-center] [data-conversation-scroll]{" +
+				"--dsh-chat-content-width:" + px + "px;" +
+				"--dsh-composer-card-max-width:calc(var(--dsh-chat-content-width) + 32px)" +
+				"}" +
+				'body[data-dsh-theme-center] [data-conversation-scroll] [class*="userStack"]{max-width:100% !important}'
+			);
+		}
+
+		/** 读持久化宽度；非法/缺失回退默认档。 */
+		function readSavedWidth() {
+			const value = Number(readStored(WIDTH_KEY));
+			return WIDTH_PRESETS.includes(value) ? value : WIDTH_PRESETS[0];
+		}
+
+		/** 宽度 store：外观面板控件读写同一状态并持久化。 */
+		let currentWidth = readSavedWidth();
+		const widthListeners = new Set();
+		function setWidth(px) {
+			if (!WIDTH_PRESETS.includes(px)) return;
+			currentWidth = px;
+			writeStored(WIDTH_KEY, String(px));
+			if (widthStyleEl !== null) widthStyleEl.textContent = widthCss(px);
+			for (const listener of [...widthListeners]) listener();
+		}
+		function subscribeWidth(listener) {
+			widthListeners.add(listener);
+			return () => {
+				widthListeners.delete(listener);
+			};
+		}
+		function getWidthSnapshot() {
+			return currentWidth;
+		}
+		//#endregion
+
+		//#region 聊天区精简
+		const FOCUS_KEY = "dsh-theme-center:focus:v1";
+		/** 默认压制百分比（0 = 默认展示，100 = 最大压制）。 */
+		const FOCUS_DEFAULT = 70;
+		/** 压制样式元素（apply 时挂载；null 表示未挂载）。 */
+		let focusStyleEl = null;
+
+		/**
+		 * 压制 CSS 模板：全部插值规则以 --tc-focus（0-1）线性缩放——0 时各
+		 * 属性计算值与官方默认完全一致；非插值规则（错误卡标题截断）与整组
+		 * 规则一起由 body[data-tc-focus] 门控（pct=0 时属性不存在，规则失效）。
+		 * 只改字号/行高/透明度/尺寸，不写任何颜色——皮肤令牌不变即天然适配
+		 * theme-center 全部皮肤与官方亮/暗。
+		 */
+		function focusCss(fraction) {
+			const F = "body[data-dsh-theme-center][data-tc-focus]";
+			const TITLE = "font-size:calc(14px - 2px * var(--tc-focus));line-height:calc(24px - 6px * var(--tc-focus))";
+			const ICON = "width:calc(14px - 3px * var(--tc-focus));height:calc(14px - 3px * var(--tc-focus))";
+			return [
+				F + "{--tc-focus:" + fraction + "}",
+				// Think 思考行：标题/摘要字号变小、摘要变淡、图标缩小
+				F + ' [data-variant="think"] [class*="title"]{' + TITLE + ";opacity:calc(1 - .25 * var(--tc-focus))}",
+				F + ' [data-variant="think"] [class*="summary"]{' + TITLE + ";opacity:calc(1 - .4 * var(--tc-focus))}",
+				F + ' [data-variant="think"] [class*="leading"] svg{' + ICON + "}",
+				// 工具调用卡：标题变小、摘要变淡、图标缩小
+				F + ' [data-chat-flow-kind="tool-call"] [class*="title"]{' + TITLE + "}",
+				F + ' [data-chat-flow-kind="tool-call"] [class*="summary"]{opacity:calc(1 - .4 * var(--tc-focus))}',
+				F + ' [data-chat-flow-kind="tool-call"] [class*="leading"] svg{' + ICON + "}",
+				// Cordis 插件卡行整体变矮（min-height 32px → 22px）
+				F + ' [data-chat-flow-kind="tool-call"] [data-tool="cordis_run"] [class*="row"],' +
+					F + ' [data-chat-flow-kind="tool-call"] [data-tool="cordis_stop"] [class*="row"],' +
+					F + ' [data-chat-flow-kind="tool-call"] [data-tool="cordis_undefine"] [class*="row"]{min-height:calc(32px - 10px * var(--tc-focus))}',
+				// 上下文注入卡：标题变小、来源变淡、图标缩小
+				F + ' [data-chat-flow-kind="context"] [class*="title"]{' + TITLE + "}",
+				F + ' [data-chat-flow-kind="context"] [class*="source"]{opacity:calc(1 - .4 * var(--tc-focus))}',
+				F + ' [data-chat-flow-kind="context"] [class*="leading"] svg{' + ICON + "}",
+				// 错误工具卡标题截断（门控规则，pct>0 即生效）
+				F + ' [data-chat-flow-kind="tool-call"] [data-state="error"] [class*="title"]{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}',
+			].join("");
+		}
+
+		/** 读持久化压制百分比；缺失/非法回退默认（70）。注意 Number(null)=0，空存储必须回退默认而非 0。 */
+		function readSavedFocus() {
+			const raw = readStored(FOCUS_KEY);
+			if (raw === null) return FOCUS_DEFAULT;
+			const value = Number(raw);
+			return Number.isFinite(value) && value >= 0 && value <= 100 ? value : FOCUS_DEFAULT;
+		}
+
+		/**
+		 * 把当前压制百分比落到页面：>0 挂 body[data-tc-focus] 门控属性并写入
+		 * 样式元素（--tc-focus 插值），=0 移除门控属性（整组规则失效 = 默认展示）。
+		 */
+		function applyFocusState(pct) {
+			if (pct <= 0) {
+				delete document.body.dataset.tcFocus;
+				return;
+			}
+			document.body.dataset.tcFocus = "";
+			if (focusStyleEl !== null) focusStyleEl.textContent = focusCss(pct / 100);
+		}
+
+		/** 压制 store：外观面板控件读写同一状态并持久化。 */
+		let currentFocus = readSavedFocus();
+		const focusListeners = new Set();
+		function setFocus(pct) {
+			const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+			if (clamped === currentFocus) return;
+			currentFocus = clamped;
+			writeStored(FOCUS_KEY, String(clamped));
+			applyFocusState(clamped);
+			for (const listener of [...focusListeners]) listener();
+		}
+		function subscribeFocus(listener) {
+			focusListeners.add(listener);
+			return () => {
+				focusListeners.delete(listener);
+			};
+		}
+		function getFocusSnapshot() {
+			return currentFocus;
+		}
+		//#endregion
+
 		//#region 主题引擎
 		/** 当前挂载的非官方主题条目及其 disposer。 */
 		let currentTheme = null;
@@ -382,6 +511,13 @@ window.__ModuleLoader__.load({
 			"body[data-dsh-theme-center] .tc-scrimRow{display:flex;align-items:center;gap:10px;padding:2px 10px 4px}",
 			"body[data-dsh-theme-center] .tc-scrimLabel{color:var(--dsw-alias-label-secondary);font-size:13px;flex:none}",
 			"body[data-dsh-theme-center] .tc-scrim{flex:1;min-width:0;accent-color:var(--dsw-alias-brand-primary)}",
+			"body[data-dsh-theme-center] .tc-tabs{display:flex;gap:6px;padding:0 10px 6px}",
+			"body[data-dsh-theme-center] .tc-tab{appearance:none;font:inherit;cursor:pointer;border:1px solid transparent;background:0 0;color:var(--dsw-alias-label-secondary);border-radius:8px;padding:4px 14px;font-size:13px;line-height:1.5}",
+			"body[data-dsh-theme-center] .tc-tab:hover:not(:disabled){color:var(--dsw-alias-label-primary)}",
+			"body[data-dsh-theme-center] .tc-tabOn{border-color:var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-primary)}",
+			"body[data-dsh-theme-center] .tc-secTitle{color:var(--dsw-alias-label-secondary);font-size:13px;font-weight:600;line-height:1.5;margin:4px 10px 0}",
+			"body[data-dsh-theme-center] .tc-widthRow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:0 10px}",
+			"body[data-dsh-theme-center] .tc-note{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:1.5;margin:0;padding:0 10px}",
 		].join("");
 		//#endregion
 
@@ -409,7 +545,10 @@ window.__ModuleLoader__.load({
 		 */
 		function ThemeCard(props) {
 			const [open, setOpen] = react.useState(false);
+			const [tab, setTab] = react.useState("theme");
 			const engineState = react.useSyncExternalStore(engine.subscribe, engine.getSnapshot);
+			const widthState = react.useSyncExternalStore(subscribeWidth, getWidthSnapshot);
+			const focusState = react.useSyncExternalStore(subscribeFocus, getFocusSnapshot);
 			// 亮暗预览句柄可能缺失（主题服务不可用）：用空 store 保持 hooks 数量恒定
 			const themeSnap = react.useSyncExternalStore(
 				props.theme === null || props.theme === undefined ? () => () => {} : props.theme.subscribe,
@@ -421,7 +560,7 @@ window.__ModuleLoader__.load({
 			const headerChildren = [
 				react.createElement("span", { className: "tc-headText", key: "head" }, [
 					react.createElement("span", { className: "tc-name", key: "n" }, "主题"),
-					react.createElement("span", { className: "tc-desc", key: "d" }, "23 款皮肤主题（dsh-web-ui 10 款 + 自研 6 款 + dsh-skin 7 款），试穿 / 应用 / 持久记忆"),
+					react.createElement("span", { className: "tc-desc", key: "d" }, "主题：23 款皮肤试穿 / 应用 / 持久记忆 · 外观：聊天宽度与聊天区精简"),
 				]),
 				engineState.busy !== null
 					? react.createElement("span", { className: "tc-pending", key: "p" }, "加载中…")
@@ -509,6 +648,53 @@ window.__ModuleLoader__.load({
 				}),
 			]));
 
+			const tabBar = react.createElement("div", { className: "tc-tabs", key: "tabs", role: "tablist" }, [
+				react.createElement("button", {
+					type: "button",
+					className: "tc-tab" + (tab === "theme" ? " tc-tabOn" : ""),
+					role: "tab",
+					"aria-selected": tab === "theme",
+					key: "theme",
+					onClick: () => setTab("theme"),
+				}, "主题"),
+				react.createElement("button", {
+					type: "button",
+					className: "tc-tab" + (tab === "appearance" ? " tc-tabOn" : ""),
+					role: "tab",
+					"aria-selected": tab === "appearance",
+					key: "appearance",
+					onClick: () => setTab("appearance"),
+				}, "外观"),
+			]);
+
+			// 「外观」面板：聊天宽度预设 + 聊天区精简百分比滑杆
+			const appearanceChildren = [
+				react.createElement("div", { className: "tc-secTitle", key: "wTitle" }, "聊天宽度"),
+				react.createElement("div", { className: "tc-widthRow", key: "wRow" },
+					WIDTH_PRESETS.map((px) => react.createElement("button", {
+						type: "button",
+						className: "tc-pill" + (widthState === px ? " tc-pillOn" : ""),
+						key: px,
+						onClick: () => setWidth(px),
+					}, px + "px"))),
+				react.createElement("div", { className: "tc-secTitle", key: "fTitle" }, "聊天区精简"),
+				react.createElement("div", { className: "tc-scrimRow", key: "fRow" }, [
+					react.createElement("label", { className: "tc-scrimLabel", htmlFor: "tc-focus", key: "l" }, "压制效果 " + focusState + "%"),
+					react.createElement("input", {
+						id: "tc-focus",
+						className: "tc-scrim",
+						type: "range",
+						min: "0",
+						max: "100",
+						step: "5",
+						value: String(focusState),
+						key: "i",
+						onChange: (event) => setFocus(Number(event.target.value)),
+					}),
+				]),
+				react.createElement("p", { className: "tc-note", key: "fNote" }, "压制思考行、工具调用卡与上下文注入卡的展示：字号变小、摘要变淡、卡片变矮（0% = 官方默认展示）"),
+			];
+
 			return react.createElement("li", {
 				className: "tc-card" + (open ? " tc-open" : ""),
 			}, [
@@ -516,13 +702,17 @@ window.__ModuleLoader__.load({
 					type: "button",
 					className: "tc-header",
 					"aria-expanded": open,
-					"aria-label": (open ? "收起" : "展开") + ": 主题",
+					"aria-label": (open ? "收起" : "展开") + ": 主题与外观",
 					key: "h",
 					onClick: () => {
 						setOpen(!open);
 					},
 				}, headerChildren),
-				open ? react.createElement("div", { className: "tc-body", key: "b" }, bodyChildren) : null,
+				open
+					? react.createElement("div", { className: "tc-body", key: "b" }, [
+						tabBar,
+					].concat(tab === "theme" ? bodyChildren : appearanceChildren))
+					: null,
 			]);
 		}
 		//#endregion
@@ -560,6 +750,35 @@ window.__ModuleLoader__.load({
 					styleEl.remove();
 				};
 			}, "theme-center: card styles");
+
+			// 聊天宽度样式：立即应用保存的宽度；随插件卸载收回
+			ctx.effect(() => {
+				const styleEl = document.createElement("style");
+				styleEl.dataset.plugin = "dsh-theme-center";
+				styleEl.dataset.pluginCss = "dsh-theme-center/width";
+				widthStyleEl = styleEl;
+				document.head.appendChild(styleEl);
+				setWidth(currentWidth);
+				return () => {
+					styleEl.remove();
+					widthStyleEl = null;
+				};
+			}, "theme-center: width styles");
+
+			// 聊天区精简样式：立即应用保存的压制百分比；门控属性与样式随卸载收回
+			ctx.effect(() => {
+				const styleEl = document.createElement("style");
+				styleEl.dataset.plugin = "dsh-theme-center";
+				styleEl.dataset.pluginCss = "dsh-theme-center/focus";
+				focusStyleEl = styleEl;
+				document.head.appendChild(styleEl);
+				applyFocusState(currentFocus);
+				return () => {
+					styleEl.remove();
+					focusStyleEl = null;
+					delete document.body.dataset.tcFocus;
+				};
+			}, "theme-center: focus styles");
 
 			// 引擎生命周期：遮罩变量 + 已挂载主题随插件卸载全部收回
 			const previousScrim = body.style.getPropertyValue("--dsw-skin-scrim");

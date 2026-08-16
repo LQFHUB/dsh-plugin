@@ -19,6 +19,7 @@
 | `lib/client.js` | 浏览器半区：主题引擎 + 「主题」设置卡片（手写 `__ModuleLoader__` bundle，纯 JS/React.createElement） |
 | `lib/skins/<id>.js` | 皮肤 bundle，**上游产物原样拷贝、零修改** |
 | `lib/meta/<id>.json` | 对应皮肤 `skin.json` 元数据副本（注册表数据源） |
+| `tests/smoke.mjs` | node 内置冒烟测试（`node tests/smoke.mjs`）：包形状/宿主/注册表/一体化模块/apply 契约与收回 |
 | `README.md` | 中文：用途、安装、使用、皮肤清单、来源与许可 |
 | `LICENSE` | BSD-3-Clause，注明皮肤来源（zhu1090093659/dsh-web-ui）与封装代码作者 |
 | `AGENTS.md` | 本规范文件 |
@@ -62,12 +63,21 @@
 ### 4.4 持久化
 - 主题：localStorage 键 `dsh-theme-center:active:v1`（值 = 主题 id 或 `official`）；非法/缺失回退 `official`。
 - 遮罩：`dsh-theme-center:scrim:v1`（0-100）；值为 0 时**移除** `--dsw-skin-scrim` 变量（与皮肤默认一致）。
+- 聊天宽度：`dsh-theme-center:width:v1`（6 档预设之一，默认 896）；非法/缺失回退默认档。
+- 聊天区精简：`dsh-theme-center:focus:v1`（0-100，默认 70）；**缺失必须回退 70 而非 0**（`Number(null)=0` 陷阱，smoke 测试曾捕获）；值为 0 时**移除** `body[data-tc-focus]` 门控属性（整组压制规则失效 = 官方默认展示）。
 - 存储不可用：静默退化为内存态，不抛出。
 - 启动时（apply）异步恢复已保存主题，不阻塞 GUI。
 
 ### 4.5 标题链基线（必须，防缺陷）
 - 改 `document.title` 的皮肤在 apply 内快照"挂载时标题"作为还原基线；**连续切换时若不重置，后装皮肤会把前一皮肤的标题当成原始值**。
 - 修复约定：引擎在 apply 时捕获基线 `stockTitle = document.title`，**每次挂载皮肤前重置 `document.title = stockTitle`**，保证任意切换序列的标题都能还原。
+
+### 4.6 聊天区精简模块（必须）
+- 只作用于聊天区过程展示：Think 思考行（`[data-variant="think"]`）、工具调用卡（`[data-chat-flow-kind="tool-call"]`，含 Bash/Read/Cordis 插件卡）、上下文注入卡（`[data-chat-flow-kind="context"]`）。
+- **插值不变量**：所有规则以 `--tc-focus`（0-1）+ `calc()` 线性插值，`0` 时各属性计算值与官方默认**完全一致**；非插值规则（错误卡标题 ellipsis）由 `body[data-tc-focus]` 门控，pct=0 时整组失效。
+- **只改字号/行高/透明度/尺寸，不写任何颜色**——皮肤令牌不动即天然适配全部皮肤与亮/暗；选择器一律作用域限定 `body[data-dsh-theme-center][data-tc-focus]`，不污染官方 UI 与其他插件。
+- 宽度规则作用域限定 `body[data-dsh-theme-center]`，覆盖 `--dsh-chat-content-width` / `--dsh-composer-card-max-width` 并释放 userStack 上限。
+- 三个样式元素（card/width/focus）均挂 `data-plugin="dsh-theme-center"` + 各自 `data-pluginCss`，disposer 全量收回（含门控属性）。
 
 ## 五、皮肤 / UI 契约（必须，沿用根 AGENTS.md 并强化）
 
@@ -82,14 +92,17 @@
 1. **本地检查**：`node --check` 全部 JS；注册表与 `lib/skins/` 文件一一对应；disposer 配对检查。
 2. **112 验证**（playwright-core + chromium headless，沿用既有方法）：
    - 页面注入 `theme-center/client.js`；`/api/theme-center/bundle/<id>` 返回 200 + 皮肤脚本；
-   - 卡片：11 行（官方默认 + 10 皮肤）、行内容齐全；
+   - 卡片：24 行（官方默认 + 23 皮肤）、行内容齐全；**双 Tab（主题/外观）渲染与切换**；
    - 试穿 / 退出试穿**完全还原**（属性、背景、样式、DOM、标题）；
    - **先试穿再应用同一主题**：应用后主题保持（属性/背景/样式标签齐全，不回默认）——2026-08-16 实测踩坑场景，必须回归；
    - 应用 / localStorage 持久化 / **刷新自动恢复**；
    - 官方默认**干净还原**（无皮肤属性/样式/DOM，标题还原）；
    - 亮暗预览、背景遮罩滑杆（含持久化）；
-   - 10 款皮肤全量冒烟（逐款应用核对 body 属性）；
+   - 23 款皮肤全量冒烟（逐款应用核对 body 属性）；
    - DOM 皮肤抽查（xp 任务栏/开始按钮、miku 标题栏）、多皮肤连续切换标题链；
+   - **聊天宽度**：外观 Tab 选档 → 对话列/输入框变宽 + localStorage 持久化 + 刷新恢复；标题栏无宽度按钮；
+   - **聊天区精简**：0% / 70% / 100% 三档计算样式断言（Think 标题字号与摘要透明度、工具卡行高、Context 卡来源透明度）；0% 与卸载态完全一致；`body[data-tc-focus]` 门控属性存在/移除成对；
+   - **主题抽查**：官方暗色 + 1 款暗色皮肤（深海蓝）下压制样式生效且可读；
    - 页面无 theme-center 相关错误；ths/trading 行情 404/405/CORS 为**上游 fail-safe 预期降级**，不视为缺陷。
 3. **111 部署**：112 验证通过后**必须询问用户**，同意后才部署；111 重启 `dsh-web.service` 用**延迟 detach 触发**（`setsid bash -c 'sleep 60; systemctl restart dsh-web.service' &`），避免中断当前回合；部署后验证服务 active + 页面注入；用户浏览器需 **Ctrl+Shift+R** 强制刷新。
 4. 验证脚本用后清理，不留在仓库。
@@ -98,6 +111,12 @@
 
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
+
+### 2026-08-16 一体化改造：并入聊天宽度 + 新增聊天区精简（卡片双 Tab：主题/外观）v0.2.0
+
+- 变更内容：按用户布局指示（卡内双 Tab + 宽度按钮移除 + 压制百分比滑杆）将 theme-center 扩展为一体化插件——① `lib/client.js` 新增「聊天宽度」模块（`WIDTH_PRESETS` 6 档 896-1600、键 `dsh-theme-center:width:v1`、`widthCss` 覆盖 `--dsh-chat-content-width`/`--dsh-composer-card-max-width` + 释放 userStack 上限，作用域限 `body[data-dsh-theme-center]`；**不再注册**标题栏宽度按钮）；② 新增「聊天区精简」模块（键 `dsh-theme-center:focus:v1` 默认 70，`focusCss` 全部规则以 `--tc-focus`（0-1）+ `calc()` 线性插值——Think 行/工具调用卡/上下文注入卡的标题字号 14→12px、行高 24→18px、摘要/来源透明度 1→0.6、图标 14→11px、Cordis 卡行高 32→22px、错误卡标题 ellipsis；**只改字号/行高/透明度/尺寸不写颜色**，天然适配全部皮肤；`body[data-tc-focus]` 门控，pct=0 整组失效=官方默认）；③ 卡片双 Tab「主题/外观」：主题 Tab 原内容不动，外观 Tab = 宽度预设药丸 + 压制百分比滑杆（复用 tc-pill/tc-scrim 令牌样式）；④ apply 新增 width/focus 两个 `<style>` effect（`data-pluginCss` 区分，disposer 全收含门控属性）；⑤ 修复 `readSavedFocus` 缺失回退（`Number(null)=0` 陷阱，smoke 测试捕获）；⑥ 新增 `tests/smoke.mjs`（node 内置：包形状/宿主/注册表一一对应/一体化模块存在性/apply 契约与零残留，全绿）；⑦ 版本 0.2.0，README 重写
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/package.json`、`theme-center/README.md`、`theme-center/tests/smoke.mjs`（新增）、`theme-center/AGENTS.md`
+- 备注：本文件同步新增 4.4 宽度/压制键、4.6 聊天区精简模块规范、第六节验证清单（双 Tab/宽度/压制三档/主题抽查）；chat-width-customizer 已并入本插件（该文件夹保留作归档）；**112 验证待执行，验证通过后按流程询问用户再部署 111**
 
 ### 2026-08-16 按用户要求移除全部透明/毛玻璃效果（面板恢复不透明、去掉 backdrop-filter），保留渐变色背景，112 实测全过
 

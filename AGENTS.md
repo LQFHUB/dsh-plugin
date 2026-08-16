@@ -18,8 +18,8 @@
 
 | 文件夹 | 作用 |
 |:---|:---|
-| `chat-width-customizer/` | 聊天区宽度定制（预设档位，localStorage 持久化） |
-| `theme-center/` | 主题中心：10 款皮肤 + 「主题」设置卡（试穿/应用/亮暗/遮罩）；其他插件 UI 需适配它（见第六节主题适配契约） |
+| `chat-width-customizer/` | ~~聊天区宽度定制~~ 已并入 theme-center（2026-08-16，外观 Tab > 聊天宽度），本目录仅归档 |
+| `theme-center/` | 主题中心（一体化 v0.2.0）：23 款皮肤 + 「主题/外观」双 Tab 设置卡（试穿/应用/亮暗/遮罩 + 聊天宽度 + 聊天区精简百分比压制）；其他插件 UI 需适配它（见第六节主题适配契约） |
 | `web-lan/` | dsh Web 局域网直连（免反代）：crypto polyfill + apiProxy relay + isLoopback |
 | `navbar/` | 对话节点导航条（贴左侧边栏，节点跳转/悬停预览/pin 精选，中英文定位） |
 | `notify-sound/` | 会话提示音（Web Audio 合成 6 音、事件触发、配置跨浏览器同步、提示音设置卡，皮肤令牌适配） |
@@ -39,7 +39,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 30 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 31 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-08-16 theme-center 一体化 v0.2.0：并入聊天宽度 + 新增聊天区精简（卡片双 Tab：主题/外观）
+
+- 变更内容：按用户指示（"把 chat-width-customizer、theme-center 还有当前要开发的功能放到一个插件中，统一放到设置>插件中主题卡片" + 布局选择：卡内双 Tab + 宽度按钮移除 + 压制百分比滑杆）将 theme-center 扩展为一体化插件——① **卡片双 Tab**：「主题」Tab 原 23 款皮肤功能不动；「外观」Tab = 聊天宽度 6 档预设（896-1600px，localStorage 键 `dsh-theme-center:width:v1`，原 chat-width-customizer 功能，**标题栏宽度按钮移除**）；② **聊天区精简**：0-100% 滑杆（键 `dsh-theme-center:focus:v1`，默认 70），以 `--tc-focus` calc() 线性插值压制 Think 思考行/工具调用卡/上下文注入卡（标题 14→12px、摘要/来源淡至 0.6、Cordis 卡行高 32→22px、错误卡 ellipsis），`body[data-tc-focus]` 门控 pct=0 整组失效=官方默认；只改字号/行高/透明度不写颜色→天然适配全部皮肤；③ 新增 `theme-center/tests/smoke.mjs`（node 内置，apply 契约与零残留全绿；捕获并修复 `readSavedFocus` 的 `Number(null)=0` 回退陷阱）；④ chat-width-customizer 归档（文件夹保留，README 标注）
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/package.json`（0.2.0）、`theme-center/README.md`、`theme-center/tests/smoke.mjs`（新增）、`theme-center/AGENTS.md`、`chat-width-customizer/README.md`、`AGENTS.md`
+- 备注：theme-center/AGENTS.md 已同步 4.4/4.6 规范与第六节验证清单（双 Tab/宽度/压制三档/主题抽查）；本地 smoke 全绿；**112 部署验证待执行，通过后按流程询问用户再部署 111**（111/112 需 `dsh plugin remove dsh-chat-width-customizer`）
 
 ### 2026-08-16 theme-center 按用户要求移除全部透明/毛玻璃（面板恢复不透明、去 backdrop-filter），保留渐变背景，112 实测全过
 
