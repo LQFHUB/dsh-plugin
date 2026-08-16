@@ -267,6 +267,160 @@ window.__ModuleLoader__.load({
 			'body[data-dsh-theme-center] [data-chat-flow-kind="user"] td{max-width:none}';
 		//#endregion
 
+		//#region 外观扩展（会话区字号 / 网站字体 / 隐藏开关）
+		const TEXT_SCALE_KEY = "dsh-theme-center:textscale:v1";
+		/** 会话区字号缩放范围（%），100 = 官方原样。 */
+		const TEXT_SCALE_MIN = 75;
+		const TEXT_SCALE_MAX = 150;
+		const TEXT_SCALE_STEP = 5;
+		const TEXT_SCALE_DEFAULT = 100;
+		const FONT_KEY = "dsh-theme-center:font:v1";
+		const HIDE_KEY = "dsh-theme-center:hide:v1";
+		/** 外观扩展样式元素（apply 时挂载；null 表示未挂载）。 */
+		let appearanceStyleEl = null;
+
+		/** 全站字体选项表：default = 系统默认（不注入规则）；stack 为完整 font-family 列表。 */
+		const FONTS = [
+			{ id: "default", name: "系统默认", stack: null },
+			{ id: "msyh", name: "微软雅黑", stack: '"Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", sans-serif' },
+			{ id: "pingfang", name: "苹方 PingFang", stack: '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif' },
+			{ id: "sourcehan", name: "思源黑体", stack: '"Source Han Sans SC", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif' },
+			{ id: "songti", name: "宋体", stack: 'SimSun, "Songti SC", "Source Han Serif SC", serif' },
+			{ id: "inter", name: "Inter", stack: 'Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif' },
+			{ id: "roboto", name: "Roboto", stack: 'Roboto, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif' },
+			{ id: "jetbrains", name: "JetBrains Mono 等宽", stack: '"JetBrains Mono", "SF Mono", Consolas, "PingFang SC", monospace' },
+		];
+		const FONT_BY_ID = new Map(FONTS.map((f) => [f.id, f]));
+
+		/** 读持久化字号百分比；缺失/非法回退 100（注意 Number(null)=0 陷阱）。 */
+		function readSavedTextScale() {
+			const raw = readStored(TEXT_SCALE_KEY);
+			if (raw === null) return TEXT_SCALE_DEFAULT;
+			const value = Number(raw);
+			return Number.isFinite(value) && value >= TEXT_SCALE_MIN && value <= TEXT_SCALE_MAX ? value : TEXT_SCALE_DEFAULT;
+		}
+
+		/** 读持久化字体 id；未知回退系统默认。 */
+		function readSavedFont() {
+			const id = readStored(FONT_KEY);
+			return FONT_BY_ID.has(id) ? id : "default";
+		}
+
+		/** 读持久化隐藏开关；缺失/非法回退全不隐藏。 */
+		function readSavedHide() {
+			try {
+				const raw = JSON.parse(readStored(HIDE_KEY) || "{}");
+				return { think: !!raw.think, tool: !!raw.tool, context: !!raw.context };
+			} catch {
+				return { think: false, tool: false, context: false };
+			}
+		}
+
+		/**
+		 * 外观扩展 CSS 渲染器：一次生成会话区字号缩放 + 全站字体 + 隐藏开关全部规则。
+		 * 缩放基线 16px/28px 来自官方 --dsw-font-markdown-base 实测（0.1.0-rc.6+，
+		 * DSH 升级改基线需复核）；em 系标题/段落随容器联动，固定 px 元素（inline
+		 * code 14px、pre 13px/22px）按同比例 calc 覆盖。只作用于 markdown 容器与
+		 * 用户气泡文字——Think 行（data-variant=think）、工具卡（tool-call）、
+		 * 上下文卡（context）不在其中，字号不受缩放影响（由聊天区精简调节）。
+		 * 换字体走双路覆盖（--dsw-font-family 变量 + markdown/气泡容器 font-family），
+		 * 代码字体 --ds-font-family-code 保持不动。全部规则带 body 门控属性前缀。
+		 */
+		function appearanceCss(state) {
+			const parts = [];
+			if (state.textScale !== TEXT_SCALE_DEFAULT) {
+				const F = "body[data-dsh-theme-center][data-tc-scale]";
+				const SCALE = "calc(16px * var(--tc-text-scale))";
+				const LHEIGHT = "calc(28px * var(--tc-text-scale))";
+				parts.push(
+					F + "{--tc-text-scale:" + (state.textScale / 100) + "}",
+					F + ' [data-chat-flow-kind="assistant-step"] [class*="_markdown_"],' + F + ' [data-chat-flow-kind="user"] [class*="_markdown_"]{font-size:' + SCALE + ";line-height:" + LHEIGHT + "}",
+					F + ' [data-chat-flow-kind="assistant-step"] :where(p,li,blockquote,th,td){font-size:' + SCALE + ";line-height:" + LHEIGHT + "}",
+					F + ' [data-chat-flow-kind="assistant-step"] :not(pre) > code{font-size:calc(14px * var(--tc-text-scale))}',
+					F + ' [data-chat-flow-kind="assistant-step"] pre{font-size:calc(13px * var(--tc-text-scale));line-height:calc(22px * var(--tc-text-scale))}',
+					F + ' [data-chat-flow-kind="user"] [data-time-hover-root] > div:first-child > div{font-size:' + SCALE + ";line-height:" + LHEIGHT + "}",
+				);
+			}
+			if (state.font !== "default") {
+				const stack = FONT_BY_ID.get(state.font).stack;
+				const F = 'body[data-dsh-theme-center][data-tc-font="' + state.font + '"]';
+				parts.push(
+					F + "{--dsw-font-family:" + stack + "}",
+					F + ' [data-chat-flow-kind="assistant-step"] [class*="_markdown_"],' + F + ' [data-chat-flow-kind="user"] [class*="_markdown_"]{font-family:' + stack + "}",
+					F + ' [data-chat-flow-kind="user"] [data-time-hover-root] > div:first-child > div{font-family:' + stack + "}",
+				);
+			}
+			if (state.hide.think) parts.push('body[data-dsh-theme-center][data-tc-hide~="think"] [data-variant="think"]{display:none !important}');
+			if (state.hide.tool) parts.push('body[data-dsh-theme-center][data-tc-hide~="tool"] [data-chat-flow-kind="tool-call"]{display:none !important}');
+			if (state.hide.context) parts.push('body[data-dsh-theme-center][data-tc-hide~="context"] [data-chat-flow-kind="context"]{display:none !important}');
+			return parts.join("");
+		}
+
+		/**
+		 * 把外观扩展状态落到页面：重写样式文本 + 设置/移除三个 body 门控属性
+		 * （data-tc-scale / data-tc-font / data-tc-hide，空格分隔值 + ~= 选择器）。
+		 */
+		function applyAppearanceState() {
+			if (currentTextScale === TEXT_SCALE_DEFAULT) delete document.body.dataset.tcScale;
+			else document.body.dataset.tcScale = "";
+			if (currentFont === "default") delete document.body.dataset.tcFont;
+			else document.body.dataset.tcFont = currentFont;
+			const hides = [];
+			if (currentHide.think) hides.push("think");
+			if (currentHide.tool) hides.push("tool");
+			if (currentHide.context) hides.push("context");
+			if (hides.length === 0) delete document.body.dataset.tcHide;
+			else document.body.dataset.tcHide = hides.join(" ");
+			if (appearanceStyleEl !== null) {
+				appearanceStyleEl.textContent = appearanceCss({ textScale: currentTextScale, font: currentFont, hide: currentHide });
+			}
+		}
+
+		/** 外观扩展 store：三个状态共享一个快照（useSyncExternalStore 需稳定引用）。 */
+		let currentTextScale = readSavedTextScale();
+		let currentFont = readSavedFont();
+		let currentHide = readSavedHide();
+		let appearanceSnapshot = { textScale: currentTextScale, font: currentFont, hide: currentHide };
+		const appearanceListeners = new Set();
+		function notifyAppearance() {
+			appearanceSnapshot = { textScale: currentTextScale, font: currentFont, hide: currentHide };
+			for (const listener of [...appearanceListeners]) listener();
+		}
+		function subscribeAppearance(listener) {
+			appearanceListeners.add(listener);
+			return () => {
+				appearanceListeners.delete(listener);
+			};
+		}
+		function getAppearanceSnapshot() {
+			return appearanceSnapshot;
+		}
+		function setTextScale(pct) {
+			const clamped = Math.max(TEXT_SCALE_MIN, Math.min(TEXT_SCALE_MAX, Math.round(pct)));
+			if (clamped === currentTextScale) return;
+			currentTextScale = clamped;
+			writeStored(TEXT_SCALE_KEY, String(clamped));
+			applyAppearanceState();
+			notifyAppearance();
+		}
+		function setFont(id) {
+			if (!FONT_BY_ID.has(id) || id === currentFont) return;
+			currentFont = id;
+			writeStored(FONT_KEY, id);
+			applyAppearanceState();
+			notifyAppearance();
+		}
+		function setHide(key, value) {
+			if (!Object.prototype.hasOwnProperty.call(currentHide, key)) return;
+			const next = Object.assign({}, currentHide, { [key]: !!value });
+			if (JSON.stringify(next) === JSON.stringify(currentHide)) return;
+			currentHide = next;
+			writeStored(HIDE_KEY, JSON.stringify(next));
+			applyAppearanceState();
+			notifyAppearance();
+		}
+		//#endregion
+
 		//#region 主题引擎
 		/** 当前挂载的非官方主题条目及其 disposer。 */
 		let currentTheme = null;
@@ -535,6 +689,14 @@ window.__ModuleLoader__.load({
 			"body[data-dsh-theme-center] .tc-secTitle{color:var(--dsw-alias-label-secondary);font-size:13px;font-weight:600;line-height:1.5;margin:4px 10px 0}",
 			"body[data-dsh-theme-center] .tc-widthRow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:0 10px}",
 			"body[data-dsh-theme-center] .tc-note{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:1.5;margin:0;padding:0 10px}",
+			"body[data-dsh-theme-center] .tc-selectRow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:2px 10px 4px}",
+			"body[data-dsh-theme-center] .tc-select{appearance:none;font:inherit;cursor:pointer;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary);border-radius:8px;padding:4px 28px 4px 12px;font-size:13px;line-height:1.5;max-width:100%}",
+			"body[data-dsh-theme-center] .tc-select:hover{border-color:var(--dsw-alias-label-dimmed)}",
+			"body[data-dsh-theme-center] .tc-checkRow{display:flex;align-items:center;gap:8px;padding:2px 10px;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-primary);cursor:pointer}",
+			"body[data-dsh-theme-center] .tc-checkRow:hover{color:var(--dsw-alias-label-primary)}",
+			"body[data-dsh-theme-center] .tc-check{appearance:none;width:15px;height:15px;border:1px solid var(--dsw-alias-border-l2);border-radius:4px;background:var(--dsw-alias-bg-layer-3);flex:none;margin:0;cursor:pointer;display:inline-grid;place-content:center}",
+			"body[data-dsh-theme-center] .tc-check:checked{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}",
+			"body[data-dsh-theme-center] .tc-check:checked::after{content:'';width:7px;height:4px;border-left:2px solid var(--dsw-alias-bg-layer-3);border-bottom:2px solid var(--dsw-alias-bg-layer-3);transform:rotate(-45deg) translate(0,-1px)}",
 		].join("");
 		//#endregion
 
@@ -566,6 +728,7 @@ window.__ModuleLoader__.load({
 			const engineState = react.useSyncExternalStore(engine.subscribe, engine.getSnapshot);
 			const widthState = react.useSyncExternalStore(subscribeWidth, getWidthSnapshot);
 			const focusState = react.useSyncExternalStore(subscribeFocus, getFocusSnapshot);
+			const appearanceState = react.useSyncExternalStore(subscribeAppearance, getAppearanceSnapshot);
 			// 亮暗预览句柄可能缺失（主题服务不可用）：用空 store 保持 hooks 数量恒定
 			const themeSnap = react.useSyncExternalStore(
 				props.theme === null || props.theme === undefined ? () => () => {} : props.theme.subscribe,
@@ -577,7 +740,7 @@ window.__ModuleLoader__.load({
 			const headerChildren = [
 				react.createElement("span", { className: "tc-headText", key: "head" }, [
 					react.createElement("span", { className: "tc-name", key: "n" }, "主题"),
-					react.createElement("span", { className: "tc-desc", key: "d" }, "主题：23 款皮肤试穿 / 应用 / 持久记忆 · 外观：聊天宽度与聊天区精简"),
+					react.createElement("span", { className: "tc-desc", key: "d" }, "主题：23 款皮肤试穿 / 应用 / 持久记忆 · 外观：聊天宽度 / 精简 / 字号 / 字体 / 隐藏"),
 				]),
 				engineState.busy !== null
 					? react.createElement("span", { className: "tc-pending", key: "p" }, "加载中…")
@@ -710,6 +873,45 @@ window.__ModuleLoader__.load({
 					}),
 				]),
 				react.createElement("p", { className: "tc-note", key: "fNote" }, "压制思考行、工具调用卡与上下文注入卡的展示：字号变小、摘要变淡、卡片变矮（0% = 官方默认展示）"),
+				react.createElement("div", { className: "tc-secTitle", key: "tsTitle" }, "会话区字号"),
+				react.createElement("div", { className: "tc-scrimRow", key: "tsRow" }, [
+					react.createElement("label", { className: "tc-scrimLabel", htmlFor: "tc-textscale", key: "l" }, "字号 " + appearanceState.textScale + "%"),
+					react.createElement("input", {
+						id: "tc-textscale",
+						className: "tc-scrim",
+						type: "range",
+						min: String(TEXT_SCALE_MIN),
+						max: String(TEXT_SCALE_MAX),
+						step: String(TEXT_SCALE_STEP),
+						value: String(appearanceState.textScale),
+						key: "i",
+						onChange: (event) => setTextScale(Number(event.target.value)),
+					}),
+				]),
+				react.createElement("p", { className: "tc-note", key: "tsNote" }, "缩放助手回答与用户消息文字（思考行/工具卡/上下文卡由「聊天区精简」调节，不受此影响）"),
+				react.createElement("div", { className: "tc-secTitle", key: "fontTitle" }, "网站字体"),
+				react.createElement("div", { className: "tc-selectRow", key: "fontRow" }, [
+					react.createElement("label", { className: "tc-scrimLabel", htmlFor: "tc-font", key: "l" }, "全站字体"),
+					react.createElement("select", {
+						id: "tc-font",
+						className: "tc-select",
+						key: "s",
+						value: appearanceState.font,
+						onChange: (event) => setFont(event.target.value),
+					}, FONTS.map((f) => react.createElement("option", { value: f.id, key: f.id }, f.name))),
+				]),
+				react.createElement("div", { className: "tc-secTitle", key: "hideTitle" }, "隐藏显示"),
+				[["think", "隐藏思考行"], ["tool", "隐藏工具调用卡"], ["context", "隐藏上下文注入卡"]].map(([key, label]) =>
+					react.createElement("label", { className: "tc-checkRow", key: key }, [
+						react.createElement("input", {
+							type: "checkbox",
+							className: "tc-check",
+							checked: !!appearanceState.hide[key],
+							key: "i",
+							onChange: (event) => setHide(key, event.target.checked),
+						}),
+						react.createElement("span", { key: "t" }, label),
+					])),
 			];
 
 			return react.createElement("li", {
@@ -808,6 +1010,23 @@ window.__ModuleLoader__.load({
 					styleEl.remove();
 				};
 			}, "theme-center: table styles");
+
+			// 外观扩展样式（会话区字号/网站字体/隐藏开关）：恢复持久化状态并挂门控属性，随卸载收回
+			ctx.effect(() => {
+				const styleEl = document.createElement("style");
+				styleEl.dataset.plugin = "dsh-theme-center";
+				styleEl.dataset.pluginCss = "dsh-theme-center/appearance";
+				appearanceStyleEl = styleEl;
+				document.head.appendChild(styleEl);
+				applyAppearanceState();
+				return () => {
+					styleEl.remove();
+					appearanceStyleEl = null;
+					delete document.body.dataset.tcScale;
+					delete document.body.dataset.tcFont;
+					delete document.body.dataset.tcHide;
+				};
+			}, "theme-center: appearance styles");
 
 			// 引擎生命周期：遮罩变量 + 已挂载主题随插件卸载全部收回
 			const previousScrim = body.style.getPropertyValue("--dsw-skin-scrim");

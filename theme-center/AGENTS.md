@@ -84,6 +84,13 @@
 - 覆盖规则：助手回答/用户消息内（`[data-chat-flow-kind="assistant-step"|"user"]`）`table{width:100% !important;max-width:100% !important}` + `td/th{max-width:none}`；**只依赖稳定 data 属性，不依赖 hash 类名**；超宽表格仍由官方 `overflow-x:auto` 容器横向滚动。
 - 常开不设开关（用户确认）；样式独立 `<style>`（`data-pluginCss="dsh-theme-center/table"`），disposer 收回。
 
+### 4.8 外观扩展模块（必须）
+- 三组功能共用单个 `<style>`（`data-pluginCss="dsh-theme-center/appearance"`）与三个 body 门控属性，值变化整体重写样式文本；disposer 移除样式与全部属性。
+- **会话区字号缩放**：门控 `data-tc-scale` + `--tc-text-scale`（0.75–1.5）；缩放基线 **16px/28px 硬编码**（来源：官方 `--dsw-font-markdown-base` 实测，0.1.0-rc.6+，**DSH 升级改基线需复核**）；只作用于 markdown 容器/用户气泡文字（`[data-chat-flow-kind="assistant-step"|"user"]` 内），**Think 行/工具卡/上下文卡不在其中不受缩放影响**（由 4.6 精简调节）；固定 px 元素（inline code 14px、pre 13px/22px）同比例 calc 覆盖；pct=100 移除门控=官方原样。
+- **全站字体**：门控 `data-tc-font="<id>"`；`FONTS` 常量表（default=系统默认不注入）；双路覆盖——body `--dsw-font-family` 变量 + markdown/用户气泡容器 `font-family`；**代码字体 `--ds-font-family-code` 保持不动**。
+- **隐藏开关**：门控 `data-tc-hide`（空格分隔值，选择器 `~="think"|"tool"|"context"`）；纯 CSS `display:none !important`，不触碰消息数据；隐藏优先于 4.6 压制。
+- 持久化键：`textscale:v1`（75-150，缺失回退 100，`Number(null)=0` 陷阱）、`font:v1`（id，未知回退 default）、`hide:v1`（JSON 布尔）。
+
 ## 五、皮肤 / UI 契约（必须，沿用根 AGENTS.md 并强化）
 
 - **主题适配（必须）**：插件 UI 样式**必须使用官方皮肤令牌**（`--dsw-alias-*`：border-l2/bg-layer-3/label-primary 等），**不得硬编码颜色/背景/边框数值**——theme-center 切换 10 款皮肤 + 官方亮/暗时插件界面自动跟随。个别皮肤缺令牌时补**皮肤限定适配层**（选择器限定 `body[data-dsh-<skin>]` 的补丁，fallback 引用皮肤自身变量），**不得全局覆盖**。
@@ -108,6 +115,9 @@
    - **聊天宽度**：外观 Tab 选档 → 对话列/输入框变宽 + localStorage 持久化 + 刷新恢复；标题栏无宽度按钮；
    - **聊天区精简**：0% / 70% / 100% 三档计算样式断言（Think 标题字号与摘要透明度、工具卡行高、Context 卡来源透明度）；0% 与卸载态完全一致；`body[data-tc-focus]` 门控属性存在/移除成对；
    - **表格列宽**：助手回答内表格 `width=100%`（撑满内容列）、`td/th max-width=none`（>320px 列正常展开）、超宽表格仍横向滚动；用户消息表格同样生效；
+   - **外观扩展·字号**：滑块 100%/125%/90% 三档计算样式断言（markdown 容器与 p/表格/代码 = 16px×N、28px×N，容差 0.1px）；**Think 行/工具卡/上下文卡字号不变**；`data-tc-scale` 门控存在/移除成对；刷新恢复；
+   - **外观扩展·字体**：下拉逐项切换 → `body` 与 markdown 容器 `fontFamily` 命中对应 stack、代码块字体不变；default 还原；刷新恢复；
+   - **外观扩展·隐藏**：三开关逐项勾选 → 对应元素 `display:none`、取消恢复；与压制 70% 共存；`data-tc-hide` 门控值正确；
    - **主题抽查**：官方暗色 + 1 款暗色皮肤（深海蓝）下压制样式生效且可读；
    - 页面无 theme-center 相关错误；ths/trading 行情 404/405/CORS 为**上游 fail-safe 预期降级**，不视为缺陷。
 3. **111 部署**：112 验证通过后**必须询问用户**，同意后才部署；111 重启 `dsh-web.service` 用**延迟 detach 触发**（`setsid bash -c 'sleep 60; systemctl restart dsh-web.service' &`），避免中断当前回合；部署后验证服务 active + 页面注入；用户浏览器需 **Ctrl+Shift+R** 强制刷新。
@@ -117,6 +127,12 @@
 
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
+
+### 2026-08-16 新增外观扩展模块：会话区字号百分比 + 全站字体下拉 + 隐藏开关×3（参考 dsh-chat-tidy 锚点手法）
+
+- 变更内容：按用户需求（参考 [ChuanTianML/dsh-chat-tidy](https://github.com/ChuanTianML/dsh-chat-tidy)，外观 Tab 内新增、全部即时生效）在 `lib/client.js` 新增「外观扩展」模块——单个 `<style>`（`dsh-theme-center/appearance`）+ 三个 body 门控属性（`data-tc-scale` / `data-tc-font` / `data-tc-hide`，值变化整体重写样式文本）：① **会话区字号** 75-150% 滑杆（键 `textscale:v1` 默认 100，缩放基线 16px/28px 硬编码自 `--dsw-font-markdown-base` 实测，calc 乘法覆盖 markdown 容器/p/li/blockquote/th/td/inline code/pre/用户气泡，**Think 行/工具卡/上下文卡不在其中不受缩放影响**，100% 移除门控=官方原样）；② **全站字体** 下拉（键 `font:v1`，FONTS 表 8 项：系统默认/微软雅黑/苹方/思源黑体/宋体/Inter/Roboto/JetBrains Mono 等宽，双路覆盖 `--dsw-font-family` + markdown/气泡容器 font-family，代码字体 `--ds-font-family-code` 不动）；③ **隐藏开关×3**（键 `hide:v1` JSON，`data-tc-hide~=` 门控 + display:none：思考行/工具调用卡/上下文注入卡，隐藏优先于压制）；外观 Tab 增至 5 节（宽度/精简/字号/字体/隐藏），新增 tc-select/tc-check 令牌样式；smoke 测试 +15 断言（样式元素 4→5、门控成对、默认态空文本）
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/tests/smoke.mjs`、`theme-center/README.md`、`theme-center/AGENTS.md`
+- 备注：本文件新增 4.8 外观扩展模块规范与第六节验证清单 3 组条目；**112 验证待执行，通过后按流程询问用户再部署 111**
 
 ### 2026-08-16 新增表格列宽模块：表格撑满整列 + 解除 320px 列上限（常开，用户确认）
 

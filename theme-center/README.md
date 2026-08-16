@@ -25,6 +25,9 @@
 - **聊天宽度预设**：896 / 1024 / 1152 / 1280 / 1440 / 1600px 六档，对话内容区、输入框、用户气泡一起变宽，localStorage 持久记忆（原 chat-width-customizer 功能，标题栏快捷按钮已移除）
 - **聊天区精简百分比**：0–100% 滑杆压制聊天区过程展示——Think 思考行字号变小、摘要变淡、图标缩小；工具调用卡与上下文注入卡标题变小、摘要变淡、卡片变矮（Cordis 插件卡行高 32→22px）；错误工具卡标题 ellipsis 截断。0% = 官方默认展示，插值全程仅改字号/行高/透明度/尺寸，不写任何颜色，自动适配全部皮肤与亮/暗
 - **表格撑满列宽**：官方渲染器把表格设为 `width:max-content` 且单元格 `max-width` 封顶 `min(30vw,320px)`——中文长文本被压进 320px 窄列疯狂换行、表格只占列宽一半；本插件在助手回答/用户消息内覆盖为**撑满整列 + 解除列上限**（超宽表格仍横向滚动），无需配置
+- **会话区字号百分比**：75%–150% 滑杆缩放助手回答与用户消息文字（16px/28px 基线线性放大，标题/代码/表格/用户气泡联动）；**不影响**思考行、工具调用卡与上下文注入卡（由「聊天区精简」调节）
+- **全站字体下拉**：系统默认 / 微软雅黑 / 苹方 / 思源黑体 / 宋体 / Inter / Roboto / JetBrains Mono 等宽——选中即改整个网站 UI 与消息文字字体（`--dsw-font-family` 双路覆盖），代码块等宽字体保持不变
+- **隐藏显示开关 ×3**：隐藏思考行 / 隐藏工具调用卡 / 隐藏上下文注入卡，各自独立勾选即时隐藏（纯 CSS display:none，不触碰消息数据）
 
 ## 🎯 界面位置 / Where it lives
 
@@ -101,10 +104,11 @@ dsh plugin --profile web add link:/root/.dsh/external/theme-center
 - **执行**：浏览器半区以真实 `<script>` 加载 bundle，经内核自身模块系统（`__ModuleLoader__` 注册 → `__DSH_MODULES__.import` 物化，样式自动注入）后调用皮肤 `apply(miniCtx)` 挂载——与皮肤中心 try-on 同路径，无 eval、无 CSP `unsafe-eval` 依赖
 - **miniCtx**：只提供 `effect` 生命周期；`get` 委托真实上下文（同花顺 / 交易终端皮肤可读取 connection 服务，缺失时优雅降级为占位）
 - **切换语义**：挂载成功后才卸载旧主题（加载失败旧主题保持可见）；皮肤 `apply` 中途抛错时按残留配方回滚（模块失效、样式标签、body 属性、`data-skin-chrome` 元素）
-- **持久化**：`localStorage` 键 `dsh-theme-center:active:v1`（主题 id）、`dsh-theme-center:scrim:v1`（遮罩 0-100）、`dsh-theme-center:width:v1`（聊天宽度）、`dsh-theme-center:focus:v1`（压制百分比 0-100，默认 70）；存储不可用时退化为内存态
+- **持久化**：`localStorage` 键 `dsh-theme-center:active:v1`（主题 id）、`dsh-theme-center:scrim:v1`（遮罩 0-100）、`dsh-theme-center:width:v1`（聊天宽度）、`dsh-theme-center:focus:v1`（压制百分比 0-100，默认 70）、`dsh-theme-center:textscale:v1`（会话区字号 75-150，默认 100）、`dsh-theme-center:font:v1`（字体 id）、`dsh-theme-center:hide:v1`（隐藏开关 JSON）；存储不可用时退化为内存态
 - **聊天宽度**：独立 `<style>` 覆盖 `--dsh-chat-content-width` 与派生 `--dsh-composer-card-max-width`，并释放用户气泡 525px 上限；规则作用域限定 `body[data-dsh-theme-center]`，随插件卸载收回
 - **聊天区精简**：独立 `<style>` + `body[data-tc-focus]` 门控属性——所有规则以 `--tc-focus`（0-1）`calc()` 线性插值（0 时与官方默认完全一致）；只改字号/行高/透明度/尺寸，颜色一律走官方令牌，theme-center 全部皮肤与亮/暗自动适配；错误工具卡标题 ellipsis 为非插值规则，由门控属性保证 0% 时不生效
 - **表格列宽**：独立 `<style>` 静态覆盖官方表格规则（`width:max-content` → `100%`、`td/th max-width` 封顶 → `none`），选择器只依赖稳定属性 `[data-chat-flow-kind="assistant-step"|"user"]`，不依赖 hash 类名；超宽表格仍由官方 `overflow-x:auto` 容器横向滚动
+- **外观扩展（字号/字体/隐藏）**：单个 `<style>`（`dsh-theme-center/appearance`）承载三组规则，值变化整体重写文本；三个 body 门控属性——`data-tc-scale`（字号缩放，100% 时移除=官方原样）、`data-tc-font`（字体 id，default 移除）、`data-tc-hide`（空格分隔值 + `~=` 选择器匹配 think/tool/context）；字号基线 16px/28px 来自官方 `--dsw-font-markdown-base` 实测（DSH 升级需复核）；字体双路覆盖（`--dsw-font-family` 变量 + markdown/气泡容器 `font-family`），代码字体 `--ds-font-family-code` 不动；隐藏为纯 CSS `display:none`，不触碰消息数据；disposer 移除样式与全部门控属性
 - **包结构**：标准 DSH 插件 bundle（`dsh.bundle` 清单 + `dsh.client` web 平台声明），浏览器启动时自动注入
 
 ## 🧩 兼容性 / Compatibility

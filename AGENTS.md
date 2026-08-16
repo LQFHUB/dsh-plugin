@@ -18,7 +18,7 @@
 
 | 文件夹 | 作用 |
 |:---|:---|
-| `theme-center/` | 主题中心（一体化 v0.2.0）：23 款皮肤 + 「主题/外观」双 Tab 设置卡（试穿/应用/亮暗/遮罩 + 聊天宽度 + 聊天区精简百分比压制）；其他插件 UI 需适配它（见第六节主题适配契约） |
+| `theme-center/` | 主题中心（一体化 v0.2.0）：23 款皮肤 + 「主题/外观」双 Tab 设置卡（试穿/应用/亮暗/遮罩 + 聊天宽度 + 聊天区精简百分比压制 + 会话区字号缩放 + 全站字体 + 隐藏思考/工具/上下文开关）；其他插件 UI 需适配它（见第六节主题适配契约） |
 | `web-lan/` | dsh Web 局域网直连（免反代）：crypto polyfill + apiProxy relay + isLoopback |
 | `navbar/` | 对话节点导航条（贴左侧边栏，节点跳转/悬停预览/pin 精选，中英文定位） |
 | `notify-sound/` | 会话提示音（Web Audio 合成 6 音、事件触发、配置跨浏览器同步、提示音设置卡，皮肤令牌适配） |
@@ -37,7 +37,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 33 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 34 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-08-16 theme-center 新增外观扩展：会话区字号百分比 + 全站字体下拉 + 隐藏开关×3（参考 dsh-chat-tidy，外观 Tab，全部即时生效）
+
+- 变更内容：按用户需求（参考 [ChuanTianML/dsh-chat-tidy](https://github.com/ChuanTianML/dsh-chat-tidy) 的语义锚点覆盖手法）在 theme-center 外观 Tab 新增三组功能——`lib/client.js` 新增「外观扩展」模块（单个 `<style>` `dsh-theme-center/appearance` + 三个 body 门控属性 `data-tc-scale`/`data-tc-font`/`data-tc-hide`）：① **会话区字号** 75-150% 滑杆（键 `textscale:v1` 默认 100，16px/28px 基线 calc 缩放 markdown 容器/段落/表格/代码/用户气泡，**不影响思考行/工具卡/上下文卡**，100% 移除门控=官方原样）；② **全站字体** 下拉（键 `font:v1`，8 项字体表，双路覆盖 `--dsw-font-family` + markdown 容器，代码字体不动）；③ **隐藏开关×3**（键 `hide:v1` JSON，`data-tc-hide~=` 门控 + display:none 隐藏思考行/工具卡/上下文卡）；外观 Tab 增至 5 节；新增 tc-select/tc-check 令牌样式；smoke 测试 +15 断言全绿
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/tests/smoke.mjs`、`theme-center/README.md`、`theme-center/AGENTS.md`、`AGENTS.md`
+- 备注：theme-center/AGENTS.md 新增 4.8 外观扩展模块规范与验证清单 3 组条目；**112 验证待执行，通过后按流程询问用户再部署 111**
 
 ### 2026-08-16 theme-center 新增表格列宽模块：表格撑满整列 + 解除 320px 列上限（常开，用户确认）
 
