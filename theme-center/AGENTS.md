@@ -116,7 +116,7 @@
 
 - 变更内容：按用户布局指示（卡内双 Tab + 宽度按钮移除 + 压制百分比滑杆）将 theme-center 扩展为一体化插件——① `lib/client.js` 新增「聊天宽度」模块（`WIDTH_PRESETS` 6 档 896-1600、键 `dsh-theme-center:width:v1`、`widthCss` 覆盖 `--dsh-chat-content-width`/`--dsh-composer-card-max-width` + 释放 userStack 上限，作用域限 `body[data-dsh-theme-center]`；**不再注册**标题栏宽度按钮）；② 新增「聊天区精简」模块（键 `dsh-theme-center:focus:v1` 默认 70，`focusCss` 全部规则以 `--tc-focus`（0-1）+ `calc()` 线性插值——Think 行/工具调用卡/上下文注入卡的标题字号 14→12px、行高 24→18px、摘要/来源透明度 1→0.6、图标 14→11px、Cordis 卡行高 32→22px、错误卡标题 ellipsis；**只改字号/行高/透明度/尺寸不写颜色**，天然适配全部皮肤；`body[data-tc-focus]` 门控，pct=0 整组失效=官方默认）；③ 卡片双 Tab「主题/外观」：主题 Tab 原内容不动，外观 Tab = 宽度预设药丸 + 压制百分比滑杆（复用 tc-pill/tc-scrim 令牌样式）；④ apply 新增 width/focus 两个 `<style>` effect（`data-pluginCss` 区分，disposer 全收含门控属性）；⑤ 修复 `readSavedFocus` 缺失回退（`Number(null)=0` 陷阱，smoke 测试捕获）；⑥ 新增 `tests/smoke.mjs`（node 内置：包形状/宿主/注册表一一对应/一体化模块存在性/apply 契约与零残留，全绿）；⑦ 版本 0.2.0，README 重写
 - 涉及路径：`theme-center/lib/client.js`、`theme-center/package.json`、`theme-center/README.md`、`theme-center/tests/smoke.mjs`（新增）、`theme-center/AGENTS.md`
-- 备注：本文件同步新增 4.4 宽度/压制键、4.6 聊天区精简模块规范、第六节验证清单（双 Tab/宽度/压制三档/主题抽查）；chat-width-customizer 已并入本插件（该文件夹保留作归档）；**112 验证待执行，验证通过后按流程询问用户再部署 111**
+- 备注：本文件同步新增 4.4 宽度/压制键、4.6 聊天区精简模块规范、第六节验证清单（双 Tab/宽度/压制三档/主题抽查）；chat-width-customizer 已并入本插件（该文件夹保留作归档）；**112 已部署验证全过**（2026-08-16：默认 70% 落地 `--tc-focus:0.7`、工具卡标题 12.6px/摘要 0.72、Think 同构探针 12.6px/0.825/0.72/图标 11.9px、Cordis 行 100% 时 22px、双 Tab 24 行、宽度 1152 持久化+刷新恢复、压制 0%/100% 端点门控成对、深海蓝皮肤下压制仍生效+官方干净还原、bundle 路由 200/200+越界 404、smoke 全绿、无 console 错误；测试状态已还原 896px/70%/官方）；**按流程：验证通过，询问用户后再部署 111**
 
 ### 2026-08-16 按用户要求移除全部透明/毛玻璃效果（面板恢复不透明、去掉 backdrop-filter），保留渐变色背景，112 实测全过
 
