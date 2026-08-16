@@ -39,7 +39,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 28 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 29 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-08-16 theme-center 13 款新皮肤添加渐变 + 毛玻璃（参考 zhaiyateng/dsh-design-skills glassmorphism 规范），设置面板保持不透明，112 实测全过
+
+- 变更内容：用户要求参考 [zhaiyateng/dsh-design-skills](https://github.com/zhaiyateng/dsh-design-skills)（MIT）设计 skill 加渐变色和毛玻璃——按其 glassmorphism SKILL.md（渐变底 + backdrop-blur ≥15px + 半透明玻璃卡 + 亮边框 + 克制面积）落地 13 款皮肤（自研 6 + dsh-skin 7）：① `[id='root']` 加 `backdrop-filter: blur(20px) saturate(1.15)` + transparent；② 面板透明度调低（亮 0.75/0.68/0.6，暗 0.62/0.55/0.48），bg-base 不透明；③ dsh-skin 7 款补各自色系渐变背景；④ 视觉模型两轮评审调参（blur 16→20px）；**⑤ 用户反馈"设置面板不需要透明效果"——`.VOzbGW_panel { background: var(--dsw-alias-bg-base) }` 设置面板固定不透明**
+- 涉及路径：`theme-center/lib/skins/`×13（重新生成）、`theme-center/AGENTS.md`、`AGENTS.md`；112 上 `/root/.dsh/external/theme-center/lib/skins/`（已同步）
+- 备注：112 两套验证全过（自研 41 项 + dsh-skin 33 项）；设置面板实测不透明（rgb(244,245,251)）、主界面毛玻璃保留（blur 20px）；`.VOzbGW_panel` 为 CSS-modules hash 类名，DSH 升级后需复核；**按部署流程：待用户确认后部署 111**
 
 ### 2026-08-16 theme-center 集成 KinGao294/dsh-skin 7 款精选皮肤（深海蓝/石墨灰/森林绿/日落紫/深夜黑/暖纸/樱花粉）并 112 实测全过
 
