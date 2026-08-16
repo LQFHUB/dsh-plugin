@@ -98,6 +98,7 @@ assert.match(clientSrc, /TEXT_SCALE_DEFAULT = 100/, '字号默认应为 100%')
 assert.match(clientSrc, /TEXT_SCALE_MIN = 75/, '字号下限应为 75%')
 assert.match(clientSrc, /calc\(16px \* var\(--tc-text-scale\)\)/, '应有字号缩放 calc 规则')
 assert.match(clientSrc, /calc\(28px \* var\(--tc-text-scale\)\)/, '应有行高缩放 calc 规则')
+assert.match(clientSrc, /data-composer-card="true"\] textarea\{font-size:calc\(16px \* var\(--tc-text-scale\)\);line-height:calc\(24px \* var\(--tc-text-scale\)\)\}/, '输入框内容应随字号缩放（16px/24px 基线）')
 assert.match(clientSrc, /data-tc-scale/, '字号缩放应由 data-tc-scale 门控')
 // 会话区标题（markdown h1-h6）为官方固定 px 令牌，缩放须重定义令牌（calc 乘法 + 随全站字体）
 assert.match(clientSrc, /--dsw-font-markdown-h1/, '应有 h1 标题令牌基线')

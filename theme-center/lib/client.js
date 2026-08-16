@@ -365,6 +365,9 @@ window.__ModuleLoader__.load({
 					F + ' [data-chat-flow-kind="assistant-step"] :not(pre) > code{font-size:calc(14px * var(--tc-text-scale))}',
 					F + ' [data-chat-flow-kind="assistant-step"] pre{font-size:calc(13px * var(--tc-text-scale));line-height:calc(22px * var(--tc-text-scale))}',
 					F + ' [data-chat-flow-kind="user"] [data-time-hover-root] > div:first-child > div{font-size:' + SCALE + ";line-height:" + LHEIGHT + "}",
+					// 输入框（composer）：官方基线 16px/24px 实测（0.1.0-rc.6，DSH 升级需复核），
+					// 锚点 data-composer-card="true"（稳定属性，页面唯一 textarea），与正文同门控同比例
+					F + ' [data-composer-card="true"] textarea{font-size:calc(16px * var(--tc-text-scale));line-height:calc(24px * var(--tc-text-scale))}',
 				);
 			}
 			if (state.font !== "default") {

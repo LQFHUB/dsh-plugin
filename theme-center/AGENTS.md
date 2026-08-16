@@ -88,7 +88,7 @@
 
 ### 4.8 外观扩展模块（必须）
 - 三组功能共用单个 `<style>`（`data-pluginCss="dsh-theme-center/appearance"`）与三个 body 门控属性，值变化整体重写样式文本；disposer 移除样式与全部属性。
-- **会话区字号缩放**：门控 `data-tc-scale` + `--tc-text-scale`（0.75–1.5）；缩放基线 **16px/28px 硬编码**（来源：官方 `--dsw-font-markdown-base` 实测，0.1.0-rc.6+，**DSH 升级改基线需复核**）；只作用于 markdown 容器/用户气泡文字（`[data-chat-flow-kind="assistant-step"|"user"]` 内），**Think 行/工具卡/上下文卡不在其中不受缩放影响**（由 4.6 精简调节）；固定 px 元素（inline code 14px、pre 13px/22px）同比例 calc 覆盖；**标题 h1-h6 官方为固定 px 令牌**（`HEADING_FONTS` 基线：h1 700 24/34、h2 700 22/32、h3 700 20/30、h4 600 16/28、h5/h6 走 `--dsw-font-markdown-base-strong` 600 16/28；实测 `._markdown_ h1..h4` 用 `font: var(--dsw-font-markdown-hN)`，**DSH 升级需复核**），缩放时在门控 body 上**重定义这些令牌**（`weight calc(size * var(--tc-text-scale))/calc(lh * var(--tc-text-scale)) family`）——标题字号随滑杆缩放、family 用 `var(--dsw-font-family)` 随全站字体（与官方基线等价）；pct=100 移除门控=官方原样。
+- **会话区字号缩放**：门控 `data-tc-scale` + `--tc-text-scale`（0.75–1.5）；缩放基线 **16px/28px 硬编码**（来源：官方 `--dsw-font-markdown-base` 实测，0.1.0-rc.6+，**DSH 升级改基线需复核**）；只作用于 markdown 容器/用户气泡文字（`[data-chat-flow-kind="assistant-step"|"user"]` 内），**Think 行/工具卡/上下文卡不在其中不受缩放影响**（由 4.6 精简调节）；固定 px 元素（inline code 14px、pre 13px/22px）同比例 calc 覆盖；**输入框（composer）16px/24px 基线**（实测 0.1.0-rc.6，锚点 `[data-composer-card="true"] textarea` 稳定属性、页面唯一，DSH 升级需复核）；**标题 h1-h6 官方为固定 px 令牌**（`HEADING_FONTS` 基线：h1 700 24/34、h2 700 22/32、h3 700 20/30、h4 600 16/28、h5/h6 走 `--dsw-font-markdown-base-strong` 600 16/28；实测 `._markdown_ h1..h4` 用 `font: var(--dsw-font-markdown-hN)`，**DSH 升级需复核**），缩放时在门控 body 上**重定义这些令牌**（`weight calc(size * var(--tc-text-scale))/calc(lh * var(--tc-text-scale)) family`）——标题字号随滑杆缩放、family 用 `var(--dsw-font-family)` 随全站字体（与官方基线等价）；pct=100 移除门控=官方原样。
 - **全站字体**：门控 `data-tc-font="<id>"`；`FONTS` 常量表（default=系统默认不注入）；覆盖路径三条——body `--dsw-font-family` 变量 + markdown/用户气泡容器 `font-family` + **标题令牌重定义**（`headingTokensCss(stack)`，字号 calc 乘 `--tc-text-scale`，故仅换字体时须先注入基线 `body[data-dsh-theme-center]{--tc-text-scale:1}`，字号×1=官方原值）；**代码字体 `--ds-font-family-code` 保持不动**。
 - **隐藏开关**：门控 `data-tc-hide`（空格分隔值，选择器 `~="think"|"tool"|"context"`）；纯 CSS `display:none !important`，不触碰消息数据；隐藏优先于 4.6 压制。
 - 持久化键：`textscale:v1`（75-150，缺失回退 100，`Number(null)=0` 陷阱）、`font:v1`（id，未知回退 default）、`hide:v1`（JSON 布尔）。
@@ -126,7 +126,7 @@
    - **聊天宽度**：外观 Tab 选档 → 对话列/输入框变宽 + localStorage 持久化 + 刷新恢复；标题栏无宽度按钮；
    - **聊天区精简**：0% / 70% / 100% 三档计算样式断言（Think 标题字号与摘要透明度、工具卡行高、Context 卡来源透明度）；0% 与卸载态完全一致；`body[data-tc-focus]` 门控属性存在/移除成对；
    - **表格列宽**：助手回答内表格 `width=100%`（撑满内容列）、`td/th max-width=none`（>320px 列正常展开）、超宽表格仍横向滚动；用户消息表格同样生效；
-   - **外观扩展·字号**：滑块 100%/125%/90% 三档计算样式断言（markdown 容器与 p/表格/代码 = 16px×N、28px×N，容差 0.1px）；**标题 h1-h6 同步缩放**（探针断言 h1 24→30px、h2 22→27.5px、h3 20→25px、h4-6 16→20px @125%，h2 行高 32→40px）；**Think 行/工具卡/上下文卡字号不变**；`data-tc-scale` 门控存在/移除成对；刷新恢复；
+   - **外观扩展·字号**：滑块 100%/125%/90% 三档计算样式断言（markdown 容器与 p/表格/代码 = 16px×N、28px×N，容差 0.1px）；**标题 h1-h6 同步缩放**（探针断言 h1 24→30px、h2 22→27.5px、h3 20→25px、h4-6 16→20px @125%，h2 行高 32→40px）；**输入框内容同步缩放**（探针断言 125% → 20px/30px、90% → 14.4px/21.6px、100% 还原 16px/24px）；**Think 行/工具卡/上下文卡字号不变**；`data-tc-scale` 门控存在/移除成对；刷新恢复；
    - **外观扩展·字体**：下拉逐项切换 → `body` 与 markdown 容器 `fontFamily` 命中对应 stack、代码块字体不变；**标题 family 跟随所选字体**（仅字体态字号仍官方：h2 22px + YaHei；字体+125% 组合态：h2 27.5px + YaHei）；default 还原；刷新恢复；
    - **外观扩展·隐藏**：三开关逐项勾选 → 对应元素 `display:none`、取消恢复；与压制 70% 共存；`data-tc-hide` 门控值正确；
    - **服务端同步**（112 双浏览器上下文 A/B）：`curl /theme-center/settings` GET 视图（默认值 + user 空）+ POST set 落盘 settings.yaml `theme-center:` 段 + unset 还原 + 跨站 403 + 非法 body 400/405；**A 通过卡片改主题/字号/字体/隐藏 → B ≤15s 自动跟随**（含主题切换）；B 刷新仍在（服务器真源）；重启 112 服务后仍在（settings.yaml 持久）；新上下文 C 首开即服务器配置；**迁移**：清服务器用户层 + A 有本地 localStorage → 首同步自动上推、B 跟随；**降级**：settings 缺失/路由不可达 → 卡片显示「仅本机生效」、本地修改仍生效、恢复后收敛；`data-tc-*` 门控与同步状态提示齐全；验证后还原（清服务器 user 层 + localStorage）；
@@ -139,6 +139,12 @@
 
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
+
+### 2026-08-17 输入框（composer）内容随「会话区字号」一同缩放（16px/24px 基线）
+
+- 变更内容：用户需求"输入框输入的内容也同会话区字号一同缩放"——111 实测定位：输入框 = 页面唯一 `textarea`（`textareaCount:1`），官方基线 **16px/24px**（与 markdown 的 16/28 不同），hash 类名 `uV2eYG_input` 不可依赖，祖先链稳定锚点 `[data-composer-card="true"]`（曾祖父，composer 卡标记）。实现：`appearanceCss` 缩放分支追加一条规则 `[data-composer-card="true"] textarea{font-size:calc(16px * var(--tc-text-scale));line-height:calc(24px * var(--tc-text-scale))}`——与正文/标题共用 `data-tc-scale` 门控 + `--tc-text-scale`，100% 移除门控=官方原样；只改字号/行高，不碰字体/占位符/颜色；smoke +1 断言
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/tests/smoke.mjs`（+1）、`theme-center/README.md`、`theme-center/AGENTS.md`
+- 备注：本文件 4.8 缩放基线补「输入框 16px/24px（锚点 data-composer-card、DSH 升级需复核）」、§6 验证清单补输入框三档断言；**112 验证 4/4 全过**（125%→20px/30px、90%→14.4px/21.6px、100% 还原 16px/24px 官方原样、无错误）；**111 已部署**（用户预授权，md5 `32e33899` 与 112 一致，延迟 detach 重启）；另实测确认：**已发送/新发送的用户消息均匹配缩放**（111 真实会话 125%：历史 7 条 + 新发送 1 条主文本全部 20px/35px，时间戳 14px 为元信息不缩放属正常）
 
 ### 2026-08-17 配置保存到服务器：一处配置、所有终端生效（theme-center 设置命名空间 + /theme-center/settings 路由 + 浏览器同步作用域）v0.3.0
 

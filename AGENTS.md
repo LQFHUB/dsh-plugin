@@ -48,7 +48,7 @@
 
 - 变更内容：用户需求"输入框输入的内容也同会话区字号一同缩放"——实测定位：输入框 = 页面唯一 textarea（官方基线 16px/24px，hash 类名不可依赖），稳定锚点 `[data-composer-card="true"] textarea`；`appearanceCss` 缩放分支追加该锚点 calc 规则（16px/24px × `--tc-text-scale`，与正文同门控同键），100% 移除门控=官方原样；smoke +1 断言；文档同步（README/theme-center AGENTS §4.8 基线表与验证清单）
 - 涉及路径：`theme-center/lib/client.js`、`theme-center/tests/smoke.mjs`、`theme-center/README.md`、`theme-center/AGENTS.md`、`AGENTS.md`
-- 备注：112 验证（125%→20px/30px、90%→14.4px/21.6px、100% 还原 16px/24px）与 111 部署结果随后补记（沿用用户预授权：112 通过后直接部署 111）
+- 备注：**112 验证 4/4 全过**（125%→20px/30px、90%→14.4px/21.6px、100% 还原 16px/24px 官方原样）；**111 已部署**（用户预授权，md5 `32e33899` 与 112 一致，延迟 detach 重启）；用户追问"已发送/新发送消息是否缩放"——111 真实会话实测（125%）：历史 7 条 + 新发送 1 条用户消息主文本全部 **20px/35px 匹配缩放**，时间戳 14px 为元信息不缩放属正常；排查中确认此前 111 输入框未缩放系输入框改动未部署 111（本次已补部署）
 
 
 ### 2026-08-17 theme-center 配置保存到服务器：一处配置、所有终端生效 v0.3.0（112 验证 12/12 全过；111 已部署）
