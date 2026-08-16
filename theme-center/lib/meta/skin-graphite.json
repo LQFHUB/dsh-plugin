@@ -1,0 +1,21 @@
+{
+  "id": "skin-graphite",
+  "name": "石墨灰",
+  "nameEn": "skin-graphite",
+  "author": "KinGao294（dsh-skin，MIT）· LQFHUB 适配",
+  "tagline": "中性石墨灰 · 极简克制 · 暗色系",
+  "description": "中性石墨灰 · 极简克制 · 暗色系",
+  "tags": [
+    "dsh-skin",
+    "custom"
+  ],
+  "accent": "#b9bdc8",
+  "bodyAttr": "data-dsh-skin-graphite",
+  "package": "@user/dsh-client-ui-skin-skin-graphite",
+  "wiring": {
+    "id": "ui-skin-skin-graphite",
+    "bundleWired": false
+  },
+  "preview": {},
+  "order": 30
+}

@@ -39,7 +39,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 27 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 28 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-08-16 theme-center 集成 KinGao294/dsh-skin 7 款精选皮肤（深海蓝/石墨灰/森林绿/日落紫/深夜黑/暖纸/樱花粉）并 112 实测全过
+
+- 变更内容：用户要求参考 [KinGao294/dsh-skin](https://github.com/KinGao294/dsh-skin)（MIT）把主题加进 theme-center——提取其 client bundle 中 SKINS 数组（7 款 × 27 个 --dsw-alias-* 令牌覆盖，5 暗色 2 亮色），按 theme-center 规范生成固定色系 alias-only 皮肤 bundle（亮暗同值、颜色自洽、不映射 static，与 dsh-skin 的 colorScheme 行为等效但不改动官方亮暗属性）；中文名全部就位；注册表 THEMES +7（卡片共 24 行）、宿主 SKIN_IDS +7、lib/meta/ +7、README 许可注明 MIT 来源
+- 涉及路径：`theme-center/lib/skins/skin-*.js`×7、`theme-center/lib/meta/skin-*.json`×7、`theme-center/lib/{client,index}.js`、`theme-center/README.md`、`theme-center/AGENTS.md`、`AGENTS.md`；112 上 `/root/.dsh/external/theme-center/`（已同步并重启，client rev `84c512014fd1`）
+- 备注：**112 实测 33 项断言全过**（bundle 路由 7/7、卡片 24 行、逐款试穿→应用保持 + bg-base 精确匹配、官方默认干净还原、无 theme-center 错误）；视觉模型评审深海蓝：整体统一深色、可读性好；**按部署流程：待用户确认后部署 111**
 
 ### 2026-08-16 theme-center 自研皮肤改造：氛围渐变背景 + 半透明毛玻璃面板（参考各配色方案官方美学）并 112 实测全过
 

@@ -1,0 +1,21 @@
+{
+  "id": "skin-paper",
+  "name": "暖纸",
+  "nameEn": "skin-paper",
+  "author": "KinGao294（dsh-skin，MIT）· LQFHUB 适配",
+  "tagline": "暖纸米黄 · 护眼柔和 · 亮色系",
+  "description": "暖纸米黄 · 护眼柔和 · 亮色系",
+  "tags": [
+    "dsh-skin",
+    "custom"
+  ],
+  "accent": "#b45309",
+  "bodyAttr": "data-dsh-skin-paper",
+  "package": "@user/dsh-client-ui-skin-skin-paper",
+  "wiring": {
+    "id": "ui-skin-skin-paper",
+    "bundleWired": false
+  },
+  "preview": {},
+  "order": 30
+}

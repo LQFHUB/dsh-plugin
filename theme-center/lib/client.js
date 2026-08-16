@@ -47,6 +47,13 @@ window.__ModuleLoader__.load({
 			{ id: "apple-minimal", name: "苹果官网风", accent: "#0071e3", tagline: "苹果极简通透风 · 大留白 + 柔和灰阶 · 亮暗双形态", attr: "data-dsh-apple-minimal", package: "@user/dsh-client-ui-skin-apple-minimal", readsScrim: false },
 			{ id: "tokyo-night", name: "东京夜色", accent: "#7aa2f7", tagline: "程序员霓虹经典 · 深蓝紫 + 蓝青点缀 · 亮暗双形态", attr: "data-dsh-tokyo-night", package: "@user/dsh-client-ui-skin-tokyo-night", readsScrim: false },
 			{ id: "nord", name: "北欧极地", accent: "#88c0d0", tagline: "极地冰蓝冷淡风 · 低饱和灰蓝 · 亮暗双形态", attr: "data-dsh-nord", package: "@user/dsh-client-ui-skin-nord", readsScrim: false },
+			{ id: "skin-ocean", name: "深海蓝", accent: "#4d86f8", tagline: "DeepSeek 品牌深海调 · 深蓝沉浸 · 暗色系", attr: "data-dsh-skin-ocean", package: "@user/dsh-client-ui-skin-skin-ocean", readsScrim: false },
+			{ id: "skin-graphite", name: "石墨灰", accent: "#b9bdc8", tagline: "中性石墨灰 · 极简克制 · 暗色系", attr: "data-dsh-skin-graphite", package: "@user/dsh-client-ui-skin-skin-graphite", readsScrim: false },
+			{ id: "skin-forest", name: "森林绿", accent: "#34d37b", tagline: "森林绿 · 清新自然 · 暗色系", attr: "data-dsh-skin-forest", package: "@user/dsh-client-ui-skin-skin-forest", readsScrim: false },
+			{ id: "skin-sunset", name: "日落紫", accent: "#c084fc", tagline: "日落紫 · 暖紫暮色 · 暗色系", attr: "data-dsh-skin-sunset", package: "@user/dsh-client-ui-skin-skin-sunset", readsScrim: false },
+			{ id: "skin-midnight", name: "深夜黑", accent: "#7c8cff", tagline: "纯黑 OLED · 极简深邃 · 暗色系", attr: "data-dsh-skin-midnight", package: "@user/dsh-client-ui-skin-skin-midnight", readsScrim: false },
+			{ id: "skin-paper", name: "暖纸", accent: "#b45309", tagline: "暖纸米黄 · 护眼柔和 · 亮色系", attr: "data-dsh-skin-paper", package: "@user/dsh-client-ui-skin-skin-paper", readsScrim: false },
+			{ id: "skin-sakura", name: "樱花粉", accent: "#db2777", tagline: "樱花粉 · 温柔治愈 · 亮色系", attr: "data-dsh-skin-sakura", package: "@user/dsh-client-ui-skin-skin-sakura", readsScrim: false },
 		];
 		const THEME_BY_ID = new Map(THEMES.map((t) => [t.id, t]));
 
@@ -414,7 +421,7 @@ window.__ModuleLoader__.load({
 			const headerChildren = [
 				react.createElement("span", { className: "tc-headText", key: "head" }, [
 					react.createElement("span", { className: "tc-name", key: "n" }, "主题"),
-					react.createElement("span", { className: "tc-desc", key: "d" }, "16 款皮肤主题（dsh-web-ui 10 款 + 自研 6 款），试穿 / 应用 / 持久记忆"),
+					react.createElement("span", { className: "tc-desc", key: "d" }, "23 款皮肤主题（dsh-web-ui 10 款 + 自研 6 款 + dsh-skin 7 款），试穿 / 应用 / 持久记忆"),
 				]),
 				engineState.busy !== null
 					? react.createElement("span", { className: "tc-pending", key: "p" }, "加载中…")

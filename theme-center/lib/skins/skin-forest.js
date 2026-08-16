@@ -1,0 +1,26 @@
+window.__ModuleLoader__.load({
+	id: "@user/dsh-client-ui-skin-skin-forest",
+	factory: (require) => {
+		var module = { exports: {} };
+		var exports = module.exports;
+		Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
+		/** 森林绿 —— 固定色系皮肤（alias-only，源自 KinGao294/dsh-skin，MIT）。
+		 * 亮暗同值：颜色自洽（bg/label/border/brand 全套覆盖），不随亮暗切换。 */
+		const CSS = "/* \u68ee\u6797\u7eff \u2014\u2014 alias-only \u56fa\u5b9a\u8272\u7cfb\u76ae\u80a4\uff08\u6e90\u81ea KinGao294/dsh-skin\uff0cMIT\uff09\u3002 */\nbody[data-dsh-skin-forest] {\n  --dsw-alias-bg-base: #0a120d;\n  --dsw-alias-bg-layer-1: #101a13;\n  --dsw-alias-bg-layer-2: #17241a;\n  --dsw-alias-bg-layer-3: #1e2e22;\n  --dsw-alias-bg-overlay: #203024;\n  --dsw-alias-border-l1: rgba(134, 239, 172, 0.1);\n  --dsw-alias-border-l2: rgba(134, 239, 172, 0.2);\n  --dsw-alias-label-primary: #e7f5eb;\n  --dsw-alias-label-secondary: #9dc4a9;\n  --dsw-alias-label-tertiary: #7ba68a;\n  --dsw-alias-brand-primary: #34d37b;\n  --dsw-alias-brand-text: #04120a;\n  --dsw-alias-button-primary-hover: #5ae295;\n  --dsw-alias-button-primary-dimmed: #17241a;\n  --dsw-alias-state-business-primary: #34d37b;\n  --dsw-alias-state-business-tertiary: #17241a;\n  --dsw-alias-interactive-bg-hover: rgba(52, 211, 123, 0.12);\n  --dsw-alias-interactive-bg-active: rgba(52, 211, 123, 0.2);\n  --dsw-alias-markdown-code-block: #0c1510;\n  --dsw-alias-markdown-inline-code: #17241a;\n  --dsw-specific-sidebar-fill: #0c1510;\n  --dsw-specific-sidebar-nav-item-active: #17241a;\n  --dsw-specific-sidebar-nav-item-hover: #111d15;\n  --dsw-alias-scrollbar-bg-l1: #1e2e22;\n  --dsw-alias-scrollbar-bg-l2: #26402e;\n  --dsw-alias-scrollbar-hover-l1: #2f5038;\n  --dsw-alias-scrollbar-hover-l2: #2f5038;\n}\n";
+		function apply(ctx) {
+			const body = document.body;
+			body.dataset["dshSkinForest"] = "";
+			const styleEl = document.createElement("style");
+			styleEl.dataset.plugin = "@user/dsh-client-ui-skin-skin-forest";
+			styleEl.dataset.pluginCss = "@user/dsh-client-ui-skin-skin-forest/skin";
+			styleEl.textContent = CSS;
+			document.head.appendChild(styleEl);
+			ctx.effect(() => () => {
+				delete body.dataset["dshSkinForest"];
+				styleEl.remove();
+			}, "@user/dsh-client-ui-skin-skin-forest: palette");
+		}
+		exports.apply = apply;
+		return module.exports;
+	}
+});

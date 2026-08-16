@@ -1,6 +1,6 @@
 # 🎨 dsh-theme-center
 
-> 个人主题插件：在 **设置 > 插件配置** 新增一张「主题」卡片，内置 **16 款皮肤**（dsh-web-ui 10 款 + 自研 6 款），
+> 个人主题插件：在 **设置 > 插件配置** 新增一张「主题」卡片，内置 **23 款皮肤**（dsh-web-ui 10 款 + 自研 6 款 + dsh-skin 7 款），
 > 支持**试穿 / 应用 / 持久记忆**、亮暗预览与背景遮罩调节。
 > 皮肤与卡片交互参考 [zhu1090093659/dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui)
 > 的皮肤中心（skin-center）实现，其中 10 款皮肤 bundle 原样复用（BSD-3-Clause，见 [LICENSE](LICENSE)），6 款为自研纯令牌重映射皮肤。
@@ -11,7 +11,7 @@
 
 ## ✨ 特性 / Features
 
-- **16 款皮肤一次集齐**：dsh-web-ui 全家桶 10 款（蓝色幻想、龙的传人、夕港、初音未来、Minecraft、QQ2008 怀旧版、同花顺、交易终端、鲸吟、Windows XP）+ 自研 6 款（紫粉拿铁、清新浅绿、赛博朋克、苹果官网风、东京夜色、北欧极地，均亮/暗双形态）
+- **23 款皮肤一次集齐**：dsh-web-ui 全家桶 10 款（蓝色幻想、龙的传人、夕港、初音未来、Minecraft、QQ2008 怀旧版、同花顺、交易终端、鲸吟、Windows XP）+ 自研 6 款（紫粉拿铁、清新浅绿、赛博朋克、苹果官网风、东京夜色、北欧极地，均亮/暗双形态）+ dsh-skin 精选 7 款（深海蓝、石墨灰、森林绿、日落紫、深夜黑、暖纸、樱花粉，固定色系，源自 [KinGao294/dsh-skin](https://github.com/KinGao294/dsh-skin)，MIT）
 - **自研皮肤带氛围背景**：6 款自研皮肤参考各自配色方案的官方美学（Catppuccin 奶油紫调 / Tokyo Night 霓虹城市 / Nord 北极光 / 赛博朋克霓虹光斑 / 薄荷清新 / 苹果极简渐变）——body 光晕渐变背景（纯 CSS，无静态资源）+ 半透明毛玻璃面板，亮色柔和通透、暗色深邃有氛围
 - **「主题」设置卡片**：参考官方插件卡片（bash/agent-loop 同款折叠卡）与皮肤中心的交互——每款皮肤一行，含名称、说明、主题色
 - **试穿 / 应用**：试穿实时预览不持久化，退出试穿一键还原；应用立即生效并持久记忆（localStorage），刷新 / 重开浏览器自动恢复
@@ -26,7 +26,7 @@
 设置（侧边栏底部） → 插件配置 → 主题 卡片
 ┌─────────────────────────────────────────────┐
 │ ▸ 主题                                      │
-│   16 款皮肤主题（dsh-web-ui 10 款 + 自研 6 款）… │
+│   23 款皮肤主题（dsh-web-ui 10 + 自研 6 + dsh-skin 7）│
 │   ┌───────────────────────────────────────┐ │
 │   │ 亮暗预览  [亮色] [暗色]               │ │
 │   │ ● 官方默认        [试穿] [应用]       │ │
@@ -76,6 +76,13 @@ dsh plugin --profile web add link:/root/.dsh/external/theme-center
 | 苹果官网风 | 苹果极简通透风：大留白 + 柔和灰阶，亮暗双形态 |
 | 东京夜色 | Tokyo Night：程序员霓虹经典，深蓝紫 + 蓝青点缀，亮暗双形态 |
 | 北欧极地 | Nord：极地冰蓝冷淡风，低饱和灰蓝，亮暗双形态 |
+| 深海蓝 | DeepSeek 品牌深海调 · 深蓝沉浸 · 暗色系（dsh-skin） |
+| 石墨灰 | 中性石墨灰 · 极简克制 · 暗色系（dsh-skin） |
+| 森林绿 | 森林绿 · 清新自然 · 暗色系（dsh-skin） |
+| 日落紫 | 日落紫 · 暖紫暮色 · 暗色系（dsh-skin） |
+| 深夜黑 | 纯黑 OLED · 极简深邃 · 暗色系（dsh-skin） |
+| 暖纸 | 暖纸米黄 · 护眼柔和 · 亮色系（dsh-skin） |
+| 樱花粉 | 樱花粉 · 温柔治愈 · 亮色系（dsh-skin） |
 
 ## 🔧 工作原理 / How it works
 
@@ -112,4 +119,4 @@ theme-center/
 
 ## 📄 License
 
-皮肤代码与素材 © 2026 [zhu1090093659](https://github.com/zhu1090093659)（[dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui)，BSD-3-Clause）；本插件封装代码 © 2026 LQFHUB，同样以 [BSD-3-Clause](LICENSE) 发布。
+皮肤代码与素材 © 2026 [zhu1090093659](https://github.com/zhu1090093659)（[dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui)，BSD-3-Clause）；dsh-skin 7 款皮肤 © [KinGao294](https://github.com/KinGao294)（[dsh-skin](https://github.com/KinGao294/dsh-skin)，MIT）；本插件封装代码 © 2026 LQFHUB，以 [BSD-3-Clause](LICENSE) 发布。

@@ -99,6 +99,12 @@
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
 
+### 2026-08-16 集成 KinGao294/dsh-skin 7 款精选皮肤（深海蓝/石墨灰/森林绿/日落紫/深夜黑/暖纸/樱花粉）并 112 实测全过
+
+- 变更内容：用户要求参考 [KinGao294/dsh-skin](https://github.com/KinGao294/dsh-skin)（MIT）把主题加进来——提取其 client bundle 中 7 款皮肤（SKINS 数组，每款 27 个 --dsw-alias-* 令牌覆盖，5 暗色 2 亮色）按 theme-center 规范转成皮肤 bundle（**固定色系 alias-only**：亮暗同值，颜色自洽，不映射 static、不随亮暗切换——与 dsh-skin 的 colorScheme 行为等效但不动官方亮暗属性）；中文名：深海蓝/石墨灰/森林绿/日落紫/深夜黑/暖纸/樱花粉；注册表 THEMES +7（共 24 行）、宿主 SKIN_IDS +7、lib/meta/ +7、卡片描述改 23 款；许可注明 dsh-skin MIT 来源
+- 涉及路径：`theme-center/lib/skins/skin-*.js`×7、`theme-center/lib/meta/skin-*.json`×7、`theme-center/lib/{client,index}.js`、`theme-center/README.md`、`theme-center/AGENTS.md`
+- 备注：**112 实测 33 项断言全过**（bundle 路由 7/7、卡片 24 行、逐款试穿→应用保持 + bg-base 精确匹配 + 样式标签恰 1、官方默认干净还原、无 theme-center 错误）；视觉模型评审深海蓝：整体统一深色、文字可读性好（输入框边框/滚动条轻微偏亮为细节，非违和）；生成脚本 /tmp/gen-dsh-skin.py（node 提取 SKINS + python 生成）
+
 ### 2026-08-16 自研皮肤改造：氛围渐变背景 + 半透明毛玻璃面板（参考各配色方案官方美学）并 112 实测全过
 
 - 变更内容：用户反馈"设计太单调、亮色默认体验不好"——改造 6 款自研皮肤：① 参考各主题官方美学设计 body 氛围渐变（Catppuccin 奶油紫调光晕 / Tokyo Night 霓虹城市顶部光斑 / Nord 北极光 / 赛博朋克青紫霓虹 / 薄荷清新 / 苹果极简浅渐变），纯 CSS radial/linear-gradient（无静态资源）；② 面板半透明化（layer-1/2/3 = rgba 0.86/0.8/0.74，bg-base 保持不透明保证底色稳定），毛玻璃通透感；③ **关键修复：`body[data-dsh-x] [id='root'] { background: transparent }`**（同 blue-fantasy 手法）——否则 body 渐变被 #root 不透明背景挡住；④ 暗色霓虹光晕经 2 轮增强（顶部椭圆大光斑 alpha 0.3 左右）经视觉模型（describe_image 截图分析）确认到位

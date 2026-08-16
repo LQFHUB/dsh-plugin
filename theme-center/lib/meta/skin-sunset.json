@@ -1,0 +1,21 @@
+{
+  "id": "skin-sunset",
+  "name": "日落紫",
+  "nameEn": "skin-sunset",
+  "author": "KinGao294（dsh-skin，MIT）· LQFHUB 适配",
+  "tagline": "日落紫 · 暖紫暮色 · 暗色系",
+  "description": "日落紫 · 暖紫暮色 · 暗色系",
+  "tags": [
+    "dsh-skin",
+    "custom"
+  ],
+  "accent": "#c084fc",
+  "bodyAttr": "data-dsh-skin-sunset",
+  "package": "@user/dsh-client-ui-skin-skin-sunset",
+  "wiring": {
+    "id": "ui-skin-skin-sunset",
+    "bundleWired": false
+  },
+  "preview": {},
+  "order": 30
+}

@@ -1,0 +1,21 @@
+{
+  "id": "skin-midnight",
+  "name": "深夜黑",
+  "nameEn": "skin-midnight",
+  "author": "KinGao294（dsh-skin，MIT）· LQFHUB 适配",
+  "tagline": "纯黑 OLED · 极简深邃 · 暗色系",
+  "description": "纯黑 OLED · 极简深邃 · 暗色系",
+  "tags": [
+    "dsh-skin",
+    "custom"
+  ],
+  "accent": "#7c8cff",
+  "bodyAttr": "data-dsh-skin-midnight",
+  "package": "@user/dsh-client-ui-skin-skin-midnight",
+  "wiring": {
+    "id": "ui-skin-skin-midnight",
+    "bundleWired": false
+  },
+  "preview": {},
+  "order": 30
+}

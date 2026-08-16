@@ -44,6 +44,14 @@ const SKIN_IDS = [
   'apple-minimal',
   'tokyo-night',
   'nord',
+  // 源自 KinGao294/dsh-skin（MIT）
+  'skin-ocean',
+  'skin-graphite',
+  'skin-forest',
+  'skin-sunset',
+  'skin-midnight',
+  'skin-paper',
+  'skin-sakura',
 ]
 
 /** 合法的 skin id（只允许小写字母/数字/连字符，绝不参与路径拼接之外的其他用途）。 */

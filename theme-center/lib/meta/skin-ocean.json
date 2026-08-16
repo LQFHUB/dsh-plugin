@@ -1,0 +1,21 @@
+{
+  "id": "skin-ocean",
+  "name": "深海蓝",
+  "nameEn": "skin-ocean",
+  "author": "KinGao294（dsh-skin，MIT）· LQFHUB 适配",
+  "tagline": "DeepSeek 品牌深海调 · 深蓝沉浸 · 暗色系",
+  "description": "DeepSeek 品牌深海调 · 深蓝沉浸 · 暗色系",
+  "tags": [
+    "dsh-skin",
+    "custom"
+  ],
+  "accent": "#4d86f8",
+  "bodyAttr": "data-dsh-skin-ocean",
+  "package": "@user/dsh-client-ui-skin-skin-ocean",
+  "wiring": {
+    "id": "ui-skin-skin-ocean",
+    "bundleWired": false
+  },
+  "preview": {},
+  "order": 30
+}

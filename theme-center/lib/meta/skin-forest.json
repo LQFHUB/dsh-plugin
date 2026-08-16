@@ -1,0 +1,21 @@
+{
+  "id": "skin-forest",
+  "name": "森林绿",
+  "nameEn": "skin-forest",
+  "author": "KinGao294（dsh-skin，MIT）· LQFHUB 适配",
+  "tagline": "森林绿 · 清新自然 · 暗色系",
+  "description": "森林绿 · 清新自然 · 暗色系",
+  "tags": [
+    "dsh-skin",
+    "custom"
+  ],
+  "accent": "#34d37b",
+  "bodyAttr": "data-dsh-skin-forest",
+  "package": "@user/dsh-client-ui-skin-skin-forest",
+  "wiring": {
+    "id": "ui-skin-skin-forest",
+    "bundleWired": false
+  },
+  "preview": {},
+  "order": 30
+}
