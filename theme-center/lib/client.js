@@ -291,6 +291,26 @@ window.__ModuleLoader__.load({
 			{ id: "jetbrains", name: "JetBrains Mono 等宽", stack: '"JetBrains Mono", "SF Mono", Consolas, "PingFang SC", monospace' },
 		];
 		const FONT_BY_ID = new Map(FONTS.map((f) => [f.id, f]));
+		/**
+		 * 官方 markdown 标题字体令牌基线（0.1.0-rc.6+ 实测：._markdown_ h1..h4 用
+		 * --dsw-font-markdown-h1..h4，h5/h6 用 --dsw-font-markdown-base-strong，
+		 * 均为固定 px，不随容器字号联动；DSH 升级需复核）。
+		 * [令牌名, 字重, 字号, 行高]
+		 */
+		const HEADING_FONTS = [
+			["--dsw-font-markdown-h1", "700", "24px", "34px"],
+			["--dsw-font-markdown-h2", "700", "22px", "32px"],
+			["--dsw-font-markdown-h3", "700", "20px", "30px"],
+			["--dsw-font-markdown-h4", "600", "16px", "28px"],
+			["--dsw-font-markdown-base-strong", "600", "16px", "28px"],
+		];
+		/** 生成标题令牌覆盖段（字号/行高按 --tc-text-scale 缩放，family 由调用方决定）。 */
+		function headingTokensCss(family) {
+			return HEADING_FONTS.map(
+				([name, weight, size, lh]) =>
+					name + ":" + weight + " calc(" + size + " * var(--tc-text-scale))/calc(" + lh + " * var(--tc-text-scale)) " + family,
+			).join(";");
+		}
 
 		/** 读持久化字号百分比；缺失/非法回退 100（注意 Number(null)=0 陷阱）。 */
 		function readSavedTextScale() {
@@ -320,11 +340,14 @@ window.__ModuleLoader__.load({
 		 * 外观扩展 CSS 渲染器：一次生成会话区字号缩放 + 全站字体 + 隐藏开关全部规则。
 		 * 缩放基线 16px/28px 来自官方 --dsw-font-markdown-base 实测（0.1.0-rc.6+，
 		 * DSH 升级改基线需复核）；em 系标题/段落随容器联动，固定 px 元素（inline
-		 * code 14px、pre 13px/22px）按同比例 calc 覆盖。只作用于 markdown 容器与
+		 * code 14px、pre 13px/22px）按同比例 calc 覆盖。标题 h1-h6 官方为固定 px
+		 * 令牌（HEADING_FONTS），缩放时重定义令牌（family 用 var(--dsw-font-family)，
+		 * 与官方基线等价，且让标题随全站字体联动）。只作用于 markdown 容器与
 		 * 用户气泡文字——Think 行（data-variant=think）、工具卡（tool-call）、
 		 * 上下文卡（context）不在其中，字号不受缩放影响（由聊天区精简调节）。
-		 * 换字体走双路覆盖（--dsw-font-family 变量 + markdown/气泡容器 font-family），
-		 * 代码字体 --ds-font-family-code 保持不动。全部规则带 body 门控属性前缀。
+		 * 换字体走双路覆盖（--dsw-font-family 变量 + markdown/气泡容器 font-family
+		 * + 标题令牌重定义），代码字体 --ds-font-family-code 保持不动。
+		 * 全部规则带 body 门控属性前缀。
 		 */
 		function appearanceCss(state) {
 			const parts = [];
@@ -333,7 +356,7 @@ window.__ModuleLoader__.load({
 				const SCALE = "calc(16px * var(--tc-text-scale))";
 				const LHEIGHT = "calc(28px * var(--tc-text-scale))";
 				parts.push(
-					F + "{--tc-text-scale:" + (state.textScale / 100) + "}",
+					F + "{--tc-text-scale:" + (state.textScale / 100) + ";" + headingTokensCss("var(--dsw-font-family)") + "}",
 					F + ' [data-chat-flow-kind="assistant-step"] [class*="_markdown_"],' + F + ' [data-chat-flow-kind="user"] [class*="_markdown_"]{font-size:' + SCALE + ";line-height:" + LHEIGHT + "}",
 					F + ' [data-chat-flow-kind="assistant-step"] :where(p,li,blockquote,th,td){font-size:' + SCALE + ";line-height:" + LHEIGHT + "}",
 					F + ' [data-chat-flow-kind="assistant-step"] :not(pre) > code{font-size:calc(14px * var(--tc-text-scale))}',
@@ -345,7 +368,9 @@ window.__ModuleLoader__.load({
 				const stack = FONT_BY_ID.get(state.font).stack;
 				const F = 'body[data-dsh-theme-center][data-tc-font="' + state.font + '"]';
 				parts.push(
-					F + "{--dsw-font-family:" + stack + "}",
+					// 基线 --tc-text-scale:1：仅换字体时标题令牌 calc 乘 1 = 官方字号
+					"body[data-dsh-theme-center]{--tc-text-scale:1}",
+					F + "{--dsw-font-family:" + stack + ";" + headingTokensCss(stack) + "}",
 					F + ' [data-chat-flow-kind="assistant-step"] [class*="_markdown_"],' + F + ' [data-chat-flow-kind="user"] [class*="_markdown_"]{font-family:' + stack + "}",
 					F + ' [data-chat-flow-kind="user"] [data-time-hover-root] > div:first-child > div{font-family:' + stack + "}",
 				);

@@ -108,7 +108,7 @@ dsh plugin --profile web add link:/root/.dsh/external/theme-center
 - **聊天宽度**：独立 `<style>` 覆盖 `--dsh-chat-content-width` 与派生 `--dsh-composer-card-max-width`，并释放用户气泡 525px 上限；规则作用域限定 `body[data-dsh-theme-center]`，随插件卸载收回
 - **聊天区精简**：独立 `<style>` + `body[data-tc-focus]` 门控属性——所有规则以 `--tc-focus`（0-1）`calc()` 线性插值（0 时与官方默认完全一致）；只改字号/行高/透明度/尺寸，颜色一律走官方令牌，theme-center 全部皮肤与亮/暗自动适配；错误工具卡标题 ellipsis 为非插值规则，由门控属性保证 0% 时不生效
 - **表格列宽**：独立 `<style>` 静态覆盖官方表格规则（`width:max-content` → `100%`、`td/th max-width` 封顶 → `none`），选择器只依赖稳定属性 `[data-chat-flow-kind="assistant-step"|"user"]`，不依赖 hash 类名；超宽表格仍由官方 `overflow-x:auto` 容器横向滚动
-- **外观扩展（字号/字体/隐藏）**：单个 `<style>`（`dsh-theme-center/appearance`）承载三组规则，值变化整体重写文本；三个 body 门控属性——`data-tc-scale`（字号缩放，100% 时移除=官方原样）、`data-tc-font`（字体 id，default 移除）、`data-tc-hide`（空格分隔值 + `~=` 选择器匹配 think/tool/context）；字号基线 16px/28px 来自官方 `--dsw-font-markdown-base` 实测（DSH 升级需复核）；字体双路覆盖（`--dsw-font-family` 变量 + markdown/气泡容器 `font-family`），代码字体 `--ds-font-family-code` 不动；隐藏为纯 CSS `display:none`，不触碰消息数据；disposer 移除样式与全部门控属性
+- **外观扩展（字号/字体/隐藏）**：单个 `<style>`（`dsh-theme-center/appearance`）承载三组规则，值变化整体重写文本；三个 body 门控属性——`data-tc-scale`（字号缩放，100% 时移除=官方原样）、`data-tc-font`（字体 id，default 移除）、`data-tc-hide`（空格分隔值 + `~=` 选择器匹配 think/tool/context）；字号基线 16px/28px 来自官方 `--dsw-font-markdown-base` 实测（DSH 升级需复核）；**标题 h1-h6 官方为固定 px 令牌（24/22/20/16px 基线），缩放时重定义 `--dsw-font-markdown-h1..h4`/`base-strong` 令牌按比例 calc**，标题字号随滑杆缩放、字体随全站字体联动；字体双路覆盖（`--dsw-font-family` 变量 + markdown/气泡容器 `font-family` + 标题令牌重定义），代码字体 `--ds-font-family-code` 不动；隐藏为纯 CSS `display:none`，不触碰消息数据；disposer 移除样式与全部门控属性
 - **包结构**：标准 DSH 插件 bundle（`dsh.bundle` 清单 + `dsh.client` web 平台声明），浏览器启动时自动注入
 
 ## 🧩 兼容性 / Compatibility
