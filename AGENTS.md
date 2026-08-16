@@ -18,13 +18,11 @@
 
 | 文件夹 | 作用 |
 |:---|:---|
-| `chat-width-customizer/` | ~~聊天区宽度定制~~ 已并入 theme-center（2026-08-16，外观 Tab > 聊天宽度），本目录仅归档 |
 | `theme-center/` | 主题中心（一体化 v0.2.0）：23 款皮肤 + 「主题/外观」双 Tab 设置卡（试穿/应用/亮暗/遮罩 + 聊天宽度 + 聊天区精简百分比压制）；其他插件 UI 需适配它（见第六节主题适配契约） |
 | `web-lan/` | dsh Web 局域网直连（免反代）：crypto polyfill + apiProxy relay + isLoopback |
 | `navbar/` | 对话节点导航条（贴左侧边栏，节点跳转/悬停预览/pin 精选，中英文定位） |
 | `notify-sound/` | 会话提示音（Web Audio 合成 6 音、事件触发、配置跨浏览器同步、提示音设置卡，皮肤令牌适配） |
 | `describe-image/` | 图像理解工具（视觉模型描述图片，configured 模式复用已配置模型 + 「图像理解」设置卡） |
-| `right-panel/` | 右侧面板（文件树/多格式预览/SCM/语法高亮）——**已于 2026-08-16 卸载**，由 DSH-better-sidebar 替代（代码保留可回滚） |
 | （外部）`dsh-better-sidebar` | VSCode 风格右侧侧边栏工作台（文件资源管理器/CodeMirror 编辑器/终端/Git/浏览器/子代理，服务化 `ctx.betterSidebar` 三方扩展）——npm 安装，仓库 https://github.com/omdsh-dev/DSH-better-sidebar（MIT） |
 
 ## 三、添加新功能的流程（必须遵守）
@@ -39,7 +37,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 31 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 32 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-08-16 删除已归档插件文件夹 chat-width-customizer/ 与 right-panel/（用户确认，仓库 + 111/112 external 副本一并清理）
+
+- 变更内容：用户询问"被合并的插件文件夹可以删除了吗"并确认删除——① `git rm -r chat-width-customizer right-panel`（功能均已并入 theme-center / 被 dsh-better-sidebar 替代，全部代码仍在 git 历史中可随时找回）；② 111/112 的 `/root/.dsh/external/{chat-width-customizer,right-panel}` 一并 `rm -rf`（已不在 profile 注册，无风险），两台机器 external 现仅剩 5 个在用插件；③ 插件一览表移除两行
+- 涉及路径：`AGENTS.md`（表格 + 变更记录）；仓库删除 `chat-width-customizer/`、`right-panel/`；111/112 删除 `/root/.dsh/external/chat-width-customizer`、`/root/.dsh/external/right-panel`
+- 备注：回滚方式：`git checkout <commit> -- chat-width-customizer right-panel`；CHANGELOG.md 中的历史记录保留不动
 
 ### 2026-08-16 theme-center 一体化 v0.2.0：并入聊天宽度 + 新增聊天区精简（卡片双 Tab：主题/外观）
 
