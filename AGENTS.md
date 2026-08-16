@@ -39,7 +39,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 29 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 30 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-08-16 theme-center 按用户要求移除全部透明/毛玻璃（面板恢复不透明、去 backdrop-filter），保留渐变背景，112 实测全过
+
+- 变更内容：用户反馈"不要透明效果"（先针对设置面板、后要求全部）——13 款新皮肤移除透明与毛玻璃：① `[id='root']` 去 `backdrop-filter: blur(20px)`（保留 transparent 让 body 渐变在空白区透出）；② 面板恢复不透明（layer 系列全部 hex 原值）；③ `.VOzbGW_panel` 规则删除；④ **渐变背景完整保留**
+- 涉及路径：`theme-center/lib/skins/`×13（重新生成）、`theme-center/AGENTS.md`、`AGENTS.md`；112 上 `/root/.dsh/external/theme-center/lib/skins/`（已同步）
+- 备注：112 两套验证全过（自研 41 项含"面板不透明"新断言 + dsh-skin 33 项）；实测 `rootBackdrop=none`、`layer-1=#ffffff`、渐变保留；**按部署流程：待用户确认后部署 111**
 
 ### 2026-08-16 theme-center 13 款新皮肤添加渐变 + 毛玻璃（参考 zhaiyateng/dsh-design-skills glassmorphism 规范），设置面板保持不透明，112 实测全过
 

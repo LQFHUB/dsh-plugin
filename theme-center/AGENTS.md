@@ -99,6 +99,12 @@
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
 
+### 2026-08-16 按用户要求移除全部透明/毛玻璃效果（面板恢复不透明、去掉 backdrop-filter），保留渐变色背景，112 实测全过
+
+- 变更内容：用户反馈"不要透明效果"（先针对设置面板、后要求全部）——13 款新皮肤（自研 6 + dsh-skin 7）移除透明与毛玻璃：① `[id='root']` 去掉 `backdrop-filter: blur(20px)`（只保留 transparent 让 body 渐变在空白区透出）；② 面板恢复不透明（layer-1/2/3/overlay 等全部 hex 原值，不做 rgba 半透明化）；③ `.VOzbGW_panel` 规则删除；④ **渐变背景完整保留**（自研 6 款氛围渐变 + dsh-skin 7 款色系渐变）
+- 涉及路径：`theme-center/lib/skins/`×13（重新生成）、`theme-center/AGENTS.md`；112 上 `/root/.dsh/external/theme-center/lib/skins/`（已同步）
+- 备注：112 两套验证全过（自研 41 项含"面板不透明"新断言 + dsh-skin 33 项）；实测 `rootBackdrop=none`、`layer-1=#ffffff` 不透明、`background-image` 渐变保留；生成器 mk() 已恢复为不透明（半透明化代码移除）
+
 ### 2026-08-16 参考 zhaiyateng/dsh-design-skills（glassmorphism 规范）为 13 款新皮肤添加渐变 + 毛玻璃，设置面板保持不透明，112 实测全过
 
 - 变更内容：用户要求参考 [zhaiyateng/dsh-design-skills](https://github.com/zhaiyateng/dsh-design-skills)（MIT）的设计 skill 为今日主题加渐变色和毛玻璃——按其 glassmorphism SKILL.md 规范（渐变底 + backdrop-filter blur(≥15px) + 半透明面板 + 亮边框 + 克制面积）落地：① 13 款皮肤（自研 6 + dsh-skin 7）`[id='root']` 加 `backdrop-filter: blur(20px) saturate(1.15)`（含 -webkit- 前缀）+ transparent；② 面板透明度调低（亮色 layer1/2/3 = 0.75/0.68/0.6，暗色 0.62/0.55/0.48），bg-base 保持不透明；③ dsh-skin 7 款补各自色系 body 渐变背景（深色款深渐变 + 品牌光斑，亮色款浅渐变 + 淡光斑）；④ 视觉模型评审：深海蓝"毛玻璃明显、渐变可见、比纯色高级"、赛博朋克"方向正确"后 blur 16→20px、暗色面板再透一档；**⑤ 用户反馈"设置面板不需要透明效果"——`.VOzbGW_panel { background: var(--dsw-alias-bg-base) }` 设置面板固定不透明（bg-base 为皮肤不透明底色），实测面板 rgb 完全不透明、主界面毛玻璃保留**
