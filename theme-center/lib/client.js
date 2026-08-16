@@ -250,6 +250,23 @@ window.__ModuleLoader__.load({
 		}
 		//#endregion
 
+		//#region 表格列宽
+		/**
+		 * 表格撑满列宽：官方 markdown 渲染器把表格设为 width:max-content 且
+		 * td/th max-width 封顶 min(30vw,320px)——中文长文本被压进 320px 窄列
+		 * 疯狂换行，表格只占列宽一半。这里在助手回答/用户消息内覆盖为
+		 * 撑满整列 + 解除列上限（超宽表格仍由官方 overflow-x 容器横向滚动）。
+		 * 只作用于 [data-chat-flow-kind] 稳定属性，不依赖 hash 类名。
+		 */
+		const TABLE_CSS =
+			'body[data-dsh-theme-center] [data-chat-flow-kind="assistant-step"] table,' +
+			'body[data-dsh-theme-center] [data-chat-flow-kind="user"] table{width:100% !important;max-width:100% !important}' +
+			'body[data-dsh-theme-center] [data-chat-flow-kind="assistant-step"] th,' +
+			'body[data-dsh-theme-center] [data-chat-flow-kind="assistant-step"] td,' +
+			'body[data-dsh-theme-center] [data-chat-flow-kind="user"] th,' +
+			'body[data-dsh-theme-center] [data-chat-flow-kind="user"] td{max-width:none}';
+		//#endregion
+
 		//#region 主题引擎
 		/** 当前挂载的非官方主题条目及其 disposer。 */
 		let currentTheme = null;
@@ -779,6 +796,18 @@ window.__ModuleLoader__.load({
 					delete document.body.dataset.tcFocus;
 				};
 			}, "theme-center: focus styles");
+
+			// 表格列宽样式：静态注入，随插件卸载收回
+			ctx.effect(() => {
+				const styleEl = document.createElement("style");
+				styleEl.dataset.plugin = "dsh-theme-center";
+				styleEl.dataset.pluginCss = "dsh-theme-center/table";
+				styleEl.textContent = TABLE_CSS;
+				document.head.appendChild(styleEl);
+				return () => {
+					styleEl.remove();
+				};
+			}, "theme-center: table styles");
 
 			// 引擎生命周期：遮罩变量 + 已挂载主题随插件卸载全部收回
 			const previousScrim = body.style.getPropertyValue("--dsw-skin-scrim");

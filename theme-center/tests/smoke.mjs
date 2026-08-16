@@ -77,6 +77,12 @@ assert.doesNotMatch(clientSrc, /conversation\.session\.header\.utilities/, '不�
 assert.match(clientSrc, /dataset\.pluginCss = "dsh-theme-center\/card"/, '应有 card 样式元素')
 assert.match(clientSrc, /dataset\.pluginCss = "dsh-theme-center\/width"/, '应有 width 样式元素')
 assert.match(clientSrc, /dataset\.pluginCss = "dsh-theme-center\/focus"/, '应有 focus 样式元素')
+assert.match(clientSrc, /dataset\.pluginCss = "dsh-theme-center\/table"/, '应有 table 样式元素')
+// 表格撑满列宽：覆盖 max-content 为 100% + 解除 td/th 320px 列上限，作用域限助手回答/用户消息
+assert.match(clientSrc, /data-chat-flow-kind="assistant-step"\] table/, '应有助手回答表格规则')
+assert.match(clientSrc, /data-chat-flow-kind="user"\] table/, '应有用户消息表格规则')
+assert.match(clientSrc, /width:100% !important;max-width:100% !important/, '表格应撑满列宽')
+assert.match(clientSrc, /max-width:none/, '应解除 td/th 列宽上限')
 // 主题适配契约：不写死颜色（仅字号/行高/透明度/尺寸插值）
 const colorLeak = clientSrc.match(/focusCss[\s\S]*?\/\/#endregion/) // 精简模块区间
 assert.ok(colorLeak, '应能定位精简模块区间')
@@ -144,7 +150,7 @@ moduleExports.apply(fakeCtx)
 // 设置断言
 assert.equal(fakeDoc.body.dataset.dshThemeCenter, '', '应设置 body[data-dsh-theme-center] 作用域')
 assert.equal(fakeDoc.body.dataset.tcFocus, '', '压制默认 70% 应挂 body[data-tc-focus] 门控')
-assert.equal(created.filter((el) => el.tagName === 'STYLE').length, 3, '应注入 3 个样式元素（card/width/focus）')
+assert.equal(created.filter((el) => el.tagName === 'STYLE').length, 4, '应注入 4 个样式元素（card/width/focus/table）')
 const widthStyle = created.find((el) => el.dataset.pluginCss === 'dsh-theme-center/width')
 assert.ok(widthStyle, '应有 width 样式元素')
 assert.match(widthStyle.textContent, /--dsh-chat-content-width:896px/, '默认宽度应落地 896px')

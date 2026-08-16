@@ -79,6 +79,11 @@
 - 宽度规则作用域限定 `body[data-dsh-theme-center]`，覆盖 `--dsh-chat-content-width` / `--dsh-composer-card-max-width` 并释放 userStack 上限。
 - 三个样式元素（card/width/focus）均挂 `data-plugin="dsh-theme-center"` + 各自 `data-pluginCss`，disposer 全量收回（含门控属性）。
 
+### 4.7 表格列宽模块（必须）
+- **动机**：官方 markdown 渲染器 `table { width:max-content }` + `td/th { max-width: min(30vw,320px) }`——中文长文本被压进 320px 窄列疯狂换行，表格只占列宽一半（2026-08-16 实测 452px/896px）。
+- 覆盖规则：助手回答/用户消息内（`[data-chat-flow-kind="assistant-step"|"user"]`）`table{width:100% !important;max-width:100% !important}` + `td/th{max-width:none}`；**只依赖稳定 data 属性，不依赖 hash 类名**；超宽表格仍由官方 `overflow-x:auto` 容器横向滚动。
+- 常开不设开关（用户确认）；样式独立 `<style>`（`data-pluginCss="dsh-theme-center/table"`），disposer 收回。
+
 ## 五、皮肤 / UI 契约（必须，沿用根 AGENTS.md 并强化）
 
 - **主题适配（必须）**：插件 UI 样式**必须使用官方皮肤令牌**（`--dsw-alias-*`：border-l2/bg-layer-3/label-primary 等），**不得硬编码颜色/背景/边框数值**——theme-center 切换 10 款皮肤 + 官方亮/暗时插件界面自动跟随。个别皮肤缺令牌时补**皮肤限定适配层**（选择器限定 `body[data-dsh-<skin>]` 的补丁，fallback 引用皮肤自身变量），**不得全局覆盖**。
@@ -102,6 +107,7 @@
    - DOM 皮肤抽查（xp 任务栏/开始按钮、miku 标题栏）、多皮肤连续切换标题链；
    - **聊天宽度**：外观 Tab 选档 → 对话列/输入框变宽 + localStorage 持久化 + 刷新恢复；标题栏无宽度按钮；
    - **聊天区精简**：0% / 70% / 100% 三档计算样式断言（Think 标题字号与摘要透明度、工具卡行高、Context 卡来源透明度）；0% 与卸载态完全一致；`body[data-tc-focus]` 门控属性存在/移除成对；
+   - **表格列宽**：助手回答内表格 `width=100%`（撑满内容列）、`td/th max-width=none`（>320px 列正常展开）、超宽表格仍横向滚动；用户消息表格同样生效；
    - **主题抽查**：官方暗色 + 1 款暗色皮肤（深海蓝）下压制样式生效且可读；
    - 页面无 theme-center 相关错误；ths/trading 行情 404/405/CORS 为**上游 fail-safe 预期降级**，不视为缺陷。
 3. **111 部署**：112 验证通过后**必须询问用户**，同意后才部署；111 重启 `dsh-web.service` 用**延迟 detach 触发**（`setsid bash -c 'sleep 60; systemctl restart dsh-web.service' &`），避免中断当前回合；部署后验证服务 active + 页面注入；用户浏览器需 **Ctrl+Shift+R** 强制刷新。
@@ -111,6 +117,12 @@
 
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
+
+### 2026-08-16 新增表格列宽模块：表格撑满整列 + 解除 320px 列上限（常开，用户确认）
+
+- 变更内容：用户反馈"表格宽度只有会话区一半、列内容挤成很多行"——排查确认官方 markdown 渲染器 `table{width:max-content}` + `td/th{max-width:min(30vw,320px)}`（中文长文本被压进 320px 窄列疯狂换行，实测表格 452px/内容列 896px）。新增 `TABLE_CSS` + `dsh-theme-center/table` 样式 effect（disposer 收回）：助手回答/用户消息内（`[data-chat-flow-kind="assistant-step"|"user"]` 稳定属性，不依赖 hash 类名）`table{width:100% !important;max-width:100% !important}` + `td/th{max-width:none}`；超宽表格仍由官方 `overflow-x:auto` 容器横向滚动；**常开不设开关**（用户选择"直接默认生效"）
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/tests/smoke.mjs`（+4 断言、样式元素 3→4）、`theme-center/README.md`、`theme-center/AGENTS.md`
+- 备注：本文件新增 4.7 表格列宽模块规范与第六节验证清单条目；实测修复前后：表格 452px→896px、最长单元格 96px→71px（4 行→3 行）；本地 smoke 全绿；**112 验证待执行，通过后按流程询问用户再部署 111**
 
 ### 2026-08-16 一体化改造：并入聊天宽度 + 新增聊天区精简（卡片双 Tab：主题/外观）v0.2.0
 
