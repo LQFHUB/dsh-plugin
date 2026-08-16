@@ -37,7 +37,20 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 22 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 24 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+### 2026-08-17 修复变更记录折叠结构：`</details>` 提前关闭致 11 条记录在折叠块外
+
+- 变更内容：修复"四、变更记录"折叠问题——原 `</details>` 误置于"theme-center 新增 6 款自研皮肤"记录之后（并行会话追加记录时未挪动闭标签），导致 right-panel 卸载/theme-center 修复/插件一览等 11 条记录显示在折叠块外；已删除提前的闭标签并在最后一条记录（notify-sound 样式统一）之后、`---` 之前恢复唯一闭标签，全部 23 条记录重新纳入折叠
+- 涉及路径：`AGENTS.md`
+- 备注：用户反馈"变更记录折叠有问题，没有折叠所有变更记录"；已验证结构（details 开/闭各 1，闭标签位于 --- 前）
+
+### 2026-08-17 theme-center 输入框内容随「会话区字号」一同缩放（16px/24px 基线）
+
+- 变更内容：用户需求"输入框输入的内容也同会话区字号一同缩放"——实测定位：输入框 = 页面唯一 textarea（官方基线 16px/24px，hash 类名不可依赖），稳定锚点 `[data-composer-card="true"] textarea`；`appearanceCss` 缩放分支追加该锚点 calc 规则（16px/24px × `--tc-text-scale`，与正文同门控同键），100% 移除门控=官方原样；smoke +1 断言；文档同步（README/theme-center AGENTS §4.8 基线表与验证清单）
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/tests/smoke.mjs`、`theme-center/README.md`、`theme-center/AGENTS.md`、`AGENTS.md`
+- 备注：112 验证（125%→20px/30px、90%→14.4px/21.6px、100% 还原 16px/24px）与 111 部署结果随后补记（沿用用户预授权：112 通过后直接部署 111）
+
+
 ### 2026-08-17 theme-center 配置保存到服务器：一处配置、所有终端生效 v0.3.0（112 验证 12/12 全过；111 已部署）
 
 - 变更内容：用户需求"主题卡片的配置能否保存到服务器，一处配置，所有终端生效"（确认 111/112 不共享配置）——复用 notify-sound 先例实现服务端持久化：宿主注册 `theme-center` 设置命名空间（schemastery Config 9 字段全带默认）+ 自持路由 `/theme-center/settings`（GET 视图 / POST 批量写、同源护栏 + revision 栅栏、`settings.replace` 整层提交落盘 settings.yaml）；浏览器新增 `ThemeCenterSettingsScope`（15s 轮询 + focus/可见刷新）、`sanitizeServerValue` 清洗、首次同步一次性迁移本地状态、`applyRemoteState` 服务器真源 diff 应用（`applyingRemote` 防回环）、setter 排队服务器写（滑杆 400ms 去抖）、卡片 `.tc-sync` 同步状态行；localStorage 降级为首屏缓存，服务器不可用静默降级仅本机；版本 0.3.0；smoke +30 断言全绿
@@ -105,8 +118,6 @@
 - 变更内容：用户要求新增主题并"主题名称都使用中文"——按 theme-center 规范流程新增 6 款自研**纯令牌重映射**皮肤（无背景画/无 DOM chrome，每款 ~15KB）：以 qq98 皮肤 161 变量结构（亮/暗双块）为模板写生成器，逐款定义色板（灰阶 21 档 + 品牌主色阶 + 语义色阶 + alias/specific 语义值表）自动生成 bundle；Catppuccin（Mocha/Latte 官方色板）→ 紫粉拿铁、清新浅绿（薄荷绿）、赛博朋克（霓虹青紫）、苹果官网风（极简灰阶）、Tokyo Night → 东京夜色、Nord → 北欧极地；注册表 THEMES 增 6 条（共 17 行）、宿主 SKIN_IDS 白名单增 6 个、lib/meta/ 增 6 个、卡片描述改 16 款
 - 涉及路径：`theme-center/lib/skins/`×6、`theme-center/lib/meta/`×6、`theme-center/lib/{client,index}.js`、`theme-center/README.md`、`theme-center/AGENTS.md`、`AGENTS.md`；112 上 `/root/.dsh/external/theme-center/`（已同步，client rev `fbfbf75edacf`）
 - 备注：**112 实测 33 项断言全过**（bundle 路由 6/6、卡片 17 行含 6 中文名、逐款试穿→应用保持、亮色/暗色 bg-base 精确匹配、样式标签恰 1、官方默认干净还原、无 theme-center 错误）；踩坑 3 个（已写入 theme-center 规范）：SKIN_IDS 白名单漏加致 404、生成器 data 属性缺 dsh 前缀致作用域不匹配、zh-CN 界面验证需双语定位+先展开侧边栏；**按部署流程：待用户确认后部署 111**
-
-</details>
 
 ### 2026-08-16 right-panel 卸载，换装 DSH-better-sidebar（111/112 已部署生效）
 
@@ -180,9 +191,7 @@
 - 涉及路径：`notify-sound/lib/client.js`、`notify-sound/README.md`、`AGENTS.md`；112 上 `/root/.dsh/external/notify-sound`（已同步并重启）
 - 备注：测试全绿（宿主 34 + 浏览器 43 断言不变）；112 实测 **6/6 全过**——ns-card 与 tc-card 计算样式逐项相等（边框色/背景/圆角/header padding 14-16/gap 12/名称 15px-600/chevron SVG 同款）、无 console 错误；按流程待用户确认后部署 111
 
-
-
-
+</details>
 
 ---
 
