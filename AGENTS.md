@@ -39,7 +39,15 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 25 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 26 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-08-16 theme-center 新增 6 款自研皮肤（紫粉拿铁/清新浅绿/赛博朋克/苹果官网风/东京夜色/北欧极地，全中文名、亮暗双形态）并 112 实测全过
+
+- 变更内容：用户要求新增主题并"主题名称都使用中文"——按 theme-center 规范流程新增 6 款自研**纯令牌重映射**皮肤（无背景画/无 DOM chrome，每款 ~15KB）：以 qq98 皮肤 161 变量结构（亮/暗双块）为模板写生成器，逐款定义色板（灰阶 21 档 + 品牌主色阶 + 语义色阶 + alias/specific 语义值表）自动生成 bundle；Catppuccin（Mocha/Latte 官方色板）→ 紫粉拿铁、清新浅绿（薄荷绿）、赛博朋克（霓虹青紫）、苹果官网风（极简灰阶）、Tokyo Night → 东京夜色、Nord → 北欧极地；注册表 THEMES 增 6 条（共 17 行）、宿主 SKIN_IDS 白名单增 6 个、lib/meta/ 增 6 个、卡片描述改 16 款
+- 涉及路径：`theme-center/lib/skins/`×6、`theme-center/lib/meta/`×6、`theme-center/lib/{client,index}.js`、`theme-center/README.md`、`theme-center/AGENTS.md`、`AGENTS.md`；112 上 `/root/.dsh/external/theme-center/`（已同步，client rev `fbfbf75edacf`）
+- 备注：**112 实测 33 项断言全过**（bundle 路由 6/6、卡片 17 行含 6 中文名、逐款试穿→应用保持、亮色/暗色 bg-base 精确匹配、样式标签恰 1、官方默认干净还原、无 theme-center 错误）；踩坑 3 个（已写入 theme-center 规范）：SKIN_IDS 白名单漏加致 404、生成器 data 属性缺 dsh 前缀致作用域不匹配、zh-CN 界面验证需双语定位+先展开侧边栏；**按部署流程：待用户确认后部署 111**
+
+</details>
 
 ### 2026-08-16 right-panel 卸载，换装 DSH-better-sidebar（111/112 已部署生效）
 

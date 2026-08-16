@@ -1,0 +1,21 @@
+{
+  "id": "cyber-neon",
+  "name": "赛博朋克",
+  "nameEn": "赛博朋克",
+  "author": "LQFHUB（theme-center 自研）",
+  "tagline": "霓虹青紫赛博风 · 深空蓝黑 + 发光点缀 · 亮暗双形态",
+  "description": "霓虹青紫赛博风 · 深空蓝黑 + 发光点缀 · 亮暗双形态",
+  "tags": [
+    "theme-center",
+    "custom"
+  ],
+  "accent": "#22d3ee",
+  "bodyAttr": "data-dsh-cyber-neon",
+  "package": "@user/dsh-client-ui-skin-cyber-neon",
+  "wiring": {
+    "id": "ui-skin-cyber-neon",
+    "bundleWired": false
+  },
+  "preview": {},
+  "order": 20
+}

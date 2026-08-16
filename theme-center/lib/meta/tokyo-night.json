@@ -1,0 +1,21 @@
+{
+  "id": "tokyo-night",
+  "name": "Tokyo Night",
+  "nameEn": "Tokyo Night",
+  "author": "LQFHUB（theme-center 自研）",
+  "tagline": "程序员霓虹经典 · 深蓝紫 + 蓝青点缀 · 亮暗双形态",
+  "description": "程序员霓虹经典 · 深蓝紫 + 蓝青点缀 · 亮暗双形态",
+  "tags": [
+    "theme-center",
+    "custom"
+  ],
+  "accent": "#7aa2f7",
+  "bodyAttr": "data-dsh-tokyo-night",
+  "package": "@user/dsh-client-ui-skin-tokyo-night",
+  "wiring": {
+    "id": "ui-skin-tokyo-night",
+    "bundleWired": false
+  },
+  "preview": {},
+  "order": 20
+}

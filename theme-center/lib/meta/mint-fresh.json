@@ -1,0 +1,21 @@
+{
+  "id": "mint-fresh",
+  "name": "清新浅绿",
+  "nameEn": "清新浅绿",
+  "author": "LQFHUB（theme-center 自研）",
+  "tagline": "薄荷绿清新风 · 白绿通透 · 亮暗双形态",
+  "description": "薄荷绿清新风 · 白绿通透 · 亮暗双形态",
+  "tags": [
+    "theme-center",
+    "custom"
+  ],
+  "accent": "#2fb47a",
+  "bodyAttr": "data-dsh-mint-fresh",
+  "package": "@user/dsh-client-ui-skin-mint-fresh",
+  "wiring": {
+    "id": "ui-skin-mint-fresh",
+    "bundleWired": false
+  },
+  "preview": {},
+  "order": 20
+}

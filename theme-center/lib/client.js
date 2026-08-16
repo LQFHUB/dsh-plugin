@@ -28,7 +28,7 @@ window.__ModuleLoader__.load({
 		 */
 		const react = require("react");
 
-		/** 主题条目：official 为内置「官方默认」，其余 10 款皮肤来自 dsh-web-ui。 */
+		/** 主题条目：official 为内置「官方默认」，10 款皮肤来自 dsh-web-ui，6 款自研（纯令牌重映射）。 */
 		const THEMES = [
 			{ id: "official", name: "官方默认", accent: null, tagline: "还原 DeepSeek Harness 原生外观（无皮肤）", attr: null, package: null, readsScrim: false },
 			{ id: "blue-fantasy", name: "蓝色幻想", accent: "#4a5fa8", tagline: "鲸鱼插画背景 · periwinkle 靛蓝调色板 · 半透明面板", attr: "data-dsh-blue-fantasy", package: "@linxin666/dsh-client-ui-skin-blue-fantasy", readsScrim: true },
@@ -41,6 +41,12 @@ window.__ModuleLoader__.load({
 			{ id: "trading", name: "交易终端", accent: "#f23645", tagline: "实时行情跑马灯 · 长桥港美股行情 · 红涨绿跌", attr: "data-dsh-trading", package: "@linxin666/dsh-client-ui-skin-trading", readsScrim: false },
 			{ id: "whale-song", name: "鲸吟", accent: "#4d8fd4", tagline: "深海鲸语女神背景 · 冰蓝海洋调色板 · 金色细线点缀", attr: "data-dsh-whale-song", package: "@linxin666/dsh-client-ui-skin-whale-song", readsScrim: true },
 			{ id: "xp", name: "Windows XP (Luna)", accent: "#316ac5", tagline: "Luna 蓝窗口条 · 绿色开始按钮 · Bliss 蓝天桌面", attr: "data-dsh-xp", package: "@linxin666/dsh-client-ui-skin-xp", readsScrim: false },
+			{ id: "catppuccin", name: "紫粉拿铁", accent: "#89b4fa", tagline: "紫粉奶油系 · GitHub 最流行配色 · Mocha/Latte 双形态", attr: "data-dsh-catppuccin", package: "@user/dsh-client-ui-skin-catppuccin", readsScrim: false },
+			{ id: "mint-fresh", name: "清新浅绿", accent: "#2fb47a", tagline: "薄荷绿清新风 · 白绿通透 · 亮暗双形态", attr: "data-dsh-mint-fresh", package: "@user/dsh-client-ui-skin-mint-fresh", readsScrim: false },
+			{ id: "cyber-neon", name: "赛博朋克", accent: "#22d3ee", tagline: "霓虹青紫赛博风 · 深空蓝黑 + 发光点缀 · 亮暗双形态", attr: "data-dsh-cyber-neon", package: "@user/dsh-client-ui-skin-cyber-neon", readsScrim: false },
+			{ id: "apple-minimal", name: "苹果官网风", accent: "#0071e3", tagline: "苹果极简通透风 · 大留白 + 柔和灰阶 · 亮暗双形态", attr: "data-dsh-apple-minimal", package: "@user/dsh-client-ui-skin-apple-minimal", readsScrim: false },
+			{ id: "tokyo-night", name: "东京夜色", accent: "#7aa2f7", tagline: "程序员霓虹经典 · 深蓝紫 + 蓝青点缀 · 亮暗双形态", attr: "data-dsh-tokyo-night", package: "@user/dsh-client-ui-skin-tokyo-night", readsScrim: false },
+			{ id: "nord", name: "北欧极地", accent: "#88c0d0", tagline: "极地冰蓝冷淡风 · 低饱和灰蓝 · 亮暗双形态", attr: "data-dsh-nord", package: "@user/dsh-client-ui-skin-nord", readsScrim: false },
 		];
 		const THEME_BY_ID = new Map(THEMES.map((t) => [t.id, t]));
 
@@ -408,7 +414,7 @@ window.__ModuleLoader__.load({
 			const headerChildren = [
 				react.createElement("span", { className: "tc-headText", key: "head" }, [
 					react.createElement("span", { className: "tc-name", key: "n" }, "主题"),
-					react.createElement("span", { className: "tc-desc", key: "d" }, "10 款皮肤主题（集成自 dsh-web-ui），试穿 / 应用 / 持久记忆"),
+					react.createElement("span", { className: "tc-desc", key: "d" }, "16 款皮肤主题（dsh-web-ui 10 款 + 自研 6 款），试穿 / 应用 / 持久记忆"),
 				]),
 				engineState.busy !== null
 					? react.createElement("span", { className: "tc-pending", key: "p" }, "加载中…")

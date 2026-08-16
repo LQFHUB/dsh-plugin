@@ -37,6 +37,13 @@ const SKIN_IDS = [
   'trading',
   'whale-song',
   'xp',
+  // 自研皮肤（纯令牌重映射，LQFHUB）
+  'catppuccin',
+  'mint-fresh',
+  'cyber-neon',
+  'apple-minimal',
+  'tokyo-night',
+  'nord',
 ]
 
 /** 合法的 skin id（只允许小写字母/数字/连字符，绝不参与路径拼接之外的其他用途）。 */

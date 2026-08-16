@@ -99,6 +99,12 @@
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
 
+### 2026-08-16 新增 6 款自研皮肤（紫粉拿铁/清新浅绿/赛博朋克/苹果官网风/东京夜色/北欧极地，均亮暗双形态）并 112 实测全过
+
+- 变更内容：按用户需求新增 6 款自研纯令牌重映射皮肤（无背景画、无 DOM chrome，每款 ~15KB）——生成流程：以 qq98 皮肤 CSS 的 161 变量结构为模板（亮/暗双块），写生成器（/tmp/gen-skins.py，不入库），每款定义色板（灰阶 21 档 + 品牌主色阶 + 语义色阶 + alias/specific 语义值表）自动生成 bundle；Catppuccin（Mocha/Latte 官方色板）、清新浅绿、赛博朋克、苹果官网风、东京夜色、Nord 六款；主题名全部中文（Catppuccin→紫粉拿铁、Tokyo Night→东京夜色、Nord→北欧极地）；注册表 THEMES 增 6 条（共 17 行）、宿主 SKIN_IDS 白名单增 6 个、lib/meta/ 增 6 个 skin.json、卡片描述改 16 款
+- 涉及路径：`theme-center/lib/skins/{catppuccin,mint-fresh,cyber-neon,apple-minimal,tokyo-night,nord}.js`、`theme-center/lib/meta/`×6、`theme-center/lib/client.js`、`theme-center/lib/index.js`、`theme-center/README.md`、`theme-center/AGENTS.md`
+- 备注：**112 实测 33 项断言全过**（bundle 路由 6/6、卡片 17 行、逐款试穿→应用保持 + 亮色 bg-base 精确匹配 + 暗色 bg-base 精确匹配 + 样式标签恰 1、官方默认干净还原、无 theme-center 错误）；开发踩坑 3 个：① 宿主 SKIN_IDS 白名单漏加新 id 致路由 404；② 生成器 data_key 未带 dsh 前缀致 body 属性与 CSS 作用域不一致（dataset.Catppuccin → data-catppuccin ≠ data-dsh-catppuccin）；③ 112 界面 zh-CN + 侧边栏默认折叠，验证脚本需双语文本定位 + 先展开侧边栏
+
 ### 2026-08-16 修复「先试穿再应用同一主题」回退默认 + 切换顺序规范更新
 
 - 变更内容：用户反馈"主题先试穿再应用就会变回默认主题"——112 实测复现：应用时先挂载新实例、后卸载试穿旧实例，旧实例 disposer（删属性/还原背景/移除 favicon）收回新实例刚写入的同一处 DOM。修复：`runJob` 中 `disposeCurrent()` 移到 `loadThemeApply()` **之前**（先卸载→再加载→再挂载）；期间又发现若卸载放在加载之后，旧实例样式清理会误删新实例的 CSS 标签（CSS 在 import 时注入、apply 不重新注入）——一并由该顺序修复；112 三套回归全过（复现脚本含样式断言 skinStyles≥1 + 主验证 14 项 + 补充验证 + 10 款全量冒烟；验证脚本皮肤属性过滤改为白名单 SKIN_ATTRS，排除 notify-sound/describe-image 等其他插件的 data-dsh-* 属性）；本文件 4.3 切换语义与第六节验证清单同步更新

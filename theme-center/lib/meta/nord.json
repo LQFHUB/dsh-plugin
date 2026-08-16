@@ -1,0 +1,21 @@
+{
+  "id": "nord",
+  "name": "Nord",
+  "nameEn": "Nord",
+  "author": "LQFHUB（theme-center 自研）",
+  "tagline": "极地冰蓝冷淡风 · 低饱和灰蓝 · 亮暗双形态",
+  "description": "极地冰蓝冷淡风 · 低饱和灰蓝 · 亮暗双形态",
+  "tags": [
+    "theme-center",
+    "custom"
+  ],
+  "accent": "#88c0d0",
+  "bodyAttr": "data-dsh-nord",
+  "package": "@user/dsh-client-ui-skin-nord",
+  "wiring": {
+    "id": "ui-skin-nord",
+    "bundleWired": false
+  },
+  "preview": {},
+  "order": 20
+}

@@ -1,0 +1,21 @@
+{
+  "id": "apple-minimal",
+  "name": "苹果官网风",
+  "nameEn": "苹果官网风",
+  "author": "LQFHUB（theme-center 自研）",
+  "tagline": "苹果极简通透风 · 大留白 + 柔和灰阶 · 亮暗双形态",
+  "description": "苹果极简通透风 · 大留白 + 柔和灰阶 · 亮暗双形态",
+  "tags": [
+    "theme-center",
+    "custom"
+  ],
+  "accent": "#0071e3",
+  "bodyAttr": "data-dsh-apple-minimal",
+  "package": "@user/dsh-client-ui-skin-apple-minimal",
+  "wiring": {
+    "id": "ui-skin-apple-minimal",
+    "bundleWired": false
+  },
+  "preview": {},
+  "order": 20
+}

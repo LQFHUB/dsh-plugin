@@ -1,0 +1,21 @@
+{
+  "id": "catppuccin",
+  "name": "Catppuccin",
+  "nameEn": "Catppuccin",
+  "author": "LQFHUB（theme-center 自研）",
+  "tagline": "紫粉奶油系 · GitHub 最流行配色 · Mocha/Latte 双形态",
+  "description": "紫粉奶油系 · GitHub 最流行配色 · Mocha/Latte 双形态",
+  "tags": [
+    "theme-center",
+    "custom"
+  ],
+  "accent": "#89b4fa",
+  "bodyAttr": "data-dsh-catppuccin",
+  "package": "@user/dsh-client-ui-skin-catppuccin",
+  "wiring": {
+    "id": "ui-skin-catppuccin",
+    "bundleWired": false
+  },
+  "preview": {},
+  "order": 20
+}
