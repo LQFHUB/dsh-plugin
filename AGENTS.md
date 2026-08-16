@@ -37,7 +37,21 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 25 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 27 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+### 2026-08-17 theme-center 修复：输入框可见文字未缩放——官方三层架构（backdrop/textarea/mirror），缩放规则上移到 textarea 父层
+
+- 变更内容：用户反馈"输入后的内容字号确实不对，但是全选输入后的内容字号是缩放的"——112 实测定位根因：**官方 composer 三层架构**（hash 类名 `uV2eYG_*`）——`backdrop` 渲染用户可见文字、`textarea` 文字透明（`rgba(0,0,0,0)`）只承载光标与选中高亮、`mirror` 隐藏测量，三层 `font-size: inherit` 继承自 textarea 父层 `grow`（16px）；旧规则只缩放 textarea（12.8px）→ 用户看到的 backdrop 文字仍 16px（未选中不缩放），全选时 selection 高亮按 12.8px 绘制（看着像缩放）。修复：规则改为 `[data-composer-card="true"] div:has(> textarea){font-size:calc(16px * var(--tc-text-scale))}`，三层 inherit 一并缩放（不依赖 hash 类名）
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/tests/smoke.mjs`、`theme-center/AGENTS.md`、`AGENTS.md`
+- 备注：**112 实测全过**（80%：grow/backdrop/mirror/textarea 全部 12.8px/24px、全选场景 backdrop 仍 12.8px、无错误）；**111 已部署**（用户预授权，md5 `26f13d54` 与 112 一致，延迟 detach 重启）
+
+
+### 2026-08-17 theme-center 修复：输入框只缩放字号、行高保持官方 24px（防文字贴边/指针错位）
+
+- 变更内容：用户反馈"输入框的字确实没有缩放，且鼠标指针位置也有问题"——实测+视觉模型定位：文字已缩放（80%→12.8px）但行高 19.2px 致文字上移贴边、与按钮错位（textarea 顶部对齐特性）。修复：输入框规则只缩放 font-size、行高保持官方 24px（80%→12.8px/24px 垂直居中正常）
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/tests/smoke.mjs`、`theme-center/AGENTS.md`、`AGENTS.md`
+- 备注：**112 验证全过**（视觉模型：文字距顶 ~10px 留白、垂直居中，修复前贴边）；**111 已部署**（用户预授权，md5 `e30710c9` 与 112 一致，延迟 detach 重启）
+
+
 ### 2026-08-17 theme-center 默认值调整：压制效果默认 80%、会话区字号默认 80%（官方锚点与默认解耦）
 
 - 变更内容：用户需求"压制效果默认80%，会话区字号默认80%"——`FOCUS_DEFAULT` 70→80、`TEXT_SCALE_DEFAULT` 100→80；**关键解耦**：新增 `TEXT_SCALE_OFFICIAL=100` 作为门控移除条件（原实现"pct=默认时移除 data-tc-scale"，直接改默认 80 会致 80% 不生效）——现 80% 默认正常缩放、100% 仍是官方原样；宿主 schema focus/textScale 默认 80；服务器 user 层 unset 让新默认生效

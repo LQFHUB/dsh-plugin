@@ -99,7 +99,7 @@ assert.match(clientSrc, /TEXT_SCALE_OFFICIAL = 100/, '官方原样锚点应为 1
 assert.match(clientSrc, /TEXT_SCALE_MIN = 75/, '字号下限应为 75%')
 assert.match(clientSrc, /calc\(16px \* var\(--tc-text-scale\)\)/, '应有字号缩放 calc 规则')
 assert.match(clientSrc, /calc\(28px \* var\(--tc-text-scale\)\)/, '应有行高缩放 calc 规则')
-assert.match(clientSrc, /data-composer-card="true"\] textarea\{font-size:calc\(16px \* var\(--tc-text-scale\)\);line-height:calc\(24px \* var\(--tc-text-scale\)\)\}/, '输入框内容应随字号缩放（16px/24px 基线）')
+assert.match(clientSrc, /data-composer-card="true"\] div:has\(> textarea\)\{font-size:calc\(16px \* var\(--tc-text-scale\)\)\}/, '输入框内容应随字号缩放（缩放 textarea 父层，backdrop 可见文字/textarea 光标/mirror 测量三层一并 inherit；行高保持官方 24px 防垂直错位）')
 assert.match(clientSrc, /data-tc-scale/, '字号缩放应由 data-tc-scale 门控')
 // 会话区标题（markdown h1-h6）为官方固定 px 令牌，缩放须重定义令牌（calc 乘法 + 随全站字体）
 assert.match(clientSrc, /--dsw-font-markdown-h1/, '应有 h1 标题令牌基线')

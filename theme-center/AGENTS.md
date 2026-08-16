@@ -88,7 +88,7 @@
 
 ### 4.8 外观扩展模块（必须）
 - 三组功能共用单个 `<style>`（`data-pluginCss="dsh-theme-center/appearance"`）与三个 body 门控属性，值变化整体重写样式文本；disposer 移除样式与全部属性。
-- **会话区字号缩放**：门控 `data-tc-scale` + `--tc-text-scale`（0.75–1.5）；缩放基线 **16px/28px 硬编码**；**默认 80%**（`TEXT_SCALE_DEFAULT`）与**官方原样锚点 100%**（`TEXT_SCALE_OFFICIAL`，pct=100 移除门控）**解耦**——默认值非 100 时门控仍生效（来源：官方 `--dsw-font-markdown-base` 实测，0.1.0-rc.6+，**DSH 升级改基线需复核**）；只作用于 markdown 容器/用户气泡文字（`[data-chat-flow-kind="assistant-step"|"user"]` 内），**Think 行/工具卡/上下文卡不在其中不受缩放影响**（由 4.6 精简调节）；固定 px 元素（inline code 14px、pre 13px/22px）同比例 calc 覆盖；**输入框（composer）16px/24px 基线**（实测 0.1.0-rc.6，锚点 `[data-composer-card="true"] textarea` 稳定属性、页面唯一，DSH 升级需复核）；**标题 h1-h6 官方为固定 px 令牌**（`HEADING_FONTS` 基线：h1 700 24/34、h2 700 22/32、h3 700 20/30、h4 600 16/28、h5/h6 走 `--dsw-font-markdown-base-strong` 600 16/28；实测 `._markdown_ h1..h4` 用 `font: var(--dsw-font-markdown-hN)`，**DSH 升级需复核**），缩放时在门控 body 上**重定义这些令牌**（`weight calc(size * var(--tc-text-scale))/calc(lh * var(--tc-text-scale)) family`）——标题字号随滑杆缩放、family 用 `var(--dsw-font-family)` 随全站字体（与官方基线等价）；pct=100 移除门控=官方原样。
+- **会话区字号缩放**：门控 `data-tc-scale` + `--tc-text-scale`（0.75–1.5）；缩放基线 **16px/28px 硬编码**；**默认 80%**（`TEXT_SCALE_DEFAULT`）与**官方原样锚点 100%**（`TEXT_SCALE_OFFICIAL`，pct=100 移除门控）**解耦**——默认值非 100 时门控仍生效（来源：官方 `--dsw-font-markdown-base` 实测，0.1.0-rc.6+，**DSH 升级改基线需复核**）；只作用于 markdown 容器/用户气泡文字（`[data-chat-flow-kind="assistant-step"|"user"]` 内），**Think 行/工具卡/上下文卡不在其中不受缩放影响**（由 4.6 精简调节）；固定 px 元素（inline code 14px、pre 13px/22px）同比例 calc 覆盖；**输入框（composer）16px 基线**（实测 0.1.0-rc.6，锚点 `[data-composer-card="true"]` 稳定属性、页面唯一 textarea，DSH 升级需复核）；**官方为三层架构**（`uV2eYG_*` 等 hash 类名不可依赖）：`backdrop`（absolute，`color: var(--dsw-alias-label-primary)`）渲染**用户可见文字**、`textarea` 文字透明（`rgba(0,0,0,0)`）只承载光标与选中高亮、`mirror`（visibility:hidden）高度测量，三层 `font-size/line-height: inherit` 继承自 textarea 父层 `grow`——故缩放规则作用于 **`div:has(> textarea)` 父层**（避免 hash 类名）而非 textarea 自身：只缩放 textarea 会让用户看到的 backdrop 文字不变、仅选中高亮变小（2026-08-17 用户实测反馈"输入未选中不缩放、全选才像缩放"）；**只缩放 font-size、行高保持官方 24px**（textarea 文字顶部对齐，行高一起缩小会致文字上移贴边、与周边控件错位——视觉模型实测确认）；**标题 h1-h6 官方为固定 px 令牌**（`HEADING_FONTS` 基线：h1 700 24/34、h2 700 22/32、h3 700 20/30、h4 600 16/28、h5/h6 走 `--dsw-font-markdown-base-strong` 600 16/28；实测 `._markdown_ h1..h4` 用 `font: var(--dsw-font-markdown-hN)`，**DSH 升级需复核**），缩放时在门控 body 上**重定义这些令牌**（`weight calc(size * var(--tc-text-scale))/calc(lh * var(--tc-text-scale)) family`）——标题字号随滑杆缩放、family 用 `var(--dsw-font-family)` 随全站字体（与官方基线等价）；pct=100 移除门控=官方原样。
 - **全站字体**：门控 `data-tc-font="<id>"`；`FONTS` 常量表（default=系统默认不注入）；覆盖路径三条——body `--dsw-font-family` 变量 + markdown/用户气泡容器 `font-family` + **标题令牌重定义**（`headingTokensCss(stack)`，字号 calc 乘 `--tc-text-scale`，故仅换字体时须先注入基线 `body[data-dsh-theme-center]{--tc-text-scale:1}`，字号×1=官方原值）；**代码字体 `--ds-font-family-code` 保持不动**。
 - **隐藏开关**：门控 `data-tc-hide`（空格分隔值，选择器 `~="think"|"tool"|"context"`）；纯 CSS `display:none !important`，不触碰消息数据；隐藏优先于 4.6 压制。
 - 持久化键：`textscale:v1`（75-150，缺失回退 80，`Number(null)=0` 陷阱）、`font:v1`（id，未知回退 default）、`hide:v1`（JSON 布尔）。
@@ -139,6 +139,18 @@
 
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
+
+### 2026-08-17 修复：输入框可见文字未缩放——官方三层架构（backdrop/textarea/mirror），缩放宽上移到 textarea 父层 `div:has(> textarea)`
+
+- 变更内容：用户反馈"输入后的内容字号确实不对，但是全选输入后的内容字号是缩放的"——112 实测定位根因：**官方 composer 为三层架构**（hash 类名 `uV2eYG_*`，DSH 升级需复核）——`backdrop`（absolute，`color: var(--dsw-alias-label-primary)`）渲染**用户可见文字**、`textarea` 文字透明（`rgba(0,0,0,0)`）只承载光标与选中高亮、`mirror`（visibility:hidden）高度测量；三层 `font-size/line-height: inherit` 继承自 textarea 父层 `grow`。旧规则只缩放 `textarea`（80%→12.8px），**用户看到的 backdrop 文字仍是 16px**（故"未选中不缩放"），而全选时 selection 高亮按 textarea 12.8px 绘制（故"全选才像缩放"）。修复：规则改为 `[data-composer-card="true"] div:has(> textarea){font-size:calc(16px * var(--tc-text-scale))}`——命中 textarea 父层（grow），三层 inherit 一并缩放，不依赖 hash 类名；行高仍保持官方 24px；smoke 断言同步更新
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/tests/smoke.mjs`、`theme-center/AGENTS.md`
+- 备注：本文件 4.8 输入框规范补充三层架构说明（规则作用于父层而非 textarea）；**112 实测全过**（80%：grow/backdrop/mirror/textarea 全部 12.8px/24px，全选场景 backdrop 仍 12.8px，无 console 错误）；**111 已部署**（用户预授权，md5 `26f13d54` 与 112 一致，延迟 detach 重启）
+
+### 2026-08-17 修复：输入框只缩放字号、行高保持官方 24px（防文字贴边与指针错位）
+
+- 变更内容：用户反馈"输入框的字确实没有缩放，且鼠标指针位置也有问题"——112/111 实测 + 视觉模型定位：输入框文字实际已随 80% 缩放为 12.8px，但**行高 19.2px（24×0.8）导致文字上移贴住输入框上边缘、与右侧按钮垂直错位**（textarea 文字顶部对齐特性；截图确认"文字顶到上边缘、垂直偏上"）。修复：输入框规则去掉 line-height 缩放，**只缩放 font-size、行高保持官方 24px**——80% 时 12.8px/24px，文字垂直居中留白正常、光标落点正常；smoke 断言同步更新
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/tests/smoke.mjs`、`theme-center/AGENTS.md`
+- 备注：本文件 4.8 输入框基线改为「16px 基线、行高保持官方 24px」；**112 验证全过**（80%：12.8px/24px，视觉模型确认文字距顶 ~10px 留白、垂直居中，修复前为贴边）；**111 已部署**（用户预授权，md5 `e30710c9` 与 112 一致，延迟 detach 重启）
 
 ### 2026-08-17 默认值调整：压制效果默认 80%、会话区字号默认 80%（官方原样锚点与默认值解耦）
 

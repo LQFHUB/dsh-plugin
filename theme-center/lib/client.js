@@ -368,9 +368,15 @@ window.__ModuleLoader__.load({
 					F + ' [data-chat-flow-kind="assistant-step"] :not(pre) > code{font-size:calc(14px * var(--tc-text-scale))}',
 					F + ' [data-chat-flow-kind="assistant-step"] pre{font-size:calc(13px * var(--tc-text-scale));line-height:calc(22px * var(--tc-text-scale))}',
 					F + ' [data-chat-flow-kind="user"] [data-time-hover-root] > div:first-child > div{font-size:' + SCALE + ";line-height:" + LHEIGHT + "}",
-					// 输入框（composer）：官方基线 16px/24px 实测（0.1.0-rc.6，DSH 升级需复核），
-					// 锚点 data-composer-card="true"（稳定属性，页面唯一 textarea），与正文同门控同比例
-					F + ' [data-composer-card="true"] textarea{font-size:calc(16px * var(--tc-text-scale));line-height:calc(24px * var(--tc-text-scale))}',
+					// 输入框（composer）：官方基线 16px 实测（0.1.0-rc.6，DSH 升级需复核），
+					// 锚点 data-composer-card="true"（稳定属性，页面唯一 textarea），与正文同门控同比例。
+					// 官方为三层架构：backdrop 渲染可见文字 / textarea 透明文字+光标 / mirror 高度测量，
+					// 三层 font-size 均 inherit 自 textarea 父层（grow）——只缩放 textarea 会让用户
+					// 看到的 backdrop 文字不变、仅选中高亮变小（2026-08-17 用户实测反馈"输入未选中
+					// 不缩放、全选才像缩放"），故直接缩放父层 div:has(> textarea)，三层一并生效；
+					// 只缩放 font-size、行高保持官方 24px（文字顶部对齐，行高一起缩小
+					// 会让文字上移贴边、与周边按钮错位——视觉模型 2026-08-17 实测确认）
+					F + ' [data-composer-card="true"] div:has(> textarea){font-size:calc(16px * var(--tc-text-scale))}',
 				);
 			}
 			if (state.font !== "default") {
