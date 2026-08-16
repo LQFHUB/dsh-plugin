@@ -24,7 +24,8 @@
 | `navbar/` | 对话节点导航条（贴左侧边栏，节点跳转/悬停预览/pin 精选，中英文定位） |
 | `notify-sound/` | 会话提示音（Web Audio 合成 6 音、事件触发、配置跨浏览器同步、提示音设置卡，皮肤令牌适配） |
 | `describe-image/` | 图像理解工具（视觉模型描述图片，configured 模式复用已配置模型 + 「图像理解」设置卡） |
-| `right-panel/` | 右侧面板（文件树/多格式预览/SCM 变更面板，语法高亮，harbor/trading 皮肤适配层） |
+| `right-panel/` | 右侧面板（文件树/多格式预览/SCM/语法高亮）——**已于 2026-08-16 卸载**，由 DSH-better-sidebar 替代（代码保留可回滚） |
+| （外部）`dsh-better-sidebar` | VSCode 风格右侧侧边栏工作台（文件资源管理器/CodeMirror 编辑器/终端/Git/浏览器/子代理，服务化 `ctx.betterSidebar` 三方扩展）——npm 安装，仓库 https://github.com/omdsh-dev/DSH-better-sidebar（MIT） |
 
 ## 三、添加新功能的流程（必须遵守）
 
@@ -38,7 +39,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 24 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 25 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-08-16 right-panel 卸载，换装 DSH-better-sidebar（111/112 已部署生效）
+
+- 变更内容：用户决定用 [DSH-better-sidebar](https://github.com/omdsh-dev/DSH-better-sidebar)（VSCode 风格右侧侧边栏工作台：文件资源管理器/CodeMirror 编辑器/终端/Git/浏览器/子代理拓扑，服务化 `ctx.betterSidebar` 供三方插件注册 tab 与文件预览器，MIT）替代自研 right-panel——两机均 `dsh plugin --profile web remove dsh-right-panel`（`/root/.dsh/external/right-panel` 保留可回滚）+ `dsh plugin --profile web add dsh-better-sidebar`（npm 安装 v0.12.1；pnpm 拦截 node-pty 构建脚本 → profile `pnpm-workspace.yaml` `allowBuilds: node-pty: true` 放行后重装成功，node-pty 本地编译通过）
+- 涉及路径：`AGENTS.md`、`right-panel/README.md`；111/112 上 profile（deps/bundles 更换）、`/root/.dsh/profiles/web/pnpm-workspace.yaml`（allowBuilds node-pty）
+- 备注：112 实测效果（用户已确认满意）：侧边栏默认展开 480px（`#root` margin-right 挤占布局，与 right-panel 的 grid 追加机制不同）、Explorer 文件树根 = 当前会话目录（/root/AI/deepseek/gen，按会话隔离）、CodeMirror 编辑器、xterm 真终端（shell 提示符）、折叠/展开正常、无 console 错误；111 重启 dsh-web.service 后生效（服务 active、`dsh-better-sidebar/client.js?rev=dbd5028ff700` 与 112 一致、right-panel 注入 0）；right-panel 的主题适配（harbor/trading 适配层）与语法高亮等成果保留在 `right-panel/`，需要时可回滚
 
 ### 2026-08-16 theme-center 修复：先试穿再应用同一主题回退默认（切换顺序：先卸载→再加载→再挂载）并 112 实测全过
 

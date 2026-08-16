@@ -1,5 +1,7 @@
 # dsh-right-panel — DSH Web GUI 右侧面板插件
 
+> **⚠️ 已卸载（2026-08-16）**：本插件已从 111/112 卸载，由 [DSH-better-sidebar](https://github.com/omdsh-dev/DSH-better-sidebar)（VSCode 风格右侧侧边栏工作台：文件资源管理器 / CodeMirror 编辑器 / 终端 / Git / 浏览器 / 子代理，npm 安装 `dsh-better-sidebar`，MIT）替代。代码保留在本仓库供回滚——如需恢复：`dsh plugin --profile web add link:/root/.dsh/external/right-panel` 后重启 dsh web 即可。
+
 项目会话打开时，聊天区右侧出现「预览」与「文件/变更」两块面板：浏览工作目录文件树、多格式预览与编辑、真实 git 变更操作，宽度可拖拽调整并按项目持久化。
 
 > 本插件**复用** [zhu1090093659/dsh-web-ui](https://github.com/zhu1090093659/dsh-web-ui) 仓库 `dsh-aionui-panel` 包（npm 发布名 `@linxin666/dsh-client-ui-aionui-panel@0.1.16`）的构建产物（`lib/index.js` 宿主半区 + `lib/client.js` 浏览器半区），Apache-2.0 授权，见 [LICENSE](LICENSE)。基于上游做若干适配与增强（见下文「与上游的差异」）。
