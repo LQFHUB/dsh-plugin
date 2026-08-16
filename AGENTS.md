@@ -39,7 +39,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 26 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 27 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-08-16 theme-center 自研皮肤改造：氛围渐变背景 + 半透明毛玻璃面板（参考各配色方案官方美学）并 112 实测全过
+
+- 变更内容：用户反馈"设计太单调、亮色默认体验不好，找各主题说明/参考然后改造"——改造 6 款自研皮肤：① 参考各主题官方美学设计 body 氛围渐变（Catppuccin 奶油紫调光晕 / Tokyo Night 霓虹城市顶部光斑 / Nord 北极光 / 赛博朋克青紫霓虹 / 薄荷清新 / 苹果极简浅渐变），纯 CSS radial/linear-gradient（无静态资源，符合皮肤契约）；② 面板半透明化（layer-1/2/3 = rgba 0.86/0.8/0.74，bg-base 保持不透明保证底色稳定）实现毛玻璃通透感；③ **关键修复：`body[data-dsh-x] [id='root'] { background: transparent }`**（同 blue-fantasy 手法）——否则 body 渐变被 #root 不透明背景完全挡住（截图验证发现的根因）；④ 暗色霓虹光晕经 2 轮增强（顶部椭圆大光斑 alpha 0.3 左右），用 describe_image 视觉模型对截图评审确认效果
+- 涉及路径：`theme-center/lib/skins/`×6（重新生成）、`theme-center/README.md`、`theme-center/AGENTS.md`、`AGENTS.md`；112 上 `/root/.dsh/external/theme-center/lib/skins/`（已同步）
+- 备注：**112 实测 41 项断言全过**（含氛围渐变注入 + 面板半透明断言）；视觉模型评审：紫粉拿铁亮色"渐变可见、毛玻璃明显、协调优雅、完成度高"（亮色体验问题解决）、赛博朋克暗色"氛围非常到位、青色大光斑醒目、可读性好、不刺眼"；生成器（/tmp/gen-skins.py）现支持 backdrop 字段（亮/暗渐变）+ mk() 面板半透明化，后续自研皮肤直接复用；**按部署流程：待用户确认后部署 111**（含此前 6 款新皮肤全部变更）
 
 ### 2026-08-16 theme-center 新增 6 款自研皮肤（紫粉拿铁/清新浅绿/赛博朋克/苹果官网风/东京夜色/北欧极地，全中文名、亮暗双形态）并 112 实测全过
 
