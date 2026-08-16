@@ -5,8 +5,9 @@
 
 ## 一、定位与边界（必须）
 
-- 主题插件是**纯视觉呈现层**：不注入服务、不发 Cordis 事件、不触及模型请求、不写任何 DSH 配置文件。
-- 主题切换为**纯浏览器机制**：皮肤 bundle 按需加载执行，即时生效；选择持久化到 localStorage，**不重载页面、不重启服务**。
+- 主题插件是**纯视觉呈现层**：不注入服务、不发 Cordis 事件、不触及模型请求。
+- 主题切换为**纯浏览器机制**：皮肤 bundle 按需加载执行，即时生效。
+- **持久化双层**：配置真源在**服务器**（宿主半区经 dsh-settings 用户层写入 profile settings.yaml 的 `theme-center:` 段，等价用户在设置界面修改；官方 apiproxy 白名单不含第三方命名空间，故经插件自持路由 `/theme-center/settings` 读写）；浏览器 localStorage 降级为**首屏缓存**（先按缓存渲染、服务器视图到达后以服务器为真源收敛）。服务器不可用时静默降级为仅本机 localStorage 模式，绝不抛错。
 - 与 dsh-web-ui 皮肤中心（skin-center）**不建议并存**（双方都会写 body 主题属性）；本插件已内置其全部皮肤。
 
 ## 二、包结构与文件职责
@@ -61,12 +62,13 @@
   语义：加载失败时页面回到官方默认并显示错误（bundle 路由由本插件自持，加载失败仅发生在路由不可用等异常情形）。
 
 ### 4.4 持久化
+- **双层结构：服务器为真源，localStorage 为首屏缓存**（见 4.9）。服务器配置在 profile settings 用户层（settings.yaml 的 `theme-center:` 段）；浏览器 localStorage 键仅作首屏缓存与降级兜底。
 - 主题：localStorage 键 `dsh-theme-center:active:v1`（值 = 主题 id 或 `official`）；非法/缺失回退 `official`。
 - 遮罩：`dsh-theme-center:scrim:v1`（0-100）；值为 0 时**移除** `--dsw-skin-scrim` 变量（与皮肤默认一致）。
 - 聊天宽度：`dsh-theme-center:width:v1`（6 档预设之一，默认 896）；非法/缺失回退默认档。
 - 聊天区精简：`dsh-theme-center:focus:v1`（0-100，默认 70）；**缺失必须回退 70 而非 0**（`Number(null)=0` 陷阱，smoke 测试曾捕获）；值为 0 时**移除** `body[data-tc-focus]` 门控属性（整组压制规则失效 = 官方默认展示）。
 - 存储不可用：静默退化为内存态，不抛出。
-- 启动时（apply）异步恢复已保存主题，不阻塞 GUI。
+- 启动时（apply）先按缓存立即恢复已保存状态（不阻塞 GUI），服务器视图到达后以服务器为真源收敛。
 
 ### 4.5 标题链基线（必须，防缺陷）
 - 改 `document.title` 的皮肤在 apply 内快照"挂载时标题"作为还原基线；**连续切换时若不重置，后装皮肤会把前一皮肤的标题当成原始值**。
@@ -90,6 +92,15 @@
 - **全站字体**：门控 `data-tc-font="<id>"`；`FONTS` 常量表（default=系统默认不注入）；覆盖路径三条——body `--dsw-font-family` 变量 + markdown/用户气泡容器 `font-family` + **标题令牌重定义**（`headingTokensCss(stack)`，字号 calc 乘 `--tc-text-scale`，故仅换字体时须先注入基线 `body[data-dsh-theme-center]{--tc-text-scale:1}`，字号×1=官方原值）；**代码字体 `--ds-font-family-code` 保持不动**。
 - **隐藏开关**：门控 `data-tc-hide`（空格分隔值，选择器 `~="think"|"tool"|"context"`）；纯 CSS `display:none !important`，不触碰消息数据；隐藏优先于 4.6 压制。
 - 持久化键：`textscale:v1`（75-150，缺失回退 100，`Number(null)=0` 陷阱）、`font:v1`（id，未知回退 default）、`hide:v1`（JSON 布尔）。
+
+### 4.9 服务端同步模块（必须）——一处配置、所有终端生效
+- **宿主半区**：`installSettingsSection` 注册 `theme-center` 命名空间（schemastery `Config` schema：theme/scrim/width/focus/textScale/font/hideThink/hideTool/hideContext 共 9 字段全带默认，默认值 = 官方原样）+ 自持路由 `/theme-center/settings`（GET 视图 / POST 批量写 set/unset，**同源护栏 + revision 栅栏**，内部经 `settings.replace(settingsNamespace(...))` 整层提交 → 落盘 profile settings.yaml 用户层）；settings/webServer 缺失静默跳过，注册失败绝不抛出。官方 apiproxy 白名单不含第三方命名空间，故必须自建路由（notify-sound 同款先例）。
+- **浏览器半区**：`ThemeCenterSettingsScope`（SettingsScope 契约：getSnapshot/subscribe/set/unset/refresh）——启动 GET、写即 POST（`tail` 链串行，revision 由宿主保证）、`SYNC_INTERVAL_MS = 15000` 轮询 + visibilitychange/focus 刷新；`sanitizeServerValue` 逐字段清洗（非法回退默认，绝不抛错）。
+- **写路径**：全部 setter（主题 runJob persist=true / applyScrim / setWidth / setFocus / setTextScale / setFont / setHide）在写本地缓存后排队服务器写——离散字段即时提交、滑杆字段（scrim/focus/textScale）400ms 尾随去抖；`applyingRemote` 标志置位期间跳过回写（防回环）。
+- **读路径（服务器为真源）**：服务器视图就绪后按快照去重（revision+value key）；用户层为空 → **一次性迁移**本地状态上推（老用户升级不丢配置）；用户层有值 → `applyRemoteState` 逐字段 diff 应用（主题走 `requestTheme(id,false,adopt)`：写缓存但不写服务器；其余字段复用 setter）。
+- **降级**：路由不可达/命名空间缺失 → 作用域 status 'unavailable' → 仅本机 localStorage 模式照常工作，恢复后下次轮询自动收敛；卡片内 `.tc-sync` 行显示「已同步 / 同步中 / 仅本机」。
+- 试穿/亮暗预览为瞬态，不持久化、不写服务器；localStorage 键语义不变（仅降级为缓存）。
+- 持久化键与部署注意：111/112 各持一份 settings.yaml，**配置不跨机同步**（宿主独立）；`@deepseek-ai/{schemastery,dsh-settings}` 未发布 npm，部署目录需建 `node_modules/@deepseek-ai` symlink（同 notify-sound 流程）。
 
 ## 五、皮肤 / UI 契约（必须，沿用根 AGENTS.md 并强化）
 
@@ -118,15 +129,22 @@
    - **外观扩展·字号**：滑块 100%/125%/90% 三档计算样式断言（markdown 容器与 p/表格/代码 = 16px×N、28px×N，容差 0.1px）；**标题 h1-h6 同步缩放**（探针断言 h1 24→30px、h2 22→27.5px、h3 20→25px、h4-6 16→20px @125%，h2 行高 32→40px）；**Think 行/工具卡/上下文卡字号不变**；`data-tc-scale` 门控存在/移除成对；刷新恢复；
    - **外观扩展·字体**：下拉逐项切换 → `body` 与 markdown 容器 `fontFamily` 命中对应 stack、代码块字体不变；**标题 family 跟随所选字体**（仅字体态字号仍官方：h2 22px + YaHei；字体+125% 组合态：h2 27.5px + YaHei）；default 还原；刷新恢复；
    - **外观扩展·隐藏**：三开关逐项勾选 → 对应元素 `display:none`、取消恢复；与压制 70% 共存；`data-tc-hide` 门控值正确；
+   - **服务端同步**（112 双浏览器上下文 A/B）：`curl /theme-center/settings` GET 视图（默认值 + user 空）+ POST set 落盘 settings.yaml `theme-center:` 段 + unset 还原 + 跨站 403 + 非法 body 400/405；**A 通过卡片改主题/字号/字体/隐藏 → B ≤15s 自动跟随**（含主题切换）；B 刷新仍在（服务器真源）；重启 112 服务后仍在（settings.yaml 持久）；新上下文 C 首开即服务器配置；**迁移**：清服务器用户层 + A 有本地 localStorage → 首同步自动上推、B 跟随；**降级**：settings 缺失/路由不可达 → 卡片显示「仅本机生效」、本地修改仍生效、恢复后收敛；`data-tc-*` 门控与同步状态提示齐全；验证后还原（清服务器 user 层 + localStorage）；
    - **主题抽查**：官方暗色 + 1 款暗色皮肤（深海蓝）下压制样式生效且可读；
    - 页面无 theme-center 相关错误；ths/trading 行情 404/405/CORS 为**上游 fail-safe 预期降级**，不视为缺陷。
-3. **111 部署**：112 验证通过后**必须询问用户**，同意后才部署；111 重启 `dsh-web.service` 用**延迟 detach 触发**（`setsid bash -c 'sleep 60; systemctl restart dsh-web.service' &`），避免中断当前回合；部署后验证服务 active + 页面注入；用户浏览器需 **Ctrl+Shift+R** 强制刷新。
+3. **111 部署**：112 验证通过后**必须询问用户**，同意后才部署（2026-08-17 起「服务端同步」功能用户已预授权：112 验证完成后直接部署 111）；111 重启 `dsh-web.service` 用**延迟 detach 触发**（`setsid bash -c 'sleep 60; systemctl restart dsh-web.service' &`），避免中断当前回合；部署后验证服务 active + 页面注入；用户浏览器需 **Ctrl+Shift+R** 强制刷新。
 4. 验证脚本用后清理，不留在仓库。
 
 ## 七、变更记录
 
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
+
+### 2026-08-17 配置保存到服务器：一处配置、所有终端生效（theme-center 设置命名空间 + /theme-center/settings 路由 + 浏览器同步作用域）v0.3.0
+
+- 变更内容：用户需求"主题卡片的配置能否保存到服务器，一处配置，所有终端生效"，确认 111/112 不共享配置（各自 settings.yaml）——实现（复用 notify-sound 先例）：① 宿主半区 `lib/index.js` 注册 `theme-center` 设置命名空间（schemastery `Config`：theme/scrim/width/focus/textScale/font/hideThink/hideTool/hideContext 9 字段全带默认）+ 自持路由 `/theme-center/settings`（GET 视图 / POST 批量写，同源护栏 + revision 栅栏，`settings.replace(settingsNamespace(...))` 整层提交落盘 settings.yaml 用户层；settings/webServer 缺失静默跳过，注册失败绝不抛出）；② 浏览器半区 `lib/client.js` 新增「服务端同步」模块——`ThemeCenterSettingsScope`（SettingsScope 契约：启动 GET、写即 POST 串行、15s 轮询 + visibilitychange/focus 刷新）、`sanitizeServerValue` 逐字段清洗、`localStateToWrites` 首次同步一次性迁移（老用户升级不丢配置）、`applyRemoteState` 服务器真源 diff 应用（`applyingRemote` 防回环；主题走 `requestTheme(id,false,adopt)` 写缓存不写服务器）、`scheduleServerWrite`（离散字段即时、滑杆 400ms 去抖）、卡片 `.tc-sync` 同步状态行（已同步/同步中/仅本机）；③ 全部 setter 写本地缓存后排队服务器写；④ localStorage 降级为首屏缓存，服务器不可用静默降级仅本机；⑤ 版本 0.3.0；smoke +30 断言（宿主 Config/路由/scope/迁移/回环抑制/同步 effect），fake 环境补 fetch/timers/listeners stub
+- 涉及路径：`theme-center/lib/index.js`、`theme-center/lib/client.js`、`theme-center/package.json`（0.3.0）、`theme-center/tests/smoke.mjs`、`theme-center/README.md`、`theme-center/AGENTS.md`；部署目录需建 `node_modules/@deepseek-ai` symlink（同 notify-sound 流程）
+- 备注：本文件 §1 定位与边界（持久化双层）、§4.4、新增 §4.9 服务端同步模块规范、§6 验证清单（服务端同步条目 + 111 部署预授权说明）同步更新；**用户确认：111/112 不共享配置；112 验证完成后直接部署 111 并重启（预授权）**；**112 双浏览器上下文实测 12/12 全过**（迁移上推/新终端跟随/服务器胜出/卡片修改落盘/B ≤15s 跟随/刷新与重启持久/同步提示/无错误；踩坑并修复：作用域返回对象漏 `mutate` 方法——smoke 因 fetch stub 走 unavailable 未覆盖该路径，112 实测迁移静默失败（promise 链吞错），已修复并补 smoke「作用域契约完整性」断言（set/unset/mutate/refresh 齐全）；验证后 112 状态已还原）；**111 已部署**（md5 `0ce43900` 与 112 一致，延迟 detach 重启生效）
 
 ### 2026-08-16 修复：会话区标题（markdown h1-h6）未随字号百分比缩放（重定义官方标题令牌）
 

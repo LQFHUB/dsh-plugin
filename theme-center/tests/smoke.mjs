@@ -21,7 +21,7 @@ const read = (rel) => readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8'
 
 // 1. 包清单
 assert.equal(pkg.name, 'dsh-theme-center', '包名应为 dsh-theme-center')
-assert.equal(pkg.version, '0.2.0', '版本应为 0.2.0（一体化合并版）')
+assert.equal(pkg.version, '0.3.0', '版本应为 0.3.0（服务端配置同步版）')
 assert.equal(pkg.exports['.'], './lib/index.js', 'exports["."] 应指向 lib/index.js')
 assert.equal(pkg.exports['./client'], './lib/client.js', 'exports["./client"] 应指向 lib/client.js')
 assert.equal(pkg.dsh.bundle.patch, './cordis.patch.yml', 'bundle patch 应指向 cordis.patch.yml')
@@ -39,6 +39,15 @@ const host = await import('../lib/index.js')
 assert.equal(host.name, 'theme-center', '宿主 name 应为 theme-center')
 assert.deepEqual(host.inject, ['webServer'], '宿主 inject 应只含 webServer')
 assert.equal(typeof host.apply, 'function', '宿主 apply 应为函数')
+// 服务端配置同步：命名空间 + 读写路由 + schema 字段
+assert.equal(host.SETTINGS_NAMESPACE, 'theme-center', '设置命名空间应为 theme-center')
+assert.equal(host.SETTINGS_API_PATH, '/theme-center/settings', '设置路由应为 /theme-center/settings')
+assert.equal(typeof host.buildSettingsView, 'function', '应导出 buildSettingsView')
+assert.equal(typeof host.applySettingsWrites, 'function', '应导出 applySettingsWrites')
+const configDesc = String(host.Config)
+for (const field of ['theme', 'scrim', 'width', 'focus', 'textScale', 'font', 'hideThink', 'hideTool', 'hideContext']) {
+  assert.match(configDesc, new RegExp(field), `Config 应有 ${field} 字段（9 项全覆盖）`)
+}
 
 // 4. 浏览器 bundle：模块 id + 主题注册表与 lib/skins 一一对应
 const clientSrc = read('lib/client.js')
@@ -109,6 +118,24 @@ assert.match(clientSrc, /data-tc-font/, '字体应由 data-tc-font 门控')
 assert.match(clientSrc, /data-tc-hide~="think"\] \[data-variant="think"\]\{display:none !important\}/, '应能隐藏思考行')
 assert.match(clientSrc, /data-tc-hide~="tool"\] \[data-chat-flow-kind="tool-call"\]\{display:none !important\}/, '应能隐藏工具调用卡')
 assert.match(clientSrc, /data-tc-hide~="context"\] \[data-chat-flow-kind="context"\]\{display:none !important\}/, '应能隐藏上下文注入卡')
+// 服务端同步：一处配置、所有终端生效（作用域/轮询/迁移/diff 应用/回环抑制）
+assert.match(clientSrc, /SETTINGS_API_PATH = "\/theme-center\/settings"/, '应有设置路由常量')
+assert.match(clientSrc, /SYNC_INTERVAL_MS = 15000/, '轮询间隔应为 15s')
+assert.match(clientSrc, /WRITE_DEBOUNCE_MS = 400/, '滑杆写应有去抖')
+assert.match(clientSrc, /function ThemeCenterSettingsScope/, '应有设置作用域')
+assert.match(clientSrc, /set: \(field, value\) => mutate\(\[/, '作用域应实现 set（SettingsScope 契约）')
+assert.match(clientSrc, /unset: \(field\) => mutate\(\[/, '作用域应实现 unset')
+assert.match(clientSrc, /mutate,\n\s+refresh,/, '作用域应暴露 mutate（迁移/去抖写必需；曾漏掉致 112 实测迁移失效）')
+assert.match(clientSrc, /function sanitizeServerValue/, '应有服务器值清洗')
+assert.match(clientSrc, /function localStateToWrites/, '应有本地状态迁移上推')
+assert.match(clientSrc, /let applyingRemote = false/, '应有回环抑制标志')
+assert.match(clientSrc, /function scheduleServerWrite/, '应有服务器写排队')
+assert.match(clientSrc, /function applyRemoteState/, '应有服务器状态应用')
+assert.match(clientSrc, /"theme-center: server sync"/, '应有同步循环 effect')
+assert.match(clientSrc, /配置已同步到服务器，所有终端生效/, '卡片应有同步状态提示')
+assert.match(clientSrc, /服务器配置不可用，仅本机生效/, '卡片应有降级提示')
+assert.match(clientSrc, /scheduleServerWrite\("theme", theme\.id\)/, '应用主题应写服务器')
+assert.match(clientSrc, /scheduleServerWrite\(HIDE_FIELD\[key\], next\[key\]\)/, '隐藏开关应写服务器')
 // 主题适配契约：不写死颜色（仅字号/行高/透明度/尺寸插值）
 const colorLeak = clientSrc.match(/focusCss[\s\S]*?\/\/#endregion/) // 精简模块区间
 assert.ok(colorLeak, '应能定位精简模块区间')
@@ -139,10 +166,21 @@ const fakeDoc = {
   },
   querySelectorAll: () => [],
   querySelector: () => null,
+  visibilityState: 'visible',
+  addEventListener() {},
+  removeEventListener() {},
 }
 const fakeWindow = {
   localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
   __DSH_MODULES__: undefined,
+  // 服务端同步 stub：fetch 恒失败 → 作用域进入 unavailable（降级路径，不抛错）
+  fetch: () => Promise.reject(new Error('no server in smoke')),
+  setTimeout,
+  clearTimeout,
+  setInterval,
+  clearInterval,
+  addEventListener() {},
+  removeEventListener() {},
 }
 let factory = null
 fakeWindow.__ModuleLoader__ = { load(entry) { factory = entry.factory } }
@@ -152,7 +190,7 @@ globalThis.document = fakeDoc
 const clientSource = read('lib/client.js')
 // 用 vm 在带假全局的环境中执行 bundle
 const vm = await import('node:vm')
-const sandbox = vm.createContext({ window: fakeWindow, document: fakeDoc, console, setTimeout, clearTimeout, Promise })
+const sandbox = vm.createContext({ window: fakeWindow, document: fakeDoc, console, setTimeout, clearTimeout, setInterval, clearInterval, Promise })
 vm.runInContext(clientSource, sandbox, { filename: 'lib/client.js' })
 assert.ok(factory, '__ModuleLoader__.load 应被调用')
 
@@ -195,7 +233,7 @@ assert.equal(appearanceStyle.textContent, '', '默认态 appearance 样式文本
 
 // 收回断言（disposer 逆序执行）
 const disposers = effects.filter((d) => typeof d === 'function')
-assert.ok(disposers.length >= 5, '应有 ≥5 个 disposer（作用域/四样式/外观扩展/引擎）')
+assert.ok(disposers.length >= 7, '应有 ≥7 个 disposer（作用域/四样式/外观扩展/引擎/服务端同步×2）')
 for (const dispose of disposers) dispose()
 assert.equal(fakeDoc.body.dataset.dshThemeCenter, undefined, 'disposer 应移除 body[data-dsh-theme-center]')
 assert.equal(fakeDoc.body.dataset.tcFocus, undefined, 'disposer 应移除 body[data-tc-focus] 门控')

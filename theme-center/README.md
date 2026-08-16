@@ -28,6 +28,7 @@
 - **会话区字号百分比**：75%–150% 滑杆缩放助手回答与用户消息文字（16px/28px 基线线性放大，标题/代码/表格/用户气泡联动）；**不影响**思考行、工具调用卡与上下文注入卡（由「聊天区精简」调节）
 - **全站字体下拉**：系统默认 / 微软雅黑 / 苹方 / 思源黑体 / 宋体 / Inter / Roboto / JetBrains Mono 等宽——选中即改整个网站 UI 与消息文字字体（`--dsw-font-family` 双路覆盖），代码块等宽字体保持不变
 - **隐藏显示开关 ×3**：隐藏思考行 / 隐藏工具调用卡 / 隐藏上下文注入卡，各自独立勾选即时隐藏（纯 CSS display:none，不触碰消息数据）
+- **配置保存到服务器 · 一处配置、所有终端生效**：主题/遮罩/宽度/精简/字号/字体/隐藏全部存到服务器设置（profile `settings.yaml` 的 `theme-center:` 段），任何浏览器/设备修改一次，其余终端 ≤15 秒内自动跟随；服务重启配置仍在；**localStorage 降级为首屏缓存**（页面先按缓存立即渲染，服务器视图到达后以服务器为真源收敛）；服务器不可用时静默降级为仅本机生效；老用户首次同步自动把本地配置迁移上推，不丢配置。卡片内有一行同步状态提示（已同步 / 同步中 / 仅本机）
 
 ## 🎯 界面位置 / Where it lives
 
@@ -104,7 +105,8 @@ dsh plugin --profile web add link:/root/.dsh/external/theme-center
 - **执行**：浏览器半区以真实 `<script>` 加载 bundle，经内核自身模块系统（`__ModuleLoader__` 注册 → `__DSH_MODULES__.import` 物化，样式自动注入）后调用皮肤 `apply(miniCtx)` 挂载——与皮肤中心 try-on 同路径，无 eval、无 CSP `unsafe-eval` 依赖
 - **miniCtx**：只提供 `effect` 生命周期；`get` 委托真实上下文（同花顺 / 交易终端皮肤可读取 connection 服务，缺失时优雅降级为占位）
 - **切换语义**：挂载成功后才卸载旧主题（加载失败旧主题保持可见）；皮肤 `apply` 中途抛错时按残留配方回滚（模块失效、样式标签、body 属性、`data-skin-chrome` 元素）
-- **持久化**：`localStorage` 键 `dsh-theme-center:active:v1`（主题 id）、`dsh-theme-center:scrim:v1`（遮罩 0-100）、`dsh-theme-center:width:v1`（聊天宽度）、`dsh-theme-center:focus:v1`（压制百分比 0-100，默认 70）、`dsh-theme-center:textscale:v1`（会话区字号 75-150，默认 100）、`dsh-theme-center:font:v1`（字体 id）、`dsh-theme-center:hide:v1`（隐藏开关 JSON）；存储不可用时退化为内存态
+- **持久化（双层）**：**服务器为真源**——配置存 profile `settings.yaml` 的 `theme-center:` 段（宿主经 dsh-settings 用户层写入，服务重启保留，所有浏览器读同一份）；**localStorage 为首屏缓存**——键 `dsh-theme-center:active:v1`（主题 id）、`scrim:v1`（遮罩 0-100）、`width:v1`（聊天宽度）、`focus:v1`（压制百分比 0-100，默认 70）、`textscale:v1`（会话区字号 75-150，默认 100）、`font:v1`（字体 id）、`hide:v1`（隐藏开关 JSON）；页面加载先按缓存立即渲染，服务器视图到达后以服务器为真源收敛；存储不可用时退化为内存态
+- **服务端同步**：宿主注册 `theme-center` 设置命名空间（schemastery schema，9 字段全带默认）+ 自持路由 `/theme-center/settings`（GET 视图 / POST 批量写，同源护栏 + revision 栅栏，内部经 dsh-settings `replace` 提交；官方 apiproxy 白名单不含第三方命名空间，故必须自建路由——notify-sound 同款先例）；浏览器端 `ThemeCenterSettingsScope` 实现 SettingsScope 契约——启动 GET、写即 POST（滑杆字段 400ms 去抖）、15s 轮询 + 聚焦/可见刷新；服务器未配置时首次同步把本地状态一次性迁移上推；服务器状态到达后逐字段 diff 应用（回环抑制：远程应用不回写服务器）；settings 服务缺失/路由不可达 → 静默降级 localStorage 模式
 - **聊天宽度**：独立 `<style>` 覆盖 `--dsh-chat-content-width` 与派生 `--dsh-composer-card-max-width`，并释放用户气泡 525px 上限；规则作用域限定 `body[data-dsh-theme-center]`，随插件卸载收回
 - **聊天区精简**：独立 `<style>` + `body[data-tc-focus]` 门控属性——所有规则以 `--tc-focus`（0-1）`calc()` 线性插值（0 时与官方默认完全一致）；只改字号/行高/透明度/尺寸，颜色一律走官方令牌，theme-center 全部皮肤与亮/暗自动适配；错误工具卡标题 ellipsis 为非插值规则，由门控属性保证 0% 时不生效
 - **表格列宽**：独立 `<style>` 静态覆盖官方表格规则（`width:max-content` → `100%`、`td/th max-width` 封顶 → `none`），选择器只依赖稳定属性 `[data-chat-flow-kind="assistant-step"|"user"]`，不依赖 hash 类名；超宽表格仍由官方 `overflow-x:auto` 容器横向滚动
@@ -122,10 +124,10 @@ dsh plugin --profile web add link:/root/.dsh/external/theme-center
 ```
 theme-center/
 ├── lib/
-│   ├── index.js     Host 入口：/api/theme-center/bundle/<id> 同源分发路由
-│   ├── client.js    浏览器 bundle：主题引擎 + 「主题/外观」设置卡片（含聊天宽度、聊天区精简模块）
+│   ├── index.js     Host 入口：/api/theme-center/bundle/<id> 同源分发路由 + theme-center 设置命名空间 + /theme-center/settings 读写路由
+│   ├── client.js    浏览器 bundle：主题引擎 + 「主题/外观」设置卡片（含聊天宽度、聊天区精简、服务端同步模块）
 │   └── skins/       <id>.js ×23：皮肤 bundle（dsh-web-ui 原样拷贝 + 自研 + dsh-skin）
-├── tests/smoke.mjs  node 内置冒烟测试（node tests/smoke.mjs）
+├── tests/smoke.mjs  node 内置冒烟测试（node tests/smoke.mjs；宿主 import 需 node_modules/@deepseek-ai symlink，同 notify-sound 流程）
 ├── cordis.patch.yml profile 组合层插入条目
 ├── package.json     包清单（dsh.bundle / dsh.client 声明）
 ├── README.md

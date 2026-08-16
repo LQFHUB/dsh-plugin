@@ -18,7 +18,7 @@
 
 | 文件夹 | 作用 |
 |:---|:---|
-| `theme-center/` | 主题中心（一体化 v0.2.0）：23 款皮肤 + 「主题/外观」双 Tab 设置卡（试穿/应用/亮暗/遮罩 + 聊天宽度 + 聊天区精简百分比压制 + 会话区字号缩放 + 全站字体 + 隐藏思考/工具/上下文开关）；其他插件 UI 需适配它（见第六节主题适配契约） |
+| `theme-center/` | 主题中心（一体化 v0.3.0）：23 款皮肤 + 「主题/外观」双 Tab 设置卡（试穿/应用/亮暗/遮罩 + 聊天宽度 + 聊天区精简百分比压制 + 会话区字号缩放 + 全站字体 + 隐藏思考/工具/上下文开关）；**配置保存到服务器（settings.yaml），一处配置、所有终端生效**；其他插件 UI 需适配它（见第六节主题适配契约） |
 | `web-lan/` | dsh Web 局域网直连（免反代）：crypto polyfill + apiProxy relay + isLoopback |
 | `navbar/` | 对话节点导航条（贴左侧边栏，节点跳转/悬停预览/pin 精选，中英文定位） |
 | `notify-sound/` | 会话提示音（Web Audio 合成 6 音、事件触发、配置跨浏览器同步、提示音设置卡，皮肤令牌适配） |
@@ -37,7 +37,14 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 21 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 22 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+### 2026-08-17 theme-center 配置保存到服务器：一处配置、所有终端生效 v0.3.0（112 验证 12/12 全过；111 已部署）
+
+- 变更内容：用户需求"主题卡片的配置能否保存到服务器，一处配置，所有终端生效"（确认 111/112 不共享配置）——复用 notify-sound 先例实现服务端持久化：宿主注册 `theme-center` 设置命名空间（schemastery Config 9 字段全带默认）+ 自持路由 `/theme-center/settings`（GET 视图 / POST 批量写、同源护栏 + revision 栅栏、`settings.replace` 整层提交落盘 settings.yaml）；浏览器新增 `ThemeCenterSettingsScope`（15s 轮询 + focus/可见刷新）、`sanitizeServerValue` 清洗、首次同步一次性迁移本地状态、`applyRemoteState` 服务器真源 diff 应用（`applyingRemote` 防回环）、setter 排队服务器写（滑杆 400ms 去抖）、卡片 `.tc-sync` 同步状态行；localStorage 降级为首屏缓存，服务器不可用静默降级仅本机；版本 0.3.0；smoke +30 断言全绿
+- 涉及路径：`theme-center/lib/{index,client}.js`、`theme-center/package.json`、`theme-center/tests/smoke.mjs`、`theme-center/README.md`、`theme-center/AGENTS.md`（§1/§4.4/§4.9/验证清单）、`AGENTS.md`；部署目录需建 `node_modules/@deepseek-ai` symlink（同 notify-sound 流程）
+- 备注：**用户预授权：112 验证完成后直接部署 111 并重启 dsh-web.service（不再逐次询问）**；**112 双浏览器上下文实测 12/12 全过**（2026-08-17：A 老用户缓存迁移上推 9 字段 → B 全新终端跟随（catppuccin/125%/msyh/隐藏 tool/遮罩 40/宽度 1152/压制 50）→ C 分歧本地服务器胜出 → A 卡片改字体 songti+勾选隐藏上下文落盘服务器 → B ≤15s 自动跟随 → B 刷新持久 → 112 重启后 settings.yaml 持久 → 卡片同步提示「配置已同步」→ 无 console 错误；期间修复 smoke 未覆盖的缺陷：作用域返回对象漏 `mutate` 方法致迁移静默失败（smoke 补作用域契约断言）；验证后状态已还原）；**111 已部署**（用户预授权，rsync 同步 md5 `0ce43900` 与 112 一致 + node_modules symlink + 延迟 detach 重启 dsh-web.service，浏览器 Ctrl+Shift+R 生效）
+
+
 ### 2026-08-16 theme-center 修复：会话区标题（markdown h1-h6）未随字号百分比缩放（重定义官方标题令牌）+ 归档 34→21 条
 
 - 变更内容：用户反馈"会话区标题的文字大小好像没有缩放"——根因：官方 `._markdown_ h1..h4` 用固定 px 令牌 `--dsw-font-markdown-hN`、h5/h6 用 `--dsw-font-markdown-base-strong`（基线：h1 700 24/34、h2 700 22/32、h3 700 20/30、h4 600 16/28、base-strong 600 16/28），不随容器字号联动（125% 时正文 20px 而 H2 仍 22px）。修复：`theme-center/lib/client.js` 新增 `HEADING_FONTS` 基线表 + `headingTokensCss(family)`，缩放/字体分支均在门控 body 上重定义 5 个标题令牌（`weight calc(size * var(--tc-text-scale))/calc(lh * var(--tc-text-scale)) family`：缩放分支 family=`var(--dsw-font-family)` 随全站字体变量、字体分支=所选 stack 并先注入基线 `--tc-text-scale:1` 保证仅换字体时字号官方原值）——标题字号随滑杆缩放、标题字体随全站字体联动；smoke +7 断言全绿

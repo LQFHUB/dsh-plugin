@@ -111,13 +111,14 @@ window.__ModuleLoader__.load({
 		//#endregion
 
 		//#region 背景遮罩
-		/** 写入 --dsw-skin-scrim（0 时移除变量，与皮肤内默认一致）并持久化。 */
+		/** 写入 --dsw-skin-scrim（0 时移除变量，与皮肤内默认一致）并持久化（本地缓存 + 服务器）。 */
 		function applyScrim(value) {
 			const clamped = Math.max(0, Math.min(100, Math.round(value)));
 			if (clamped <= 0) document.body.style.removeProperty("--dsw-skin-scrim");
 			else document.body.style.setProperty("--dsw-skin-scrim", String(clamped / 100));
 			writeStored(SCRIM_KEY, String(clamped));
 			setState({ scrim: clamped });
+			scheduleServerWrite("scrim", clamped);
 		}
 		//#endregion
 
@@ -145,7 +146,7 @@ window.__ModuleLoader__.load({
 			return WIDTH_PRESETS.includes(value) ? value : WIDTH_PRESETS[0];
 		}
 
-		/** 宽度 store：外观面板控件读写同一状态并持久化。 */
+		/** 宽度 store：外观面板控件读写同一状态并持久化（本地缓存 + 服务器）。 */
 		let currentWidth = readSavedWidth();
 		const widthListeners = new Set();
 		function setWidth(px) {
@@ -154,6 +155,7 @@ window.__ModuleLoader__.load({
 			writeStored(WIDTH_KEY, String(px));
 			if (widthStyleEl !== null) widthStyleEl.textContent = widthCss(px);
 			for (const listener of [...widthListeners]) listener();
+			scheduleServerWrite("width", px);
 		}
 		function subscribeWidth(listener) {
 			widthListeners.add(listener);
@@ -228,7 +230,7 @@ window.__ModuleLoader__.load({
 			if (focusStyleEl !== null) focusStyleEl.textContent = focusCss(pct / 100);
 		}
 
-		/** 压制 store：外观面板控件读写同一状态并持久化。 */
+		/** 压制 store：外观面板控件读写同一状态并持久化（本地缓存 + 服务器）。 */
 		let currentFocus = readSavedFocus();
 		const focusListeners = new Set();
 		function setFocus(pct) {
@@ -238,6 +240,7 @@ window.__ModuleLoader__.load({
 			writeStored(FOCUS_KEY, String(clamped));
 			applyFocusState(clamped);
 			for (const listener of [...focusListeners]) listener();
+			scheduleServerWrite("focus", clamped);
 		}
 		function subscribeFocus(listener) {
 			focusListeners.add(listener);
@@ -427,6 +430,7 @@ window.__ModuleLoader__.load({
 			writeStored(TEXT_SCALE_KEY, String(clamped));
 			applyAppearanceState();
 			notifyAppearance();
+			scheduleServerWrite("textScale", clamped);
 		}
 		function setFont(id) {
 			if (!FONT_BY_ID.has(id) || id === currentFont) return;
@@ -434,6 +438,7 @@ window.__ModuleLoader__.load({
 			writeStored(FONT_KEY, id);
 			applyAppearanceState();
 			notifyAppearance();
+			scheduleServerWrite("font", id);
 		}
 		function setHide(key, value) {
 			if (!Object.prototype.hasOwnProperty.call(currentHide, key)) return;
@@ -443,6 +448,7 @@ window.__ModuleLoader__.load({
 			writeStored(HIDE_KEY, JSON.stringify(next));
 			applyAppearanceState();
 			notifyAppearance();
+			scheduleServerWrite(HIDE_FIELD[key], next[key]);
 		}
 		//#endregion
 
@@ -565,13 +571,15 @@ window.__ModuleLoader__.load({
 		 * 执行一个主题任务（串行泵的一项）。挂载成功后才卸载旧主题，
 		 * 加载失败保持旧主题可见，挂载抛错则回滚该主题残留。
 		 * @param theme - 主题条目。
-		 * @param persist - 是否持久化为选择。
+		 * @param persist - 是否持久化为选择（卡片「应用」：写本地缓存 + 服务器）。
+		 * @param adopt - 是否采纳服务器选择（远程同步：写本地缓存但不写服务器）。
 		 */
-		async function runJob(theme, persist) {
+		async function runJob(theme, persist, adopt) {
 			if (theme.id === "official") {
 				disposeCurrent();
-				if (persist) writeStored(STORAGE_KEY, "official");
-				setState({ current: "official", persisted: persist ? "official" : state.persisted, busy: null, error: null });
+				if (persist || adopt) writeStored(STORAGE_KEY, "official");
+				setState({ current: "official", persisted: persist || adopt ? "official" : state.persisted, busy: null, error: null });
+				if (persist) scheduleServerWrite("theme", "official");
 				return;
 			}
 			setState({ busy: theme.id });
@@ -617,8 +625,9 @@ window.__ModuleLoader__.load({
 			}
 			currentTheme = theme;
 			currentDispose = () => ctx.__disposeAll();
-			if (persist) writeStored(STORAGE_KEY, theme.id);
-			setState({ persisted: persist ? theme.id : state.persisted, current: theme.id, busy: null, error: null });
+			if (persist || adopt) writeStored(STORAGE_KEY, theme.id);
+			setState({ persisted: persist || adopt ? theme.id : state.persisted, current: theme.id, busy: null, error: null });
+			if (persist) scheduleServerWrite("theme", theme.id);
 		}
 
 		/** 串行泵：顺序执行请求，最新请求胜出（pending 覆盖）。 */
@@ -630,7 +639,7 @@ window.__ModuleLoader__.load({
 					const job = pending;
 					pending = null;
 					const theme = THEME_BY_ID.get(job.id);
-					if (theme !== undefined) await runJob(theme, job.persist);
+					if (theme !== undefined) await runJob(theme, job.persist, job.adopt);
 				}
 			} finally {
 				pumpBusy = false;
@@ -638,21 +647,22 @@ window.__ModuleLoader__.load({
 		}
 
 		/**
-		 * 请求切换主题（试穿 persist=false / 应用 persist=true）。
+		 * 请求切换主题（试穿 persist=false / 应用 persist=true / 采纳服务器 adopt）。
 		 * 正在加载同一主题时重复点击：试穿忽略，应用只补写持久化。
 		 */
-		function requestTheme(id, persist) {
+		function requestTheme(id, persist, adopt) {
 			const theme = THEME_BY_ID.get(id);
 			if (theme === undefined) return;
 			if (state.busy === id) {
-				if (persist) {
+				if (persist || adopt) {
 					writeStored(STORAGE_KEY, id);
 					setState({ persisted: id });
+					if (persist) scheduleServerWrite("theme", id);
 				}
 				return;
 			}
 			if (id === state.current && state.busy === null && state.persisted === id) return;
-			pending = { id, persist };
+			pending = { id, persist, adopt };
 			void pump();
 		}
 
@@ -722,6 +732,9 @@ window.__ModuleLoader__.load({
 			"body[data-dsh-theme-center] .tc-check{appearance:none;width:15px;height:15px;border:1px solid var(--dsw-alias-border-l2);border-radius:4px;background:var(--dsw-alias-bg-layer-3);flex:none;margin:0;cursor:pointer;display:inline-grid;place-content:center}",
 			"body[data-dsh-theme-center] .tc-check:checked{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary)}",
 			"body[data-dsh-theme-center] .tc-check:checked::after{content:'';width:7px;height:4px;border-left:2px solid var(--dsw-alias-bg-layer-3);border-bottom:2px solid var(--dsw-alias-bg-layer-3);transform:rotate(-45deg) translate(0,-1px)}",
+			"body[data-dsh-theme-center] .tc-sync{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:1.5;margin:0;padding:0 10px}",
+			"body[data-dsh-theme-center] .tc-syncOk{color:var(--dsw-alias-state-success-primary)}",
+			"body[data-dsh-theme-center] .tc-syncWarn{color:var(--dsw-alias-state-warn-primary)}",
 		].join("");
 		//#endregion
 
@@ -754,6 +767,7 @@ window.__ModuleLoader__.load({
 			const widthState = react.useSyncExternalStore(subscribeWidth, getWidthSnapshot);
 			const focusState = react.useSyncExternalStore(subscribeFocus, getFocusSnapshot);
 			const appearanceState = react.useSyncExternalStore(subscribeAppearance, getAppearanceSnapshot);
+			const syncSnap = react.useSyncExternalStore(subscribeSyncScope, getSyncScopeSnapshot);
 			// 亮暗预览句柄可能缺失（主题服务不可用）：用空 store 保持 hooks 数量恒定
 			const themeSnap = react.useSyncExternalStore(
 				props.theme === null || props.theme === undefined ? () => () => {} : props.theme.subscribe,
@@ -955,9 +969,280 @@ window.__ModuleLoader__.load({
 				open
 					? react.createElement("div", { className: "tc-body", key: "b" }, [
 						tabBar,
+						react.createElement("p", {
+							className: "tc-sync" + (syncSnap.status === "ready" ? " tc-syncOk" : syncSnap.status === "loading" ? "" : " tc-syncWarn"),
+							key: "sync",
+						}, syncSnap.status === "ready"
+							? "配置已同步到服务器，所有终端生效"
+							: syncSnap.status === "loading"
+								? "正在同步服务器配置…"
+								: "服务器配置不可用，仅本机生效"),
 					].concat(tab === "theme" ? bodyChildren : appearanceChildren))
 					: null,
 			]);
+		}
+		//#endregion
+
+		//#region 服务端同步（一处配置、所有终端生效）
+		const SETTINGS_API_PATH = "/theme-center/settings";
+		/** 轮询间隔：服务器配置变更后其余终端在 ≤SYNC_INTERVAL_MS 内跟随。 */
+		const SYNC_INTERVAL_MS = 15000;
+		/** 滑杆类字段服务器写去抖（拖动时防刷屏）。 */
+		const WRITE_DEBOUNCE_MS = 400;
+		/** 去抖字段（离散控件即时写）。 */
+		const SERVER_DEBOUNCED_FIELDS = { scrim: true, focus: true, textScale: true };
+		/** 隐藏开关本地键 → 服务器字段名。 */
+		const HIDE_FIELD = { think: "hideThink", tool: "hideTool", context: "hideContext" };
+
+		/** 服务器字段默认值（与宿主 Config schema 默认一致）。 */
+		function serverDefaults() {
+			return {
+				theme: "official",
+				scrim: 0,
+				width: WIDTH_PRESETS[0],
+				focus: FOCUS_DEFAULT,
+				textScale: TEXT_SCALE_DEFAULT,
+				font: "default",
+				hideThink: false,
+				hideTool: false,
+				hideContext: false,
+			};
+		}
+
+		/** 服务器视图 value 逐字段清洗（非法回退默认，绝不抛错）。 */
+		function sanitizeServerValue(value) {
+			const d = serverDefaults();
+			if (!value || typeof value !== "object") return d;
+			const out = Object.assign({}, d);
+			if (typeof value.theme === "string" && (value.theme === "official" || THEME_BY_ID.has(value.theme))) out.theme = value.theme;
+			const num = (v, min, max, fb) => {
+				const n = Number(v);
+				return Number.isFinite(n) && n >= min && n <= max ? n : fb;
+			};
+			out.scrim = num(value.scrim, 0, 100, d.scrim);
+			out.width = WIDTH_PRESETS.includes(Number(value.width)) ? Number(value.width) : d.width;
+			out.focus = num(value.focus, 0, 100, d.focus);
+			out.textScale = num(value.textScale, TEXT_SCALE_MIN, TEXT_SCALE_MAX, d.textScale);
+			if (typeof value.font === "string" && FONT_BY_ID.has(value.font)) out.font = value.font;
+			out.hideThink = value.hideThink === true;
+			out.hideTool = value.hideTool === true;
+			out.hideContext = value.hideContext === true;
+			return out;
+		}
+
+		/** 本地当前状态 → 服务器批量写（首次同步迁移 / 全量上推用）。 */
+		function localStateToWrites() {
+			return [
+				{ field: "theme", op: "set", value: state.persisted },
+				{ field: "scrim", op: "set", value: state.scrim },
+				{ field: "width", op: "set", value: currentWidth },
+				{ field: "focus", op: "set", value: currentFocus },
+				{ field: "textScale", op: "set", value: currentTextScale },
+				{ field: "font", op: "set", value: currentFont },
+				{ field: "hideThink", op: "set", value: currentHide.think === true },
+				{ field: "hideTool", op: "set", value: currentHide.tool === true },
+				{ field: "hideContext", op: "set", value: currentHide.context === true },
+			];
+		}
+
+		/** 直连 /theme-center/settings 的作用域（SettingsScope 契约：getSnapshot/subscribe/set/unset/refresh）。 */
+		function ThemeCenterSettingsScope(endpoint) {
+			let snapshot = { status: "loading", value: undefined, user: undefined, revision: undefined, writable: false };
+			const listeners = [];
+			let tail = Promise.resolve();
+
+			function publish(next) {
+				snapshot = next;
+				for (const listener of [...listeners]) listener();
+			}
+			function accept(envelope) {
+				const view = envelope && envelope.value;
+				if (!view || typeof view !== "object") {
+					publishUnavailable();
+					return;
+				}
+				publish({
+					status: "ready",
+					value: sanitizeServerValue(view.value),
+					user: view.user,
+					revision: view.revision,
+					writable: view.writable === true,
+				});
+			}
+			function publishUnavailable() {
+				publish({ status: "unavailable", value: undefined, user: undefined, revision: undefined, writable: false });
+			}
+			function refresh() {
+				return window.fetch(endpoint)
+					.then((response) => {
+						if (!response.ok) {
+							publishUnavailable();
+							return;
+						}
+						return response.json();
+					})
+					.then((envelope) => {
+						if (envelope === undefined) return;
+						if (envelope.ok !== true) {
+							publishUnavailable();
+							return;
+						}
+						accept(envelope);
+					})
+					.catch(() => publishUnavailable());
+			}
+			/** 批量写（串行：并发写按调用顺序落盘；revision 栅栏由宿主保证）。 */
+			function mutate(writes) {
+				tail = tail.then(() => window.fetch(endpoint, {
+					method: "POST",
+					headers: { "content-type": "application/json" },
+					body: JSON.stringify({ writes }),
+				})
+					.then((response) => {
+						if (!response.ok) {
+							publishUnavailable();
+							return null;
+						}
+						return response.json();
+					})
+					.then((envelope) => {
+						if (envelope === null) return;
+						if (envelope.ok !== true) {
+							publishUnavailable();
+							return;
+						}
+						accept(envelope);
+					})
+					.catch(() => publishUnavailable()));
+				return tail;
+			}
+
+			void refresh();
+			return {
+				getSnapshot: () => snapshot,
+				subscribe(fn) {
+					listeners.push(fn);
+					return () => {
+						const i = listeners.indexOf(fn);
+						if (i >= 0) listeners.splice(i, 1);
+					};
+				},
+				set: (field, value) => mutate([{ field, op: "set", value }]),
+				unset: (field) => mutate([{ field, op: "unset" }]),
+				mutate,
+				refresh,
+			};
+		}
+
+		/** 同步作用域实例（apply 时创建；null = 未初始化/已卸载）。 */
+		let syncScope = null;
+		/** 远程应用标志：置位期间 setter 跳过服务器回写（防回环）。 */
+		let applyingRemote = false;
+		/** 字段去抖定时器表。 */
+		const serverWriteTimers = {};
+
+		/**
+		 * 排队一次服务器写：离散字段即时提交，滑杆字段 400ms 尾随去抖。
+		 * 远程应用期间（applyingRemote）与作用域不可用时静默跳过。
+		 */
+		function scheduleServerWrite(field, value) {
+			if (applyingRemote || syncScope === null) return;
+			if (SERVER_DEBOUNCED_FIELDS[field]) {
+				if (serverWriteTimers[field] !== undefined) window.clearTimeout(serverWriteTimers[field]);
+				serverWriteTimers[field] = window.setTimeout(() => {
+					delete serverWriteTimers[field];
+					void syncScope.mutate([{ field, op: "set", value }]);
+				}, WRITE_DEBOUNCE_MS);
+				return;
+			}
+			void syncScope.mutate([{ field, op: "set", value }]);
+		}
+
+		/** 订阅同步状态（卡片提示用；作用域未初始化时返回固定不可用快照）。 */
+		const NO_SYNC_SNAPSHOT = { status: "unavailable" };
+		function subscribeSyncScope(fn) {
+			return syncScope === null ? () => {} : syncScope.subscribe(fn);
+		}
+		function getSyncScopeSnapshot() {
+			return syncScope === null ? NO_SYNC_SNAPSHOT : syncScope.getSnapshot();
+		}
+
+		/**
+		 * 应用服务器状态（服务器为真源，localStorage 仅作首屏缓存）：
+		 * 逐字段与本地比对，不同则以服务器为准——主题走 requestTheme
+		 * （adopt：不回写服务器），其余字段复用现有 setter（applyingRemote
+		 * 抑制回写）。全部写入同时刷新 localStorage 缓存。
+		 */
+		function applyRemoteState(value) {
+			applyingRemote = true;
+			try {
+				if (value.theme !== state.persisted) requestTheme(value.theme, false, true);
+				const scrim = Math.max(0, Math.min(100, Math.round(value.scrim)));
+				if (scrim !== state.scrim) applyScrim(scrim);
+				if (WIDTH_PRESETS.includes(value.width) && value.width !== currentWidth) setWidth(value.width);
+				if (value.focus !== currentFocus) setFocus(value.focus);
+				if (value.textScale !== currentTextScale) setTextScale(value.textScale);
+				if (value.font !== currentFont) setFont(value.font);
+				setHide("think", value.hideThink);
+				setHide("tool", value.hideTool);
+				setHide("context", value.hideContext);
+			} finally {
+				applyingRemote = false;
+			}
+		}
+
+		/**
+		 * 同步循环：作用域创建 + 轮询 + 聚焦/可见刷新；服务器视图就绪后
+		 * 按「未配置 → 迁移本地状态；已配置 → diff 应用」收敛。全部随
+		 * ctx.effect disposer 收回（定时器/监听/作用域）。
+		 */
+		function startServerSync(ctx) {
+			ctx.effect(() => {
+				syncScope = new ThemeCenterSettingsScope(SETTINGS_API_PATH);
+				const timer = window.setInterval(() => {
+					if (syncScope !== null) syncScope.refresh();
+				}, SYNC_INTERVAL_MS);
+				const onVis = () => {
+					if (document.visibilityState === "visible" && syncScope !== null) syncScope.refresh();
+				};
+				const onFocus = () => {
+					if (syncScope !== null) syncScope.refresh();
+				};
+				document.addEventListener("visibilitychange", onVis);
+				window.addEventListener("focus", onFocus);
+				return () => {
+					window.clearInterval(timer);
+					document.removeEventListener("visibilitychange", onVis);
+					window.removeEventListener("focus", onFocus);
+					syncScope = null;
+					for (const key of Object.keys(serverWriteTimers)) {
+						window.clearTimeout(serverWriteTimers[key]);
+						delete serverWriteTimers[key];
+					}
+				};
+			}, "theme-center: server sync");
+
+			ctx.effect(() => {
+				let lastKey = null;
+				let off = () => {};
+				const listener = () => {
+					if (syncScope === null) return;
+					const snap = syncScope.getSnapshot();
+					if (snap.status !== "ready") return;
+					const key = String(snap.revision) + ":" + JSON.stringify(snap.value);
+					if (key === lastKey) return;
+					lastKey = key;
+					const configured = snap.user !== null && typeof snap.user === "object" && Object.keys(snap.user).length > 0;
+					if (!configured) {
+						void syncScope.mutate(localStateToWrites());
+						return;
+					}
+					applyRemoteState(snap.value);
+				};
+				off = syncScope.subscribe(listener);
+				listener();
+				return () => off();
+			}, "theme-center: server state apply");
 		}
 		//#endregion
 
@@ -1052,6 +1337,9 @@ window.__ModuleLoader__.load({
 					delete document.body.dataset.tcHide;
 				};
 			}, "theme-center: appearance styles");
+
+			// 服务端同步：一处配置、所有终端生效（作用域/轮询/迁移/diff 应用，随卸载收回）
+			startServerSync(ctx);
 
 			// 引擎生命周期：遮罩变量 + 已挂载主题随插件卸载全部收回
 			const previousScrim = body.style.getPropertyValue("--dsw-skin-scrim");
