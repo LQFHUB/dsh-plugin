@@ -122,7 +122,7 @@
 
 - 变更内容：用户反馈"表格宽度只有会话区一半、列内容挤成很多行"——排查确认官方 markdown 渲染器 `table{width:max-content}` + `td/th{max-width:min(30vw,320px)}`（中文长文本被压进 320px 窄列疯狂换行，实测表格 452px/内容列 896px）。新增 `TABLE_CSS` + `dsh-theme-center/table` 样式 effect（disposer 收回）：助手回答/用户消息内（`[data-chat-flow-kind="assistant-step"|"user"]` 稳定属性，不依赖 hash 类名）`table{width:100% !important;max-width:100% !important}` + `td/th{max-width:none}`；超宽表格仍由官方 `overflow-x:auto` 容器横向滚动；**常开不设开关**（用户选择"直接默认生效"）
 - 涉及路径：`theme-center/lib/client.js`、`theme-center/tests/smoke.mjs`（+4 断言、样式元素 3→4）、`theme-center/README.md`、`theme-center/AGENTS.md`
-- 备注：本文件新增 4.7 表格列宽模块规范与第六节验证清单条目；实测修复前后：表格 452px→896px、最长单元格 96px→71px（4 行→3 行）；本地 smoke 全绿；**112 验证待执行，通过后按流程询问用户再部署 111**
+- 备注：本文件新增 4.7 表格列宽模块规范与第六节验证清单条目；实测修复前后：表格 452px→896px、最长单元格 96px→71px（4 行→3 行）；本地 smoke 全绿；**112 已部署验证全过**（2026-08-16：table 样式元素注入、同构探针表格撑满容器 100%、`td max-width=none`、长文本单行渲染、无 console 错误）；**按流程：验证通过，询问用户后再部署 111**
 
 ### 2026-08-16 一体化改造：并入聊天宽度 + 新增聊天区精简（卡片双 Tab：主题/外观）v0.2.0
 
