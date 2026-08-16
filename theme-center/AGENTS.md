@@ -66,7 +66,7 @@
 - 主题：localStorage 键 `dsh-theme-center:active:v1`（值 = 主题 id 或 `official`）；非法/缺失回退 `official`。
 - 遮罩：`dsh-theme-center:scrim:v1`（0-100）；值为 0 时**移除** `--dsw-skin-scrim` 变量（与皮肤默认一致）。
 - 聊天宽度：`dsh-theme-center:width:v1`（6 档预设之一，默认 896）；非法/缺失回退默认档。
-- 聊天区精简：`dsh-theme-center:focus:v1`（0-100，默认 70）；**缺失必须回退 70 而非 0**（`Number(null)=0` 陷阱，smoke 测试曾捕获）；值为 0 时**移除** `body[data-tc-focus]` 门控属性（整组压制规则失效 = 官方默认展示）。
+- 聊天区精简：`dsh-theme-center:focus:v1`（0-100，**默认 80**）；**缺失必须回退 80 而非 0**（`Number(null)=0` 陷阱，smoke 测试曾捕获）；值为 0 时**移除** `body[data-tc-focus]` 门控属性（整组压制规则失效 = 官方默认展示）。
 - 存储不可用：静默退化为内存态，不抛出。
 - 启动时（apply）先按缓存立即恢复已保存状态（不阻塞 GUI），服务器视图到达后以服务器为真源收敛。
 
@@ -88,13 +88,13 @@
 
 ### 4.8 外观扩展模块（必须）
 - 三组功能共用单个 `<style>`（`data-pluginCss="dsh-theme-center/appearance"`）与三个 body 门控属性，值变化整体重写样式文本；disposer 移除样式与全部属性。
-- **会话区字号缩放**：门控 `data-tc-scale` + `--tc-text-scale`（0.75–1.5）；缩放基线 **16px/28px 硬编码**（来源：官方 `--dsw-font-markdown-base` 实测，0.1.0-rc.6+，**DSH 升级改基线需复核**）；只作用于 markdown 容器/用户气泡文字（`[data-chat-flow-kind="assistant-step"|"user"]` 内），**Think 行/工具卡/上下文卡不在其中不受缩放影响**（由 4.6 精简调节）；固定 px 元素（inline code 14px、pre 13px/22px）同比例 calc 覆盖；**输入框（composer）16px/24px 基线**（实测 0.1.0-rc.6，锚点 `[data-composer-card="true"] textarea` 稳定属性、页面唯一，DSH 升级需复核）；**标题 h1-h6 官方为固定 px 令牌**（`HEADING_FONTS` 基线：h1 700 24/34、h2 700 22/32、h3 700 20/30、h4 600 16/28、h5/h6 走 `--dsw-font-markdown-base-strong` 600 16/28；实测 `._markdown_ h1..h4` 用 `font: var(--dsw-font-markdown-hN)`，**DSH 升级需复核**），缩放时在门控 body 上**重定义这些令牌**（`weight calc(size * var(--tc-text-scale))/calc(lh * var(--tc-text-scale)) family`）——标题字号随滑杆缩放、family 用 `var(--dsw-font-family)` 随全站字体（与官方基线等价）；pct=100 移除门控=官方原样。
+- **会话区字号缩放**：门控 `data-tc-scale` + `--tc-text-scale`（0.75–1.5）；缩放基线 **16px/28px 硬编码**；**默认 80%**（`TEXT_SCALE_DEFAULT`）与**官方原样锚点 100%**（`TEXT_SCALE_OFFICIAL`，pct=100 移除门控）**解耦**——默认值非 100 时门控仍生效（来源：官方 `--dsw-font-markdown-base` 实测，0.1.0-rc.6+，**DSH 升级改基线需复核**）；只作用于 markdown 容器/用户气泡文字（`[data-chat-flow-kind="assistant-step"|"user"]` 内），**Think 行/工具卡/上下文卡不在其中不受缩放影响**（由 4.6 精简调节）；固定 px 元素（inline code 14px、pre 13px/22px）同比例 calc 覆盖；**输入框（composer）16px/24px 基线**（实测 0.1.0-rc.6，锚点 `[data-composer-card="true"] textarea` 稳定属性、页面唯一，DSH 升级需复核）；**标题 h1-h6 官方为固定 px 令牌**（`HEADING_FONTS` 基线：h1 700 24/34、h2 700 22/32、h3 700 20/30、h4 600 16/28、h5/h6 走 `--dsw-font-markdown-base-strong` 600 16/28；实测 `._markdown_ h1..h4` 用 `font: var(--dsw-font-markdown-hN)`，**DSH 升级需复核**），缩放时在门控 body 上**重定义这些令牌**（`weight calc(size * var(--tc-text-scale))/calc(lh * var(--tc-text-scale)) family`）——标题字号随滑杆缩放、family 用 `var(--dsw-font-family)` 随全站字体（与官方基线等价）；pct=100 移除门控=官方原样。
 - **全站字体**：门控 `data-tc-font="<id>"`；`FONTS` 常量表（default=系统默认不注入）；覆盖路径三条——body `--dsw-font-family` 变量 + markdown/用户气泡容器 `font-family` + **标题令牌重定义**（`headingTokensCss(stack)`，字号 calc 乘 `--tc-text-scale`，故仅换字体时须先注入基线 `body[data-dsh-theme-center]{--tc-text-scale:1}`，字号×1=官方原值）；**代码字体 `--ds-font-family-code` 保持不动**。
 - **隐藏开关**：门控 `data-tc-hide`（空格分隔值，选择器 `~="think"|"tool"|"context"`）；纯 CSS `display:none !important`，不触碰消息数据；隐藏优先于 4.6 压制。
-- 持久化键：`textscale:v1`（75-150，缺失回退 100，`Number(null)=0` 陷阱）、`font:v1`（id，未知回退 default）、`hide:v1`（JSON 布尔）。
+- 持久化键：`textscale:v1`（75-150，缺失回退 80，`Number(null)=0` 陷阱）、`font:v1`（id，未知回退 default）、`hide:v1`（JSON 布尔）。
 
 ### 4.9 服务端同步模块（必须）——一处配置、所有终端生效
-- **宿主半区**：`installSettingsSection` 注册 `theme-center` 命名空间（schemastery `Config` schema：theme/scrim/width/focus/textScale/font/hideThink/hideTool/hideContext 共 9 字段全带默认，默认值 = 官方原样）+ 自持路由 `/theme-center/settings`（GET 视图 / POST 批量写 set/unset，**同源护栏 + revision 栅栏**，内部经 `settings.replace(settingsNamespace(...))` 整层提交 → 落盘 profile settings.yaml 用户层）；settings/webServer 缺失静默跳过，注册失败绝不抛出。官方 apiproxy 白名单不含第三方命名空间，故必须自建路由（notify-sound 同款先例）。
+- **宿主半区**：`installSettingsSection` 注册 `theme-center` 命名空间（schemastery `Config` schema：theme/scrim/width/focus/textScale/font/hideThink/hideTool/hideContext 共 9 字段全带默认（**focus 默认 80、textScale 默认 80**），默认值 = 官方原样）+ 自持路由 `/theme-center/settings`（GET 视图 / POST 批量写 set/unset，**同源护栏 + revision 栅栏**，内部经 `settings.replace(settingsNamespace(...))` 整层提交 → 落盘 profile settings.yaml 用户层）；settings/webServer 缺失静默跳过，注册失败绝不抛出。官方 apiproxy 白名单不含第三方命名空间，故必须自建路由（notify-sound 同款先例）。
 - **浏览器半区**：`ThemeCenterSettingsScope`（SettingsScope 契约：getSnapshot/subscribe/set/unset/refresh）——启动 GET、写即 POST（`tail` 链串行，revision 由宿主保证）、`SYNC_INTERVAL_MS = 15000` 轮询 + visibilitychange/focus 刷新；`sanitizeServerValue` 逐字段清洗（非法回退默认，绝不抛错）。
 - **写路径**：全部 setter（主题 runJob persist=true / applyScrim / setWidth / setFocus / setTextScale / setFont / setHide）在写本地缓存后排队服务器写——离散字段即时提交、滑杆字段（scrim/focus/textScale）400ms 尾随去抖；`applyingRemote` 标志置位期间跳过回写（防回环）。
 - **读路径（服务器为真源）**：服务器视图就绪后按快照去重（revision+value key）；用户层为空 → **一次性迁移**本地状态上推（老用户升级不丢配置）；用户层有值 → `applyRemoteState` 逐字段 diff 应用（主题走 `requestTheme(id,false,adopt)`：写缓存但不写服务器；其余字段复用 setter）。
@@ -140,6 +140,12 @@
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
 
+### 2026-08-17 默认值调整：压制效果默认 80%、会话区字号默认 80%（官方原样锚点与默认值解耦）
+
+- 变更内容：用户需求"压制效果默认80%，会话区字号默认80%"——① `FOCUS_DEFAULT` 70→80（宿主 schema `focus.default(80)`、readSavedFocus 回退 80）；② **关键解耦**：`TEXT_SCALE_DEFAULT` 100→80 且新增 `TEXT_SCALE_OFFICIAL = 100`——原实现把「默认值」与「官方原样锚点」耦合（pct=默认时移除 `data-tc-scale` 门控），若直接改默认 80 会导致 80% 时门控移除不生效；现门控移除条件改为 `=== TEXT_SCALE_OFFICIAL`（100），默认 80 时门控正常挂载、缩放生效，用户手动调回 100 即官方原样；宿主 schema `textScale.default(80)`、`serverDefaults`/`sanitize` 自动跟随；③ 服务器 user 层 focus/textScale **unset** 让新默认生效（旧迁移值 70/100 覆盖 schema 默认，112 实测确认）；smoke 断言同步（0.8/门控默认挂载/TEXT_SCALE_OFFICIAL）
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/lib/index.js`、`theme-center/tests/smoke.mjs`、`theme-center/README.md`、`theme-center/AGENTS.md`
+- 备注：本文件 4.4/4.6（focus 默认 80）、4.8（默认 80 与锚点 100 解耦 + 持久化键回退 80）、4.9（schema 默认 80）同步更新；**112 验证全过**（默认视图 focus 80/textScale 80、浏览器 `--tc-text-scale:0.8`+`--tc-focus:0.8`+`data-tc-scale` 挂载+输入框 12.8px/19.2px、无错误）；**111 已部署**（用户预授权，md5 `afd2d4e5` 与 112 一致，延迟 detach 重启，服务器 focus/textScale 已 unset）
+
 ### 2026-08-17 输入框（composer）内容随「会话区字号」一同缩放（16px/24px 基线）
 
 - 变更内容：用户需求"输入框输入的内容也同会话区字号一同缩放"——111 实测定位：输入框 = 页面唯一 `textarea`（`textareaCount:1`），官方基线 **16px/24px**（与 markdown 的 16/28 不同），hash 类名 `uV2eYG_input` 不可依赖，祖先链稳定锚点 `[data-composer-card="true"]`（曾祖父，composer 卡标记）。实现：`appearanceCss` 缩放分支追加一条规则 `[data-composer-card="true"] textarea{font-size:calc(16px * var(--tc-text-scale));line-height:calc(24px * var(--tc-text-scale))}`——与正文/标题共用 `data-tc-scale` 门控 + `--tc-text-scale`，100% 移除门控=官方原样；只改字号/行高，不碰字体/占位符/颜色；smoke +1 断言
@@ -172,7 +178,7 @@
 
 ### 2026-08-16 一体化改造：并入聊天宽度 + 新增聊天区精简（卡片双 Tab：主题/外观）v0.2.0
 
-- 变更内容：按用户布局指示（卡内双 Tab + 宽度按钮移除 + 压制百分比滑杆）将 theme-center 扩展为一体化插件——① `lib/client.js` 新增「聊天宽度」模块（`WIDTH_PRESETS` 6 档 896-1600、键 `dsh-theme-center:width:v1`、`widthCss` 覆盖 `--dsh-chat-content-width`/`--dsh-composer-card-max-width` + 释放 userStack 上限，作用域限 `body[data-dsh-theme-center]`；**不再注册**标题栏宽度按钮）；② 新增「聊天区精简」模块（键 `dsh-theme-center:focus:v1` 默认 70，`focusCss` 全部规则以 `--tc-focus`（0-1）+ `calc()` 线性插值——Think 行/工具调用卡/上下文注入卡的标题字号 14→12px、行高 24→18px、摘要/来源透明度 1→0.6、图标 14→11px、Cordis 卡行高 32→22px、错误卡标题 ellipsis；**只改字号/行高/透明度/尺寸不写颜色**，天然适配全部皮肤；`body[data-tc-focus]` 门控，pct=0 整组失效=官方默认）；③ 卡片双 Tab「主题/外观」：主题 Tab 原内容不动，外观 Tab = 宽度预设药丸 + 压制百分比滑杆（复用 tc-pill/tc-scrim 令牌样式）；④ apply 新增 width/focus 两个 `<style>` effect（`data-pluginCss` 区分，disposer 全收含门控属性）；⑤ 修复 `readSavedFocus` 缺失回退（`Number(null)=0` 陷阱，smoke 测试捕获）；⑥ 新增 `tests/smoke.mjs`（node 内置：包形状/宿主/注册表一一对应/一体化模块存在性/apply 契约与零残留，全绿）；⑦ 版本 0.2.0，README 重写
+- 变更内容：按用户布局指示（卡内双 Tab + 宽度按钮移除 + 压制百分比滑杆）将 theme-center 扩展为一体化插件——① `lib/client.js` 新增「聊天宽度」模块（`WIDTH_PRESETS` 6 档 896-1600、键 `dsh-theme-center:width:v1`、`widthCss` 覆盖 `--dsh-chat-content-width`/`--dsh-composer-card-max-width` + 释放 userStack 上限，作用域限 `body[data-dsh-theme-center]`；**不再注册**标题栏宽度按钮）；② 新增「聊天区精简」模块（键 `dsh-theme-center:focus:v1` 默认 80，`focusCss` 全部规则以 `--tc-focus`（0-1）+ `calc()` 线性插值——Think 行/工具调用卡/上下文注入卡的标题字号 14→12px、行高 24→18px、摘要/来源透明度 1→0.6、图标 14→11px、Cordis 卡行高 32→22px、错误卡标题 ellipsis；**只改字号/行高/透明度/尺寸不写颜色**，天然适配全部皮肤；`body[data-tc-focus]` 门控，pct=0 整组失效=官方默认）；③ 卡片双 Tab「主题/外观」：主题 Tab 原内容不动，外观 Tab = 宽度预设药丸 + 压制百分比滑杆（复用 tc-pill/tc-scrim 令牌样式）；④ apply 新增 width/focus 两个 `<style>` effect（`data-pluginCss` 区分，disposer 全收含门控属性）；⑤ 修复 `readSavedFocus` 缺失回退（`Number(null)=0` 陷阱，smoke 测试捕获）；⑥ 新增 `tests/smoke.mjs`（node 内置：包形状/宿主/注册表一一对应/一体化模块存在性/apply 契约与零残留，全绿）；⑦ 版本 0.2.0，README 重写
 - 涉及路径：`theme-center/lib/client.js`、`theme-center/package.json`、`theme-center/README.md`、`theme-center/tests/smoke.mjs`（新增）、`theme-center/AGENTS.md`
 - 备注：本文件同步新增 4.4 宽度/压制键、4.6 聊天区精简模块规范、第六节验证清单（双 Tab/宽度/压制三档/主题抽查）；chat-width-customizer 已并入本插件（该文件夹保留作归档）；**112 已部署验证全过**（2026-08-16：默认 70% 落地 `--tc-focus:0.7`、工具卡标题 12.6px/摘要 0.72、Think 同构探针 12.6px/0.825/0.72/图标 11.9px、Cordis 行 100% 时 22px、双 Tab 24 行、宽度 1152 持久化+刷新恢复、压制 0%/100% 端点门控成对、深海蓝皮肤下压制仍生效+官方干净还原、bundle 路由 200/200+越界 404、smoke 全绿、无 console 错误；测试状态已还原 896px/70%/官方）；**按流程：验证通过，询问用户后再部署 111**
 

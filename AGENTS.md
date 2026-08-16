@@ -37,7 +37,14 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 24 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 25 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+### 2026-08-17 theme-center 默认值调整：压制效果默认 80%、会话区字号默认 80%（官方锚点与默认解耦）
+
+- 变更内容：用户需求"压制效果默认80%，会话区字号默认80%"——`FOCUS_DEFAULT` 70→80、`TEXT_SCALE_DEFAULT` 100→80；**关键解耦**：新增 `TEXT_SCALE_OFFICIAL=100` 作为门控移除条件（原实现"pct=默认时移除 data-tc-scale"，直接改默认 80 会致 80% 不生效）——现 80% 默认正常缩放、100% 仍是官方原样；宿主 schema focus/textScale 默认 80；服务器 user 层 unset 让新默认生效
+- 涉及路径：`theme-center/lib/{client,index}.js`、`theme-center/tests/smoke.mjs`、`theme-center/README.md`、`theme-center/AGENTS.md`、`AGENTS.md`
+- 备注：**112 验证全过**（默认视图 80/80、浏览器 `--tc-text-scale:0.8`+`--tc-focus:0.8`+门控挂载+输入框 12.8px/19.2px、无错误）；**111 已部署**（用户预授权，md5 `afd2d4e5` 与 112 一致，延迟 detach 重启，服务器已 unset）
+
+
 ### 2026-08-17 修复变更记录折叠结构：`</details>` 提前关闭致 11 条记录在折叠块外
 
 - 变更内容：修复"四、变更记录"折叠问题——原 `</details>` 误置于"theme-center 新增 6 款自研皮肤"记录之后（并行会话追加记录时未挪动闭标签），导致 right-panel 卸载/theme-center 修复/插件一览等 11 条记录显示在折叠块外；已删除提前的闭标签并在最后一条记录（notify-sound 样式统一）之后、`---` 之前恢复唯一闭标签，全部 23 条记录重新纳入折叠

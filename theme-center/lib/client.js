@@ -171,7 +171,7 @@ window.__ModuleLoader__.load({
 		//#region 聊天区精简
 		const FOCUS_KEY = "dsh-theme-center:focus:v1";
 		/** 默认压制百分比（0 = 默认展示，100 = 最大压制）。 */
-		const FOCUS_DEFAULT = 70;
+		const FOCUS_DEFAULT = 80;
 		/** 压制样式元素（apply 时挂载；null 表示未挂载）。 */
 		let focusStyleEl = null;
 
@@ -276,7 +276,10 @@ window.__ModuleLoader__.load({
 		const TEXT_SCALE_MIN = 75;
 		const TEXT_SCALE_MAX = 150;
 		const TEXT_SCALE_STEP = 5;
-		const TEXT_SCALE_DEFAULT = 100;
+		/** 会话区字号默认值（无配置时）——80%。 */
+		const TEXT_SCALE_DEFAULT = 80;
+		/** 官方原样锚点：100% 时移除门控=官方字号（与默认值解耦，默认可为非 100）。 */
+		const TEXT_SCALE_OFFICIAL = 100;
 		const FONT_KEY = "dsh-theme-center:font:v1";
 		const HIDE_KEY = "dsh-theme-center:hide:v1";
 		/** 外观扩展样式元素（apply 时挂载；null 表示未挂载）。 */
@@ -354,7 +357,7 @@ window.__ModuleLoader__.load({
 		 */
 		function appearanceCss(state) {
 			const parts = [];
-			if (state.textScale !== TEXT_SCALE_DEFAULT) {
+			if (state.textScale !== TEXT_SCALE_OFFICIAL) {
 				const F = "body[data-dsh-theme-center][data-tc-scale]";
 				const SCALE = "calc(16px * var(--tc-text-scale))";
 				const LHEIGHT = "calc(28px * var(--tc-text-scale))";
@@ -392,7 +395,7 @@ window.__ModuleLoader__.load({
 		 * （data-tc-scale / data-tc-font / data-tc-hide，空格分隔值 + ~= 选择器）。
 		 */
 		function applyAppearanceState() {
-			if (currentTextScale === TEXT_SCALE_DEFAULT) delete document.body.dataset.tcScale;
+			if (currentTextScale === TEXT_SCALE_OFFICIAL) delete document.body.dataset.tcScale;
 			else document.body.dataset.tcScale = "";
 			if (currentFont === "default") delete document.body.dataset.tcFont;
 			else document.body.dataset.tcFont = currentFont;

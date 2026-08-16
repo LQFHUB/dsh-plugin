@@ -59,9 +59,9 @@ export const Config = z.object({
   /** 聊天宽度预设（896-1600）。 */
   width: z.number().default(896),
   /** 聊天区精简百分比 0-100（默认 70）。 */
-  focus: z.number().min(0).max(100).default(70),
+  focus: z.number().min(0).max(100).default(80),
   /** 会话区字号百分比 75-150（默认 100）。 */
-  textScale: z.number().min(75).max(150).default(100),
+  textScale: z.number().min(75).max(150).default(80),
   /** 全站字体 id（default = 系统默认）。 */
   font: z.string().default('default'),
   hideThink: z.boolean().default(false),
