@@ -43,7 +43,7 @@
 
 - 变更内容：用户反馈"表格宽度只有会话区一半、列内容挤成很多行"——排查确认官方 markdown 渲染器 `table{width:max-content}` + `td/th{max-width:min(30vw,320px)}` 导致中文长文本被压进 320px 窄列疯狂换行（实测表格 452px/内容列 896px，与聊天宽度/压制插件无关）。修复：`theme-center/lib/client.js` 新增 `TABLE_CSS` + `dsh-theme-center/table` 样式 effect——助手回答/用户消息内（`[data-chat-flow-kind="assistant-step"|"user"]` 稳定属性，不依赖 hash 类名）`table{width:100% !important;max-width:100% !important}` + `td/th{max-width:none}`；超宽表格仍横向滚动；常开不设开关（用户选"直接默认生效"）
 - 涉及路径：`theme-center/lib/client.js`、`theme-center/tests/smoke.mjs`（+4 断言、样式元素 3→4）、`theme-center/README.md`、`theme-center/AGENTS.md`、`AGENTS.md`
-- 备注：实测修复前后：表格 452px→896px、最长单元格 96px→71px（4 行→3 行）；本地 smoke 全绿；**112 已部署验证全过**（2026-08-16：table 样式元素注入、同构探针表格撑满容器 100%、`td max-width=none`、长文本单行渲染、无 console 错误）；**按流程：验证通过，询问用户后再部署 111**
+- 备注：实测修复前后：表格 452px→896px、最长单元格 96px→71px（4 行→3 行）；本地 smoke 全绿；**112 已部署验证全过**（2026-08-16：table 样式元素注入、同构探针表格撑满容器 100%、`td max-width=none`、长文本单行渲染、无 console 错误）；**111 已部署生效**（2026-08-16 用户确认后同步 + 延迟 detach 重启 dsh-web.service，client.js md5 `d55c3035` 与 112 一致；浏览器 Ctrl+Shift+R 生效）
 
 ### 2026-08-16 删除已归档插件文件夹 chat-width-customizer/ 与 right-panel/（用户确认，仓库 + 111/112 external 副本一并清理）
 
