@@ -16,15 +16,15 @@
 
 ### 现有插件一览
 
-| 文件夹 | 作用 | 部署状态 |
-|:---|:---|:---|
-| `chat-width-customizer/` | 聊天区宽度定制（预设档位，localStorage 持久化） | 111/112 已部署 |
-| `theme-center/` | 主题中心：10 款皮肤 + 「主题」设置卡（试穿/应用/亮暗/遮罩）；其他插件 UI 需适配它（见第六节主题适配契约） | 111/112 已部署 |
-| `web-lan/` | dsh Web 局域网直连（免反代）：crypto polyfill + apiProxy relay + isLoopback | 111/112 已部署 |
-| `navbar/` | 对话节点导航条（贴左侧边栏，节点跳转/悬停预览/pin 精选，中英文定位） | 111/112 已部署 |
-| `notify-sound/` | 会话提示音（Web Audio 合成 6 音、事件触发、配置跨浏览器同步、提示音设置卡，皮肤令牌适配） | 111/112 已部署 |
-| `describe-image/` | 图像理解工具（视觉模型描述图片，configured 模式复用已配置模型 + 「图像理解」设置卡） | 111/112 已部署 |
-| `right-panel/` | 右侧面板（文件树/多格式预览/SCM 变更面板，语法高亮，harbor/trading 皮肤适配层） | 111/112 已部署 |
+| 文件夹 | 作用 |
+|:---|:---|
+| `chat-width-customizer/` | 聊天区宽度定制（预设档位，localStorage 持久化） |
+| `theme-center/` | 主题中心：10 款皮肤 + 「主题」设置卡（试穿/应用/亮暗/遮罩）；其他插件 UI 需适配它（见第六节主题适配契约） |
+| `web-lan/` | dsh Web 局域网直连（免反代）：crypto polyfill + apiProxy relay + isLoopback |
+| `navbar/` | 对话节点导航条（贴左侧边栏，节点跳转/悬停预览/pin 精选，中英文定位） |
+| `notify-sound/` | 会话提示音（Web Audio 合成 6 音、事件触发、配置跨浏览器同步、提示音设置卡，皮肤令牌适配） |
+| `describe-image/` | 图像理解工具（视觉模型描述图片，configured 模式复用已配置模型 + 「图像理解」设置卡） |
+| `right-panel/` | 右侧面板（文件树/多格式预览/SCM 变更面板，语法高亮，harbor/trading 皮肤适配层） |
 
 ## 三、添加新功能的流程（必须遵守）
 
@@ -38,7 +38,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 22 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 23 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-08-16 插件一览表格移除"部署状态"列
+
+- 变更内容：第二节"现有插件一览"表格精简——删除"部署状态"列，仅保留"文件夹 | 作用"两列
+- 涉及路径：`AGENTS.md`
+- 备注：用户指示"现有插件一览不要部署状态"
 
 ### 2026-08-16 更新插件一览：describe-image、right-panel 已在 111 生效
 
