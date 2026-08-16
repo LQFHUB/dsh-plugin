@@ -237,6 +237,16 @@ window.__ModuleLoader__.load({
 				return;
 			}
 			setState({ busy: theme.id });
+			// 先卸载旧主题、再加载并挂载新主题（顺序必须如此）：
+			// ① 同一主题「试穿后再应用」时，旧实例的 disposer 会收回新实例
+			//    刚写入的属性/背景/favicon（两者写同一处），先卸载保证任意
+			//    切换序列互不干扰；
+			// ② 皮肤的 CSS 在 import 物化时注入、apply 不会重新注入——若
+			//    在加载之后才卸载，旧实例的样式清理会误删新主题的样式标签，
+			//    先卸载让加载阶段重新注入 CSS。
+			// 语义：加载失败时页面回到官方默认并显示错误（bundle 路由由本
+			// 插件自持，加载失败仅发生在路由不可用等异常情形）。
+			disposeCurrent();
 			let apply;
 			try {
 				apply = await loadThemeApply(theme);
@@ -267,7 +277,6 @@ window.__ModuleLoader__.load({
 				setState({ busy: null, error: "「" + theme.name + "」应用失败：" + (error && error.message || String(error)) });
 				return;
 			}
-			disposeCurrent();
 			currentTheme = theme;
 			currentDispose = () => ctx.__disposeAll();
 			if (persist) writeStored(STORAGE_KEY, theme.id);

@@ -38,7 +38,15 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 23 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 24 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-08-16 theme-center 修复：先试穿再应用同一主题回退默认（切换顺序：先卸载→再加载→再挂载）并 112 实测全过
+
+- 变更内容：用户反馈"主题先试穿再应用就会变回默认主题"——112 实测复现（应用后 body 属性被清、背景/样式丢失而 localStorage 已写入）：根因：应用时先挂载新实例、后卸载试穿旧实例，旧实例 disposer（删属性/还原背景/移除 favicon）收回新实例刚写入的同一处 DOM；且若卸载放在加载之后，旧实例样式清理会误删新实例 CSS 标签（CSS 在 import 时注入、apply 不重新注入，调色板重映射丢失）。修复：`theme-center/lib/client.js` 的 `runJob` 中 `disposeCurrent()` 移到 `loadThemeApply()` **之前**（先卸载旧主题→再加载并挂载新主题），语义变为加载失败回官方默认+错误提示（路由自持，异常情形）；theme-center/AGENTS.md 4.3 切换语义与验证清单同步更新
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/AGENTS.md`、`AGENTS.md`；112 上 `/root/.dsh/external/theme-center/lib/client.js`（已同步并重启，rev `f625666a7491`）
+- 备注：**112 三套回归全过**——复现脚本（试穿鲸吟→应用鲸吟：属性/背景/样式标签齐全）+ 主验证 14 项（试穿/退出/应用/刷新恢复/官方默认干净还原/亮暗/遮罩/标题链）+ 补充验证 + 10 款皮肤全量冒烟，无 theme-center 错误；验证脚本皮肤属性过滤改为白名单 SKIN_ATTRS（排除 notify-sound/describe-image 等其他插件的 data-dsh-* 属性）；**按部署流程：待用户确认后部署 111**
+
+</details>
 
 ### 2026-08-16 插件一览表格移除"部署状态"列
 
