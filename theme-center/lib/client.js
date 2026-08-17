@@ -1409,6 +1409,7 @@ window.__ModuleLoader__.load({
 				slots.inject("settings.plugin.item", () => slots.register({
 					name: "settings.plugin.item",
 					id: "theme",
+					key: "theme-center",
 					order: 30,
 					label: "主题",
 					inject: () => ({ theme: themeHandle }),

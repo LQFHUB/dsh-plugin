@@ -610,6 +610,7 @@ window.__ModuleLoader__.load({
           return slots.register({
             name: 'settings.plugin.item',
             id: CARD_ID,
+            key: CARD_ID,
             order: 35,
             label: '提示音',
           }, Card)

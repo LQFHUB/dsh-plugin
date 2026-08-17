@@ -21,7 +21,7 @@ const read = (rel) => readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8'
 
 // 1. 包清单
 assert.equal(pkg.name, '@npm-liqingfeng/dsh-theme-center', '包名应为 @npm-liqingfeng/dsh-theme-center')
-assert.equal(pkg.version, '0.3.0', '版本应为 0.3.0（服务端配置同步版）')
+assert.equal(pkg.version, '0.3.2', '版本应为 0.3.2（keyed slot 适配）')
 assert.equal(pkg.exports['.'], './lib/index.js', 'exports["."] 应指向 lib/index.js')
 assert.equal(pkg.exports['./client'], './lib/client.js', 'exports["./client"] 应指向 lib/client.js')
 assert.equal(pkg.dsh.bundle.patch, './cordis.patch.yml', 'bundle patch 应指向 cordis.patch.yml')
@@ -53,6 +53,7 @@ for (const field of ['theme', 'scrim', 'width', 'focus', 'textScale', 'font', 'h
 const clientSrc = read('lib/client.js')
 assert.match(clientSrc, /__ModuleLoader__\.load\(/, 'client.js 应为 __ModuleLoader__ 模块')
 assert.match(clientSrc, /id: "@npm-liqingfeng\/dsh-theme-center"/, 'client.js 模块 id 应为 @npm-liqingfeng/dsh-theme-center')
+assert.match(clientSrc, /key: "theme-center"/, '卡片注册 key 应为设置命名空间 theme-center（rc.7 keyed slot 契约）')
 
 const skinFiles = readdirSync(new URL('../lib/skins/', import.meta.url)).filter((f) => f.endsWith('.js'))
 const themeIds = [...clientSrc.matchAll(/\{ id: "([a-z0-9-]+)", name: "[^"]+", accent:/g)].map((m) => m[1])

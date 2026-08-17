@@ -140,6 +140,12 @@
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
 
+### 2026-08-17 修复：settings.plugin.item keyed slot 契约（rc.7 前端 key=设置命名空间），发布 0.3.2
+
+- 变更内容：112 全新 npm 安装后浏览器报 `keyed slot "settings.plugin.item" requires options.key` 且主题卡片不渲染——根因：dsh 前端 `dsh-client-ui-slots` 从 rc.6（list 契约，要求 `id`）升级到 **rc.7（keyed 契约，必须 `options.key` 且 key = 卡片编辑的设置命名空间**，官方渲染按 `entryKey: ns` 过滤）；0.3.1 首版 key 误用卡片 id `"theme"`（命名空间是 `theme-center`）致卡片静默不渲染，0.3.2 修正为 `key: "theme-center"`（同时保留 `id: "theme"` 兼容 rc.6 list 契约）。smoke 补 key 契约断言（`key: "theme-center"`）；版本 0.3.0→0.3.2 重新发布 npm；112 显式版本升级 + 重启后实测：Plugins 配置页主题卡片完整渲染（23 款皮肤 + 双 Tab + 服务端同步提示）
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/package.json`、`theme-center/tests/smoke.mjs`、`theme-center/AGENTS.md`
+- 备注：**规范补充（必须）**：设置卡注册 `slots.register({ name: "settings.plugin.item", id: <卡片id>, key: <设置命名空间>, ... })`——`key` 必须等于插件设置命名空间（本插件为 `theme-center`），`id` 保留兼容旧前端；dsh 前端 slot 契约 rc.6(list)→rc.7(keyed) 已变更，**DSH 升级需复核**；111（rc.6 前端 + link 安装）未同步，待用户确认
+
 ### 2026-08-17 包名改为 @npm-liqingfeng/dsh-theme-center 并发布 npm（原 dsh-theme-center 被他人占用）
 
 - 变更内容：用户需求"插件推送到 npm 供其他 mac/win 安装"——发布前核查发现 `dsh-theme-center` 已被 faster128（2026-08-15 发布 1.0.0）占用，按用户指示改用本人作用域：`package.json` name → `@npm-liqingfeng/dsh-theme-center` + 新增 `publishConfig.access: public`；`cordis.patch.yml` 插件行 name 同步；`lib/client.js` 模块 id（第 2 行）同步；smoke 测试 3 处包名断言更新；README 安装段补 npm 方式（`dsh plugin --profile web add @npm-liqingfeng/dsh-theme-center`）；**v0.3.0 已发布于 npm**（`npm publish --access public` 成功，23 款皮肤 bundle 全打包，tarball 下载验证通过）

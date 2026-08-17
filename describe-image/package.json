@@ -1,6 +1,6 @@
 {
   "name": "dsh-describe-image",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "DSH 图像理解插件：为纯文本模型提供 describe_image 工具——把图片（本地路径 / http(s) URL / 会话附件）交给 OpenAI 兼容视觉端点（Xiaomi MiMo、Qwen-VL、GPT-4o、Ollama 等）分析，只有返回的文本进入对话。移植自 zhu1090093659/dsh-web-ui 的 dsh-tool-describe-image（Apache-2.0）。",
   "type": "module",
   "main": "lib/index.js",

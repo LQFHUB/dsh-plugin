@@ -86,6 +86,7 @@ export function apply(ctx: ClientContext): void {
       slots.register({
         name: 'settings.plugin.item',
         id: 'describe-image',
+        key: 'describe-image',
         order: 40,
         locale: NS,
         inject: () => settingsCard.inject(),
