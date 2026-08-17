@@ -90,7 +90,7 @@ assert.match(clientSrc, /dataset\.pluginCss = "dsh-theme-center\/table"/, '应�
 assert.match(clientSrc, /dataset\.pluginCss = "dsh-theme-center\/appearance"/, '应有 appearance 样式元素')
 // 表格撑满列宽：覆盖 max-content 为 100% + 解除 td/th 320px 列上限，作用域限助手回答/用户消息
 assert.match(clientSrc, /data-chat-flow-kind="assistant-step"\] table/, '应有助手回答表格规则')
-assert.match(clientSrc, /data-chat-flow-kind="user"\] table/, '应有用户消息表格规则')
+assert.match(clientSrc, /userKindsSel\('body\[data-dsh-theme-center\]', ' table'\)/, '应有用户消息表格规则（含 steering 通道）')
 assert.match(clientSrc, /width:100% !important;max-width:100% !important/, '表格应撑满列宽')
 assert.match(clientSrc, /max-width:none/, '应解除 td/th 列宽上限')
 // 外观扩展：会话区字号缩放（16/28 基线 calc，门控 data-tc-scale，不影响 Think/工具/上下文）
@@ -100,6 +100,8 @@ assert.match(clientSrc, /TEXT_SCALE_MIN = 75/, '字号下限应为 75%')
 assert.match(clientSrc, /calc\(16px \* var\(--tc-text-scale\)\)/, '应有字号缩放 calc 规则')
 assert.match(clientSrc, /calc\(28px \* var\(--tc-text-scale\)\)/, '应有行高缩放 calc 规则')
 assert.match(clientSrc, /data-composer-card="true"\] div:has\(> textarea\)\{font-size:calc\(16px \* var\(--tc-text-scale\)\)\}/, '输入框内容应随字号缩放（缩放 textarea 父层，backdrop 可见文字/textarea 光标/mirror 测量三层一并 inherit；行高保持官方 24px 防垂直错位）')
+assert.match(clientSrc, /USER_TEXT_KINDS = \['user', 'steering'\]/, '用户消息通道应含 steering（2026-08-17 实测发送内容走 steering 通道不缩放）')
+assert.match(clientSrc, /userKindsSel\(F, ' \[data-time-hover-root\] > div:first-child > div'\)/, '用户气泡字号/字体规则应覆盖 user+steering 且每项带完整门控前缀（逗号列表前缀只作用于第一项）')
 assert.match(clientSrc, /data-tc-scale/, '字号缩放应由 data-tc-scale 门控')
 // 会话区标题（markdown h1-h6）为官方固定 px 令牌，缩放须重定义令牌（calc 乘法 + 随全站字体）
 assert.match(clientSrc, /--dsw-font-markdown-h1/, '应有 h1 标题令牌基线')

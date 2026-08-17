@@ -253,6 +253,15 @@ window.__ModuleLoader__.load({
 		}
 		//#endregion
 
+		// 用户消息通道：user + steering（用户经 steering 通道发送的消息官方标记为
+		// steering 而非 user，2026-08-17 用户实测"发送的内容字号突然变大"定位；
+		// DSH 升级需复核）。生成带门控前缀的选择器列表——CSS 逗号分隔列表中
+		// 前缀只作用于第一项，故每项必须自带完整前缀（userKindsSel）。
+		const USER_TEXT_KINDS = ['user', 'steering'];
+		function userKindsSel(prefix, suffix) {
+			return USER_TEXT_KINDS.map((k) => prefix + ' [data-chat-flow-kind="' + k + '"]' + suffix).join(',');
+		}
+
 		//#region 表格列宽
 		/**
 		 * 表格撑满列宽：官方 markdown 渲染器把表格设为 width:max-content 且
@@ -263,11 +272,11 @@ window.__ModuleLoader__.load({
 		 */
 		const TABLE_CSS =
 			'body[data-dsh-theme-center] [data-chat-flow-kind="assistant-step"] table,' +
-			'body[data-dsh-theme-center] [data-chat-flow-kind="user"] table{width:100% !important;max-width:100% !important}' +
+			userKindsSel('body[data-dsh-theme-center]', ' table') + '{width:100% !important;max-width:100% !important}' +
 			'body[data-dsh-theme-center] [data-chat-flow-kind="assistant-step"] th,' +
 			'body[data-dsh-theme-center] [data-chat-flow-kind="assistant-step"] td,' +
-			'body[data-dsh-theme-center] [data-chat-flow-kind="user"] th,' +
-			'body[data-dsh-theme-center] [data-chat-flow-kind="user"] td{max-width:none}';
+			userKindsSel('body[data-dsh-theme-center]', ' th') + ',' +
+			userKindsSel('body[data-dsh-theme-center]', ' td') + '{max-width:none}';
 		//#endregion
 
 		//#region 外观扩展（会话区字号 / 网站字体 / 隐藏开关）
@@ -363,11 +372,11 @@ window.__ModuleLoader__.load({
 				const LHEIGHT = "calc(28px * var(--tc-text-scale))";
 				parts.push(
 					F + "{--tc-text-scale:" + (state.textScale / 100) + ";" + headingTokensCss("var(--dsw-font-family)") + "}",
-					F + ' [data-chat-flow-kind="assistant-step"] [class*="_markdown_"],' + F + ' [data-chat-flow-kind="user"] [class*="_markdown_"]{font-size:' + SCALE + ";line-height:" + LHEIGHT + "}",
+					F + ' [data-chat-flow-kind="assistant-step"] [class*="_markdown_"],' + userKindsSel(F, ' [class*="_markdown_"]') + '{font-size:' + SCALE + ";line-height:" + LHEIGHT + "}",
 					F + ' [data-chat-flow-kind="assistant-step"] :where(p,li,blockquote,th,td){font-size:' + SCALE + ";line-height:" + LHEIGHT + "}",
 					F + ' [data-chat-flow-kind="assistant-step"] :not(pre) > code{font-size:calc(14px * var(--tc-text-scale))}',
 					F + ' [data-chat-flow-kind="assistant-step"] pre{font-size:calc(13px * var(--tc-text-scale));line-height:calc(22px * var(--tc-text-scale))}',
-					F + ' [data-chat-flow-kind="user"] [data-time-hover-root] > div:first-child > div{font-size:' + SCALE + ";line-height:" + LHEIGHT + "}",
+					userKindsSel(F, ' [data-time-hover-root] > div:first-child > div') + '{font-size:' + SCALE + ";line-height:" + LHEIGHT + "}",
 					// 输入框（composer）：官方基线 16px 实测（0.1.0-rc.6，DSH 升级需复核），
 					// 锚点 data-composer-card="true"（稳定属性，页面唯一 textarea），与正文同门控同比例。
 					// 官方为三层架构：backdrop 渲染可见文字 / textarea 透明文字+光标 / mirror 高度测量，
@@ -386,8 +395,8 @@ window.__ModuleLoader__.load({
 					// 基线 --tc-text-scale:1：仅换字体时标题令牌 calc 乘 1 = 官方字号
 					"body[data-dsh-theme-center]{--tc-text-scale:1}",
 					F + "{--dsw-font-family:" + stack + ";" + headingTokensCss(stack) + "}",
-					F + ' [data-chat-flow-kind="assistant-step"] [class*="_markdown_"],' + F + ' [data-chat-flow-kind="user"] [class*="_markdown_"]{font-family:' + stack + "}",
-					F + ' [data-chat-flow-kind="user"] [data-time-hover-root] > div:first-child > div{font-family:' + stack + "}",
+					F + ' [data-chat-flow-kind="assistant-step"] [class*="_markdown_"],' + userKindsSel(F, ' [class*="_markdown_"]') + '{font-family:' + stack + "}",
+					userKindsSel(F, ' [data-time-hover-root] > div:first-child > div') + '{font-family:' + stack + "}",
 				);
 			}
 			if (state.hide.think) parts.push('body[data-dsh-theme-center][data-tc-hide~="think"] [data-variant="think"]{display:none !important}');

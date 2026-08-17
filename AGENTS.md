@@ -37,7 +37,14 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 27 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 28 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+### 2026-08-17 theme-center 修复：steering 通道用户消息不缩放（USER_TEXT_KINDS 数组 + userKindsSel 每项带完整门控前缀）
+
+- 变更内容：用户反馈"我发送的内容字号突然变大了"（截图 /tmp/zihao-pro.png）——111 实测定位：02:48 发送的消息 `data-chat-flow-kind="steering"`（用户经 steering 通道发送的消息官方标记为 steering 而非 user），`_text_1pfhk_1` 显示 16px 官方原样，同会话 9 条 `user` 消息均 12.8px——规则只覆盖 `user`+`assistant-step` 漏掉 `steering`。修复：`USER_TEXT_KINDS=['user','steering']` 数组 + `userKindsSel(prefix,suffix)` 生成器替换 5 处选择器（字号×2+字体×2+表格）；**v2 修正（111 实测捕获）**：CSS 逗号分隔选择器列表前缀只作用于第一项——v1 字符串拼接致 user 分支退化为"字号设在容器上被官方文本类 16px 覆盖"、steering 分支丢门控前缀；userKindsSel 逐项展开完整前缀后 user/steering 均正确命中文本节点
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/tests/smoke.mjs`、`theme-center/AGENTS.md`、`AGENTS.md`
+- 备注：**112 同构探针实测全过**（user/steering 均 12.8px/22.4px、无错误）；**111 已部署**（用户预授权，md5 `716b6045` 与 112 一致，重启完成，用户自行测试页面）
+
+
 ### 2026-08-17 theme-center 修复：输入框可见文字未缩放——官方三层架构（backdrop/textarea/mirror），缩放规则上移到 textarea 父层
 
 - 变更内容：用户反馈"输入后的内容字号确实不对，但是全选输入后的内容字号是缩放的"——112 实测定位根因：**官方 composer 三层架构**（hash 类名 `uV2eYG_*`）——`backdrop` 渲染用户可见文字、`textarea` 文字透明（`rgba(0,0,0,0)`）只承载光标与选中高亮、`mirror` 隐藏测量，三层 `font-size: inherit` 继承自 textarea 父层 `grow`（16px）；旧规则只缩放 textarea（12.8px）→ 用户看到的 backdrop 文字仍 16px（未选中不缩放），全选时 selection 高亮按 12.8px 绘制（看着像缩放）。修复：规则改为 `[data-composer-card="true"] div:has(> textarea){font-size:calc(16px * var(--tc-text-scale))}`，三层 inherit 一并缩放（不依赖 hash 类名）
