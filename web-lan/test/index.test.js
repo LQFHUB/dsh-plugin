@@ -1,4 +1,4 @@
-// @user/dsh-web-lan 单元测试（node:test，零依赖）：polyfill 注入 / isLoopback 重写 / 特权 API relay
+// @npm-liqingfeng/dsh-web-lan 单元测试（node:test，零依赖）：polyfill 注入 / isLoopback 重写 / 特权 API relay
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import {

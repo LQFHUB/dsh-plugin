@@ -1,4 +1,4 @@
-// @user/dsh-web-lan —— dsh Web 局域网直连支持（免反代）
+// @npm-liqingfeng/dsh-web-lan —— dsh Web 局域网直连支持（免反代）
 //
 // 单一 host 插件，做三件事：
 //   1) 向 index.html 注入 crypto.randomUUID polyfill（该 Web API 仅存在于

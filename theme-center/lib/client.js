@@ -1,5 +1,5 @@
 window.__ModuleLoader__.load({
-	id: "dsh-theme-center",
+	id: "@npm-liqingfeng/dsh-theme-center",
 	factory: (require) => {
 		var module = { exports: {} };
 		var exports = module.exports;

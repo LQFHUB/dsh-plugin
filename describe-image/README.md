@@ -40,7 +40,10 @@ OpenAI 兼容的视觉模型端点（Xiaomi MiMo、Qwen-VL、GLM-4V、GPT-4o、�
 ## 安装
 
 ```sh
-# 本机（link 方式安装，profile web）
+# 方式一：npm 安装（已发布到 npm registry，推荐——任意 mac/win/linux 机器）
+dsh plugin --profile web add dsh-describe-image
+
+# 方式二：link 安装（源码目录，用于本地开发）
 dsh plugin --profile web add link:/root/.dsh/external/describe-image
 ```
 

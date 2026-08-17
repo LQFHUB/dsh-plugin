@@ -37,7 +37,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 28 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 29 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+### 2026-08-17 插件发布 npm：5 个插件全量发布成功（3 个因包名占用/非法作用域改用 @npm-liqingfeng/ ）
+
+- 变更内容：用户需求"将当前目录的几个插件推送到 npm，可在其他 mac/win 上安装使用"——发布前核查（5 包名占用情况：`dsh-describe-image`/`dsh-notify-sound` 未被占用保持原名；`dsh-theme-center` 已被 faster128 于 2026-08-15 占用；`@vlln/dsh-navbar` 的 @vlln 非本账号作用域；`@user/dsh-web-lan` 的 @user 为占位符无法发布），按用户指示"若名称已被占用，就使用我的作用域"改名：`@npm-liqingfeng/dsh-theme-center`（+publishConfig.access: public）、`@npm-liqingfeng/dsh-navbar`（+tsdown banner/src 的 id 同步）、`@npm-liqingfeng/dsh-web-lan`（+publishConfig.access: public）；连带修改：三插件的 `cordis.patch.yml` 插件行 name（patch 按包名解析模块）、client bundle 的模块 id（`lib/client.js` 第 2 行）、navbar `tsdown.config.ts` banner、theme-center smoke 测试 3 处包名断言、web-lan 测试注释、各 README 安装段补 npm 安装方式（`dsh plugin --profile web add <包名>`，保留 link 方式）；**发布**：凭证 = `/root/.npmrc` 中 `//registry.npmjs.org/:_authToken`（已验证 whoami=npm-liqingfeng），发布命令带 `--userconfig=/root/.npmrc --registry=https://registry.npmjs.org/ --cache=<挂载区可写目录>`（HOME 为空 + /root 只读 + 默认 registry 为 npmmirror 的规避），5 包全部 `npm publish --access public` 成功：dsh-describe-image@0.1.0、dsh-notify-sound@0.1.0、@npm-liqingfeng/dsh-navbar@0.3.0、@npm-liqingfeng/dsh-web-lan@1.0.0、@npm-liqingfeng/dsh-theme-center@0.3.0；**验证**：发布前 node --check 全产物 + 测试全绿（theme-center smoke / web-lan 9/9 / notify-sound / describe-image 159/159）+ `npm pack --dry-run` 内容核对（theme-center 23 款皮肤 bundle 完整）；发布后 registry 元数据/版本端点/dist-tags/tarball 下载全过（dsh-navbar 整包元数据 GET 偶发 404 为 CDN 缓存延迟，tarball 200 正常）
+- 涉及路径：`theme-center/`（package.json/cordis.patch.yml/lib/client.js/README.md/tests/smoke.mjs/AGENTS.md）、`navbar/`（package.json/cordis.patch.yml/lib/client.js/tsdown.config.ts/README.md）、`web-lan/`（package.json/cordis.patch.yml/lib/index.js/README.md/test/index.test.js）、`describe-image/README.md`、`notify-sound/README.md`、`AGENTS.md`
+- 备注：**不改动 111/112 已部署环境**（两机均为 link 本地安装，包名变更无影响，后续同步部署属另一次动作）；`lib/skins/*.js`、`lib/meta/*.json`、THEMES 注册表中的 `@user/dsh-client-ui-skin-*` 为**上游皮肤 bundle 内部模块 id（零修改契约）**，与本插件包名无关，未改动；localStorage 键与 `body[data-dsh-theme-center]` CSS 作用域为运行时标识，未改动；其他机器安装：`dsh plugin --profile web add <包名>`（见各 README）
+
 ### 2026-08-17 theme-center 修复：steering 通道用户消息不缩放（USER_TEXT_KINDS 数组 + userKindsSel 每项带完整门控前缀）
 
 - 变更内容：用户反馈"我发送的内容字号突然变大了"（截图 /tmp/zihao-pro.png）——111 实测定位：02:48 发送的消息 `data-chat-flow-kind="steering"`（用户经 steering 通道发送的消息官方标记为 steering 而非 user），`_text_1pfhk_1` 显示 16px 官方原样，同会话 9 条 `user` 消息均 12.8px——规则只覆盖 `user`+`assistant-step` 漏掉 `steering`。修复：`USER_TEXT_KINDS=['user','steering']` 数组 + `userKindsSel(prefix,suffix)` 生成器替换 5 处选择器（字号×2+字体×2+表格）；**v2 修正（111 实测捕获）**：CSS 逗号分隔选择器列表前缀只作用于第一项——v1 字符串拼接致 user 分支退化为"字号设在容器上被官方文本类 16px 覆盖"、steering 分支丢门控前缀；userKindsSel 逐项展开完整前缀后 user/steering 均正确命中文本节点

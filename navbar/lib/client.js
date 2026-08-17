@@ -1,5 +1,5 @@
 window.__ModuleLoader__.load({
-	id: "@vlln/dsh-navbar",
+	id: "@npm-liqingfeng/dsh-navbar",
 	factory: (require) => {
 		var module = { exports: {} };
 		module.exports;

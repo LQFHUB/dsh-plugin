@@ -1,6 +1,6 @@
 # web-lan：dsh Web 局域网直连支持（免反代）
 
-`@user/dsh-web-lan` —— 一个 **host 侧** dsh 插件，让 dsh Web UI 可以从局域网（或远程）直接访问，**无需 Nginx 等反向代理**，并且局域网客户端能完整使用配置类功能。
+`@npm-liqingfeng/dsh-web-lan` —— 一个 **host 侧** dsh 插件，让 dsh Web UI 可以从局域网（或远程）直接访问，**无需 Nginx 等反向代理**，并且局域网客户端能完整使用配置类功能。
 
 ## 解决什么问题
 
@@ -30,11 +30,13 @@ dsh Web 默认只监听 loopback（`127.0.0.1`），且两类能力默认对非�
 ### 标准安装（推荐，dsh plugin add）
 
 ```bash
-# 1. 把本文件夹同步到目标机（以 112 为例）
+# 方式一：npm 安装（已发布到 npm registry，推荐）
+dsh plugin --profile web add @npm-liqingfeng/dsh-web-lan
+
+# 方式二：link 安装（源码目录，用于本地开发）
 rsync -a web-lan/ root@<host>:/root/.dsh/external/web-lan/
-# 2. 安装（link 方式，包名 @user/dsh-web-lan 自动进入 profile 依赖并登记 bundle）
 dsh plugin --profile web add link:/root/.dsh/external/web-lan
-# 3. 重启 dsh web 后生效
+# 安装后重启 dsh web 生效
 ```
 
 安装时 `package.json` 的 `dsh.bundle.patch → cordis.patch.yml` 会自动作为 profile 的 patch 层应用（webserver 0.0.0.0 + insert web-lan），**无需再手动改 profile 的 `cordis.patch.yml`**。
@@ -43,20 +45,20 @@ dsh plugin --profile web add link:/root/.dsh/external/web-lan
 
 ```bash
 # 在 profile 的 node_modules 下建 symlink：
-#   /root/.dsh/profiles/node_modules/@user/dsh-web-lan -> <插件目录>
+#   /root/.dsh/profiles/node_modules/@npm-liqingfeng/dsh-web-lan -> <插件目录>
 # 并在 profile 的 cordis.patch.yml 中手动加入：
 #   - id: webserver
 #     config: { host: 0.0.0.0, port: 3080 }
 #   - insert:
 #       - id: web-lan
-#         name: '@user/dsh-web-lan'
+#         name: '@npm-liqingfeng/dsh-web-lan'
 ```
 
 ## 卸载
 
-标准安装的：`dsh plugin --profile web remove @user/dsh-web-lan`，再重启 dsh web。
+标准安装的：`dsh plugin --profile web remove @npm-liqingfeng/dsh-web-lan`，再重启 dsh web。
 
-旧手动安装的：删除 `profiles/node_modules/@user/dsh-web-lan` symlink，并移除 profile `cordis.patch.yml` 里的 webserver + insert 两行，再重启。
+旧手动安装的：删除 `profiles/node_modules/@npm-liqingfeng/dsh-web-lan` symlink，并移除 profile `cordis.patch.yml` 里的 webserver + insert 两行，再重启。
 
 ## 验证方法（部署后）
 

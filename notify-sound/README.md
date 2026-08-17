@@ -78,7 +78,10 @@
 ## 📦 安装 / Installation
 
 ```sh
-# 把本插件目录放到外部插件目录后链接安装（link 方式，推荐自用）
+# 方式一：npm 安装（已发布到 npm registry，推荐——任意 mac/win/linux 机器）
+dsh plugin --profile web add dsh-notify-sound
+
+# 方式二：link 安装（源码目录，用于本地开发）
 dsh plugin --profile web add link:/root/.dsh/external/notify-sound
 # 注意：首次 add 可能只登记依赖、未进 dsh.profile.bundles，重跑一次（幂等）即补齐
 dsh plugin --profile web add link:/root/.dsh/external/notify-sound

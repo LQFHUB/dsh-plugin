@@ -14,8 +14,8 @@
 
 | 文件 | 职责 |
 |---|---|
-| `package.json` | 包名 `dsh-theme-center`；`dsh.bundle.patch → ./cordis.patch.yml`；`dsh.client { inject: [], platform: "web" }`；`files` 含 `lib/skins` |
-| `cordis.patch.yml` | `- insert: - id: theme-center / name: 'dsh-theme-center'` |
+| `package.json` | 包名 `@npm-liqingfeng/dsh-theme-center`（npm 发布名；原 `dsh-theme-center` 已被他人占用，2026-08-17 改）；`dsh.bundle.patch → ./cordis.patch.yml`；`dsh.client { inject: [], platform: "web" }`；`files` 含 `lib/skins`；`publishConfig.access: public` |
+| `cordis.patch.yml` | `- insert: - id: theme-center / name: '@npm-liqingfeng/dsh-theme-center'` |
 | `lib/index.js` | 宿主半区：`/api/theme-center/bundle/<id>` 同源分发路由 |
 | `lib/client.js` | 浏览器半区：主题引擎 + 「主题」设置卡片（手写 `__ModuleLoader__` bundle，纯 JS/React.createElement） |
 | `lib/skins/<id>.js` | 皮肤 bundle，**上游产物原样拷贝、零修改** |
@@ -139,6 +139,12 @@
 
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
+
+### 2026-08-17 包名改为 @npm-liqingfeng/dsh-theme-center 并发布 npm（原 dsh-theme-center 被他人占用）
+
+- 变更内容：用户需求"插件推送到 npm 供其他 mac/win 安装"——发布前核查发现 `dsh-theme-center` 已被 faster128（2026-08-15 发布 1.0.0）占用，按用户指示改用本人作用域：`package.json` name → `@npm-liqingfeng/dsh-theme-center` + 新增 `publishConfig.access: public`；`cordis.patch.yml` 插件行 name 同步；`lib/client.js` 模块 id（第 2 行）同步；smoke 测试 3 处包名断言更新；README 安装段补 npm 方式（`dsh plugin --profile web add @npm-liqingfeng/dsh-theme-center`）；**v0.3.0 已发布于 npm**（`npm publish --access public` 成功，23 款皮肤 bundle 全打包，tarball 下载验证通过）
+- 涉及路径：`theme-center/package.json`、`theme-center/cordis.patch.yml`、`theme-center/lib/client.js`、`theme-center/tests/smoke.mjs`、`theme-center/README.md`、`theme-center/AGENTS.md`
+- 备注：本文件第二节包名描述已同步更新；**localStorage 键、`body[data-dsh-theme-center]` CSS 作用域等运行时标识不变**（与 111/112 已存数据兼容）；`lib/skins/*.js`、`lib/meta/*.json` 内的 `@user/dsh-client-ui-skin-*` 为**上游皮肤 bundle 内部模块 id（零修改契约）**，不改；111/112 已部署环境本次不动（link 安装与包名无关）
 
 ### 2026-08-17 修复：steering 通道用户消息不缩放（USER_TEXT_KINDS 数组 + userKindsSel 每项带完整门控前缀）
 

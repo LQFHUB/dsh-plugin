@@ -20,7 +20,7 @@ const pkg = require('../package.json')
 const read = (rel) => readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8')
 
 // 1. 包清单
-assert.equal(pkg.name, 'dsh-theme-center', '包名应为 dsh-theme-center')
+assert.equal(pkg.name, '@npm-liqingfeng/dsh-theme-center', '包名应为 @npm-liqingfeng/dsh-theme-center')
 assert.equal(pkg.version, '0.3.0', '版本应为 0.3.0（服务端配置同步版）')
 assert.equal(pkg.exports['.'], './lib/index.js', 'exports["."] 应指向 lib/index.js')
 assert.equal(pkg.exports['./client'], './lib/client.js', 'exports["./client"] 应指向 lib/client.js')
@@ -32,7 +32,7 @@ assert.equal(pkg.license, 'BSD-3-Clause', '许可证应为 BSD-3-Clause')
 // 2. patch 形状
 const patch = read('cordis.patch.yml')
 assert.match(patch, /id: theme-center/, 'patch 应含 insert id theme-center')
-assert.match(patch, /name: 'dsh-theme-center'/, 'patch 应引用 dsh-theme-center')
+assert.match(patch, /name: '@npm-liqingfeng\/dsh-theme-center'/, 'patch 应引用 @npm-liqingfeng/dsh-theme-center')
 
 // 3. 宿主半区
 const host = await import('../lib/index.js')
@@ -52,7 +52,7 @@ for (const field of ['theme', 'scrim', 'width', 'focus', 'textScale', 'font', 'h
 // 4. 浏览器 bundle：模块 id + 主题注册表与 lib/skins 一一对应
 const clientSrc = read('lib/client.js')
 assert.match(clientSrc, /__ModuleLoader__\.load\(/, 'client.js 应为 __ModuleLoader__ 模块')
-assert.match(clientSrc, /id: "dsh-theme-center"/, 'client.js 模块 id 应为 dsh-theme-center')
+assert.match(clientSrc, /id: "@npm-liqingfeng\/dsh-theme-center"/, 'client.js 模块 id 应为 @npm-liqingfeng/dsh-theme-center')
 
 const skinFiles = readdirSync(new URL('../lib/skins/', import.meta.url)).filter((f) => f.endsWith('.js'))
 const themeIds = [...clientSrc.matchAll(/\{ id: "([a-z0-9-]+)", name: "[^"]+", accent:/g)].map((m) => m[1])

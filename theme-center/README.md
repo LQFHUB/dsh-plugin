@@ -56,7 +56,10 @@
 ## 📦 安装 / Installation
 
 ```sh
-# 把本插件目录放到外部插件目录后链接安装（link 方式，推荐自用）
+# 方式一：npm 安装（已发布到 npm registry，推荐——任意 mac/win/linux 机器）
+dsh plugin --profile web add @npm-liqingfeng/dsh-theme-center
+
+# 方式二：link 安装（源码目录，用于本地开发）
 dsh plugin --profile web add link:/root/.dsh/external/theme-center
 ```
 

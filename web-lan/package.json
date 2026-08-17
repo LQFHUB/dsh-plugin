@@ -1,5 +1,5 @@
 {
-  "name": "@user/dsh-web-lan",
+  "name": "@npm-liqingfeng/dsh-web-lan",
   "version": "1.0.0",
   "description": "dsh Web 局域网直连支持（免反代）：randomUUID polyfill、特权 API 放行、isLoopback 修正",
   "type": "module",
@@ -21,6 +21,9 @@
   ],
   "scripts": {
     "test": "node --test test/"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "license": "MIT"
 }

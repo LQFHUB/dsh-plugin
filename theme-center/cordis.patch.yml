@@ -4,4 +4,4 @@
 # Remove this entry to disable the surface.
 - insert:
     - id: theme-center
-      name: 'dsh-theme-center'
+      name: '@npm-liqingfeng/dsh-theme-center'

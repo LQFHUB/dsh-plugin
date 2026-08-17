@@ -24,15 +24,16 @@
 
 **本机（111，AI 主机，正式使用）与 AI-2（112，验证机）均已部署**（`/root/.dsh/external/navbar`，link 方式安装，bundles 已登记）。
 
-在任意机器重新安装：
+在任意机器安装：
 
 ```sh
-# 把本目录复制到目标机，例如：
+# 方式一：npm 安装（已发布到 npm registry，推荐）
+dsh plugin --profile web add @npm-liqingfeng/dsh-navbar
+
+# 方式二：link 安装（源码目录，用于本地开发）
 scp -r navbar/ root@<目标机>:/root/.dsh/external/navbar
-# 在目标机 profile 中安装并登记 bundle
-cd /root/.dsh/profiles/web
 dsh plugin --profile web add link:/root/.dsh/external/navbar
-# 编辑 package.json：把 "@vlln/dsh-navbar" 追加进 dsh.profile.bundles
+# 编辑 package.json：把 "@npm-liqingfeng/dsh-navbar" 追加进 dsh.profile.bundles
 # 重启 web（112：/root/restart-dsh.sh；111：systemctl restart dsh-web.service）
 ```
 
@@ -48,8 +49,8 @@ dsh plugin --profile web add link:/root/.dsh/external/navbar
 
 ```sh
 cd /root/.dsh/profiles/web
-dsh plugin --profile web remove @vlln/dsh-navbar
-# 编辑 package.json：从 dsh.profile.bundles 移除 "@vlln/dsh-navbar"
+dsh plugin --profile web remove @npm-liqingfeng/dsh-navbar
+# 编辑 package.json：从 dsh.profile.bundles 移除 "@npm-liqingfeng/dsh-navbar"
 # 重启 web 生效；或直接删除 /root/.dsh/external/navbar 后重启
 ```
 
