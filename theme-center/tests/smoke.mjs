@@ -21,7 +21,7 @@ const read = (rel) => readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8'
 
 // 1. 包清单
 assert.equal(pkg.name, '@npm-liqingfeng/dsh-theme-center', '包名应为 @npm-liqingfeng/dsh-theme-center')
-assert.equal(pkg.version, '0.3.3', '版本应为 0.3.3（Codex 深蓝皮肤）')
+assert.equal(pkg.version, '0.3.4', '版本应为 0.3.4（Codex 深蓝皮肤）')
 assert.equal(pkg.exports['.'], './lib/index.js', 'exports["."] 应指向 lib/index.js')
 assert.equal(pkg.exports['./client'], './lib/client.js', 'exports["./client"] 应指向 lib/client.js')
 assert.equal(pkg.dsh.bundle.patch, './cordis.patch.yml', 'bundle patch 应指向 cordis.patch.yml')
@@ -75,7 +75,8 @@ const codexBundle = read('lib/skins/codex.js')
 assert.match(codexBundle, /data-dsh-codex/, 'codex bundle 应作用于 data-dsh-codex')
 assert.match(codexBundle, /backdrop-filter: blur\(20px\)/, 'codex 主界面应有毛玻璃磨砂（root backdrop-filter blur）')
 assert.match(codexBundle, /\.VOzbGW_panel \{ background: var\(--dsw-alias-bg-base\) !important; \}/, 'codex 设置面板应不透明（磨砂仅主界面）')
-assert.match(codexBundle, /specific-sidebar-fill: linear-gradient\(180deg, rgba\(26,33,46,0.96\)/, 'codex 侧边栏应有蓝黑过渡渐变（参考图侧边栏下部）')
+assert.match(codexBundle, /specific-sidebar-fill: linear-gradient\(135deg, rgba\(23,25,32,0.98\)/, 'codex 侧边栏应有蓝黑过渡渐变（135deg 左上黑→右下蓝，参考图侧边栏下部）')
+assert.match(codexBundle, /bg-mask-1: rgba\(0, 0, 0, 0.42\)/, 'codex 设置面板遮罩应为中性黑（背景变暗模糊，非蓝蒙层）')
 assert.match(codexBundle, /linear-gradient\(180deg, #1e2024 0%, #181818/, 'codex 暗色背景应有黑底过渡渐变')
 assert.match(read('lib/meta/codex.json'), /"name": "Codex 深蓝"/, 'codex 应有 meta 元数据')
 

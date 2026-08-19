@@ -18,7 +18,7 @@
 
 | 文件夹 | 作用 |
 |:---|:---|
-| `theme-center/` | 主题中心（一体化 v0.3.3）：24 款皮肤 + 「主题/外观」双 Tab 设置卡（试穿/应用/亮暗/遮罩 + 聊天宽度 + 聊天区精简百分比压制 + 会话区字号缩放 + 全站字体 + 隐藏思考/工具/上下文开关）；**配置保存到服务器（settings.yaml），一处配置、所有终端生效**；其他插件 UI 需适配它（见第六节主题适配契约） |
+| `theme-center/` | 主题中心（一体化 v0.3.4）：24 款皮肤 + 「主题/外观」双 Tab 设置卡（试穿/应用/亮暗/遮罩 + 聊天宽度 + 聊天区精简百分比压制 + 会话区字号缩放 + 全站字体 + 隐藏思考/工具/上下文开关）；**配置保存到服务器（settings.yaml），一处配置、所有终端生效**；其他插件 UI 需适配它（见第六节主题适配契约） |
 | `web-lan/` | dsh Web 局域网直连（免反代）：crypto polyfill + apiProxy relay + isLoopback |
 | `navbar/` | 对话节点导航条（贴左侧边栏，节点跳转/悬停预览/pin 精选，中英文定位） |
 | `notify-sound/` | 会话提示音（Web Audio 合成 6 音、事件触发、配置跨浏览器同步、提示音设置卡，皮肤令牌适配） |
@@ -37,7 +37,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 31 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 32 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+### 2026-08-17 theme-center 修复 Codex 深蓝：侧边栏渐变方向反了 + 设置面板遮罩变蓝 v0.3.4
+
+- 变更内容：用户反馈①侧边栏过渡色反了（应左上→右下黑→蓝）、②打开设置面板遮罩背景奇怪颜色。修复：① sidebar-fill `180deg`（上蓝下黑）→ `135deg` **左上黑→右下蓝**（暗/亮同步，body 暗色蓝黑光晕移右下呼应）；② **遮罩根因**：官方 `.VOzbGW_mask` 用 `--dsw-alias-bg-mask-1`（alias_set 按 brandDeep 生成 `rgba(30,111,208,0.4)` **半透明深蓝蒙层**）叠模糊背景=奇怪色；mask 系列改中性黑（暗 mask-1 `rgba(0,0,0,0.42)`/0.20/0.52/0.88，亮 0.30/0.12/0.40/0.80），遮罩=背景暗化+官方 blur(2px)+root blur(20px) 磨砂；smoke 断言更新（135deg+mask 黑）；版本 0.3.4
+- 涉及路径：`theme-center/lib/skins/codex.js`、`theme-center/tests/smoke.mjs`、`theme-center/package.json`、`theme-center/AGENTS.md`、`AGENTS.md`
+- 备注：**112 实测全过**（mask `rgba(0,0,0,0.42)`+blur(2px)、sidebar 135deg 左黑右蓝、root blur、panel 不透明；视觉模型评审：遮罩自然深黑毛玻璃/背景清晰模糊/渐变协调/无颜色异常）；111 已部署（预授权延迟重启）+ npm 0.3.4 已发布
+
 ### 2026-08-17 theme-center 新增自研皮肤：Codex 深蓝（参考 image/1.png 配色——黑底 + 蓝黑过渡渐变 + 磨砂毛玻璃，亮暗双形态）v0.3.3
 
 - 变更内容：用户需求"参考 image/1.png（Codex 主题）的侧边栏和会话区配色开发一个主题，只参考配色"+ "注意过渡色和磨砂质感"；确认亮暗双形态 + 磨砂仅主界面（设置面板不透明）。PIL 像素取色（模型不支持读图）：会话区近黑 `#181818`、侧边栏下部蓝黑渐变带 `#1a212d`→`#1a2030`、卡片/输入框 `#2a2a2a`、accent `#339cff`/`#95c9f9`、文字 `#dfdfdf`/`#b6b6b6`/`#8a8a8a`；生成 161 变量骨架 + 注入 root `backdrop-filter: blur(20px)` 磨砂 + 面板 rgba 半透明（bg-base 不透明）+ `.VOzbGW_panel` 设置面板不透明 + sidebar 蓝黑渐变 + body 双态渐变；踩坑：CSS 字符串拼接注入产生 `n body[...]` 非法选择器，改「解析 const CSS → 改写 → 重序列化」健壮注入；THEMES/SKIN_IDS/meta/smoke+8/README/§6 同步；版本 0.3.3

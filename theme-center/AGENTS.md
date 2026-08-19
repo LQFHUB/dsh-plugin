@@ -140,6 +140,12 @@
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
 
+### 2026-08-17 修复 Codex 深蓝：侧边栏渐变方向反了 + 设置面板遮罩变蓝 v0.3.4
+
+- 变更内容：用户反馈①"侧边栏过渡色颜色反了，应该是左上到右下从黑到蓝"、②"打开设置面板后遮罩应该是背景模糊，现在是打开后背景变了很奇怪的颜色"。修复：① sidebar-fill 渐变 `180deg`（上蓝下黑）→ **`135deg` 左上黑→右下蓝**（暗/亮同步；body 暗色 backdrop 蓝黑光晕从左下部移到右下角 88% 88% 呼应）；② **遮罩根因**：官方设置遮罩 `.VOzbGW_mask` 背景用 `--dsw-alias-bg-mask-1`，由 alias_set 用 brandDeep 生成 `rgba(30,111,208,0.4)` **半透明深蓝蒙层**叠在模糊背景上=奇怪颜色；修复 mask 系列改**中性黑**（暗：mask-1 `rgba(0,0,0,0.42)`/mask-2 0.20/mask-3 0.52/mask-photo 0.88；亮：0.30/0.12/0.40/0.80），遮罩=背景暗化+官方 blur(2px)+root blur(20px) 磨砂；smoke 断言更新（135deg + mask 黑）；版本 0.3.4
+- 涉及路径：`theme-center/lib/skins/codex.js`、`theme-center/tests/smoke.mjs`、`theme-center/package.json`、`theme-center/AGENTS.md`
+- 备注：**112 实测全过**（mask `rgba(0,0,0,0.42)` + blur(2px)、sidebar-fill 135deg 左黑右蓝、root blur、panel 不透明；视觉模型评审：遮罩自然深黑毛玻璃/背景清晰模糊/左侧渐变协调/无颜色异常/类 Codex 极简）；111 已部署（预授权，延迟重启）+ npm 0.3.4 已发布
+
 ### 2026-08-17 新增自研皮肤：Codex 深蓝（参考 image/1.png 配色——黑底 + 蓝黑过渡渐变 + 磨砂毛玻璃，亮暗双形态）v0.3.3
 
 - 变更内容：用户需求"参考 image/1.png（Codex 主题）的侧边栏和会话区配色开发一个主题，只参考配色"，并补充"注意过渡色和磨砂质感"；确认亮暗双形态 + 磨砂仅主界面（设置面板不透明）。**取色**（PIL 像素采样，模型不支持读图）：会话区近黑 `#181818` 79%、侧边栏下部大片蓝黑渐变带 `#1a212d`→`#1a2030`（y750~1750 占 60%）、卡片/输入框 `#2a2a2a`、accent 亮蓝 `#339cff`/浅蓝 `#95c9f9`、正文 `#dfdfdf`、次文字 `#b6b6b6`、弱文字 `#8a8a8a`、侧边栏文字 `#c2c3c3`。**实现**：`/tmp/gen-codex-only.py`（由 gen-skins.py 剥离）生成 161 变量亮/暗骨架 → 注入磨砂：root `backdrop-filter: blur(20px) saturate(1.15)` + 面板 rgba 半透明（layer-1 `rgba(30,32,37,0.86)` 等，bg-base 保持不透明）+ `.VOzbGW_panel { background: var(--dsw-alias-bg-base) !important }` 设置面板不透明（hash 类名 DSH 升级需复核）+ sidebar-fill 蓝黑渐变模拟过渡带 + body 双态渐变（暗：`#1e2024`→`#181818` 基底 + 左下部蓝黑光晕；亮：浅白底 + 淡蓝光晕）；**踩坑修复**：CSS 字符串注入拼接 bug 产生 `n body[...]` 非法选择器（规则永不匹配、设置面板仍半透明）——改用「解析 `const CSS` JSON 字符串 → 整体改写 → 重序列化」的健壮注入器（幂等）；注册表 THEMES +1（24 款）、宿主 SKIN_IDS +1、lib/meta/codex.json、smoke +8 断言、README 清单/数量、§6 验证清单 24 款皮肤；版本 0.3.3
