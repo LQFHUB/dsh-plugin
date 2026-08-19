@@ -21,7 +21,7 @@ const read = (rel) => readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8'
 
 // 1. 包清单
 assert.equal(pkg.name, '@npm-liqingfeng/dsh-theme-center', '包名应为 @npm-liqingfeng/dsh-theme-center')
-assert.equal(pkg.version, '0.3.7', '版本应为 0.3.5（14 款磨砂改造）')
+assert.equal(pkg.version, '0.4.2', '版本应为 0.3.5（14 款磨砂改造）')
 assert.equal(pkg.exports['.'], './lib/index.js', 'exports["."] 应指向 lib/index.js')
 assert.equal(pkg.exports['./client'], './lib/client.js', 'exports["./client"] 应指向 lib/client.js')
 assert.equal(pkg.dsh.bundle.patch, './cordis.patch.yml', 'bundle patch 应指向 cordis.patch.yml')

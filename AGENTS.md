@@ -37,7 +37,31 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 32 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 36 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+### 2026-08-17 theme-center 根治「白底白字」：撤销全局 foreground 白、仅自研暗色态保留按钮白字 v0.4.2
+
+- 变更内容：用户反馈"白色主题下仍有白底白字、其他主题也有（不只深海蓝）"。根因确认：v0.4.0 为修暗色按钮做的「14 款 `--dsw-alias-label-primary-foreground/-inverted:#ffffff` 全局兜底」误伤——官方浅底控件（下拉/Open 配置按钮/ghost 等默认浅灰底残留）用 foreground 即白→白字浅底。修复：①**撤销全局 foreground=白**（14 款）；②自研 6 款（cat/mint/cyber/apple/tokyo/nord）仅**暗色态**保留按钮白字（深底白字，亮色态回官方/皮肤自动对比）；③白色主题浅底控件回官方 foreground（浅底深字）。112 四主题两模式实测：白色（paper/sakura）New Session/OpenCfg/Light 卡=浅底深字、暗色（ocean/catppuccin）深底浅字——白底白字全消除；Light 卡沿 v0.4.1 的 module-platform 主题化（#20232a 深 / #f5f5f7 浅）保持。版本 0.4.2
+- 涉及路径：`theme-center/lib/skins/`×14、`theme-center/tests/smoke.mjs`、`theme-center/package.json`、`theme-center/AGENTS.md`、`AGENTS.md`
+- 备注：**112 验证通过**（4 主题×亮暗，全部满足高对比）；111 已部署（预授权延迟重启）；npm 0.4.2 已发布
+
+### 2026-08-17 theme-center 修复：设置面板 Appearance 主题色卡官方残留浅灰+白字看不清 v0.4.1
+
+- 变更内容：用户反馈"深海蓝的设置>通用设置>外观中浅色背景是白色、文字/图标也是白色，很多主题同样"。ui-ux-pro-max 审查 + 程序化定位：`.VOzbGW_panel` 内 Appearance 主题色卡 `._8HJdBW_themeCube._8HJdBW_selected` 背景走 `--dsw-alias-bg-module-platform`，而 dsh-skin 7 款（深海蓝等 27 令牌子集）未定义该令牌→落官方默认中灰 `#35363c` + 主题浅白字 → 浅灰底浅字模糊；border 走官方 `neutral-bluish-400` 浅灰刺眼。修复：14 款覆盖 `--dsw-alias-bg-module-platform` 为主题面板色（暗 #20232a/亮 #f5f5f7）+ `.VOzbGW_panel ._8HJdBW_selected{border-color:var(--dsw-alias-border-l2)}`；**踩坑**：首版用 `{{}}` 双花括号拼 CSS 生成空规则（CSSOM 排查发现），改单花括号后生效；harbor 自带 module-platform 深蓝无需改；112 复测深海蓝选中"Light"卡 bg 53,54,56→32,35,42（主题深面板）、border 浅灰细边框、深底浅字清晰；版本 0.4.1
+- 涉及路径：`theme-center/lib/skins/`×14、`theme-center/tests/smoke.mjs`、`theme-center/package.json`、`theme-center/AGENTS.md`、`AGENTS.md`
+- 备注：**112 验证通过**；111 已部署（预授权延迟重启）；npm 0.4.1 已发布
+
+### 2026-08-17 theme-center 14 款皮肤：侧边栏 codex 式渐变色 + 按钮可读性兜底 v0.4.0
+
+- 变更内容：用户反馈"其他主题没有类似 codex 的渐变色；有的白色主题新会话按钮白底白字看不清，很多按钮类似"。承接 v0.3.8（背景磨砂+组件适配）。本次：①**侧边栏 codex 式渐变**——v0.3.8 的背景光晕在 body 被内容层大面积遮挡几乎不可见（采样色差≤10），codex 渐变显眼处其实是侧边栏；给 14 款 `--dsw-specific-sidebar-fill` 覆盖为「顶部品牌 radial 光晕 + 135deg 对角三段渐变」（亮色浅品牌色系、暗色深品牌色系），nav-item active 同步适配；112 采样侧边栏顶→底色差明显（樱花粉 #f3cfdd→#e9b4cc、紫粉拿铁 #bdc7e2→#a0aacc、深海蓝 #14203a→#0d172a）——"看得到类似 codex 的对角渐变+顶部光晕"；②**按钮可读性**：程序化审查发现自研 6 款暗色态按钮 fill 与 label-primary-foreground 同色（对比 1.4~1.9 模糊）、dsh-skin 7 款完全未定义这些令牌（落官方默认）、harbor 全同色 1.0；白色主题实测 New Session 白底深字正常；统一兜底：14 款追加 `--dsw-alias-label-primary-foreground/-inverted:#ffffff`（所有深底按钮白字，对比≥6.4），112 复测 catppuccin 暗/skin-ocean 暗按钮底深字浅清晰、skin-paper 白底深字正常；版本 0.4.0
+- 涉及路径：`theme-center/lib/skins/`×14、`theme-center/tests/smoke.mjs`、`theme-center/package.json`、`theme-center/AGENTS.md`、`AGENTS.md`
+- 备注：**112 验证通过**；111 已部署（预授权延迟重启）；npm 0.4.0 已发布；skin bundle 至今多轮追加（background/layer/sidebar/foreground 覆盖段累积较大，建议后续一次清理合并为干净 CSS）
+
+### 2026-08-17 theme-center 14 款皮肤统一：codex 式对角渐变 + 磨砂玻璃 + 可读性修复 v0.3.8
+
+- 变更内容：用户要求"参考 codex 的渐变色与磨砂玻璃，其他主题也实现过渡色和磨砂效果；检查配色合理性（尤其白主题/组件不匹配）；注意图标与弱文字搭配看不清"。范围=14 款（上游仅 harbor + 自研 6 + dsh-skin 7；用户冻结 9 款 dsh-web-ui 不改）。分 8 轮实施：①审计（ui-ux-pro-max 配色/对比规范 + PIL 采样）定位问题：亮色主题侧边栏深品牌色（6 款）、发送按钮官方淡蓝 `#679EFE`（dsh-skin 未覆盖 button-info-fill）、mask 半透明品牌蓝、无磨砂；②修复组件：亮色侧边栏浅色化、发送按钮 info=品牌色、mask 中性黑、设置面板不透明；③-⑦打磨砂/渐变：root+卡片自身 backdrop-filter blur、面板 rgba 降透明（亮 0.72/暗 0.78）、按 ui-ux-pro-max「Modern Dark/Glass」规范做**codex 式对角 135deg 多段线性基底 + 品牌 radial 光晕**（避开纯黑纯白）；**踩坑**：CSS `radial-gradient(circle 55% 45% ...)` circle 双值非法→整条声明被丢回退旧值（浏览器 CSSOM 排查后改单值）；headless 无 GPU 不合成 backdrop-filter→磨砂需真实浏览器/soft 渲验证；⑧可读性：弱文字（label-tertiary/caption/dimmed）按半透明面板叠加模型重算对比——亮款加深、暗款提亮至 ≥4.7（原 3.3~4.5，sakura/paper 易看不清），harbor dimmed 保留弱灰禁用态；smoke 增 14 款磨砂/组件/亮色侧边栏断言；版本 0.3.8
+- 涉及路径：`theme-center/lib/skins/`×14、`theme-center/tests/smoke.mjs`、`theme-center/package.json`、`theme-center/README.md`、`theme-center/AGENTS.md`、`AGENTS.md`
+- 备注：**112 验证通过**（程序化：root/卡片 blur、面板 rgba、mask 黑、侧边栏浅色、发送按钮品牌色、tertiary 对比 4.76~12.27；视觉模型：樱花粉亮色"卡片半透明透出被模糊粉色光晕+对角渐变+玻璃层叠"、深海蓝暗色"磨砂半透明+深蓝光晕+景深"）；111 已部署（预授权延迟重启）；npm 0.3.8 已发布；14 款 bundle 在 0.3.3 新增 + 后期多轮追加段（大文件，包含多段 background/layer 覆盖，后续可清理合并）
+
 ### 2026-08-17 theme-center 修复 Codex 深蓝：侧边栏渐变方向反了 + 设置面板遮罩变蓝 v0.3.4
 
 - 变更内容：用户反馈①侧边栏过渡色反了（应左上→右下黑→蓝）、②打开设置面板遮罩背景奇怪颜色。修复：① sidebar-fill `180deg`（上蓝下黑）→ `135deg` **左上黑→右下蓝**（暗/亮同步，body 暗色蓝黑光晕移右下呼应）；② **遮罩根因**：官方 `.VOzbGW_mask` 用 `--dsw-alias-bg-mask-1`（alias_set 按 brandDeep 生成 `rgba(30,111,208,0.4)` **半透明深蓝蒙层**）叠模糊背景=奇怪色；mask 系列改中性黑（暗 mask-1 `rgba(0,0,0,0.42)`/0.20/0.52/0.88，亮 0.30/0.12/0.40/0.80），遮罩=背景暗化+官方 blur(2px)+root blur(20px) 磨砂；smoke 断言更新（135deg+mask 黑）；版本 0.3.4
