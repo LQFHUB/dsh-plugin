@@ -37,7 +37,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 36 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 37 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+### 2026-08-20 DSH 0.1.0-rc.8 升级（112 验证 + 111 部署）：theme-center 兼容 rc.8 模块系统（window.__DSH_MODULES__ 移除 → ctx.get("modules")）v0.4.3
+
+- 变更内容：按用户指示 112 升 DSH rc.6→rc.8 并验证有风险插件、通过后升 111（rc.7→rc.8）。**112 实测捕获并修复真兼容性问题**：rc.8 前端重构 client 模块系统，移除 `window.__DSH_MODULES__`（仅保留 `__ModuleLoader__` 注册 facade：mode/pendingQueue/load/create），theme-center 旧版皮肤全部加载失败（status「window.__DSH_MODULES__ 不可用」、body 无皮肤属性）。修复：`windowModules()` 双路径——rc.7 及更早 `window.__DSH_MODULES__`（未升级旧前端兼容） / rc.8 经真实根上下文 `realCtxRef.get("modules")`（dsh-client-modules 以 `ctx.reflect.provide("modules", moduleSystem)` 注册，`import/invalidate` API 与旧全局同构一致）；皮肤 bundle 走 `__ModuleLoader__.load` 自注册，**本身零修改兼容 rc.8**。版本 0.4.2→0.4.3 发布 npm（26 款皮肤全包）。112：DSH rc.8 + better-sidebar 装回 0.13.1（node-pty `allowBuilds: true` 放行本地编译 + profile `dsh.profile.bundles` 补 `dsh-better-sidebar` 注册）后重启；验证全过——console 0 错误、前端 rc.8 全套 bundle 加载、Plugins 三卡片（主题/提示音/图像理解）keyed slot 契约兼容渲染、theme-center 皮肤**自动恢复（catppuccin）与试穿（skin-ocean 深海蓝）**令牌/侧栏渐变/半透明/遮罩全部生效、web-lan LAN 直连全程正常、navbar 锚点（`[data-side=sidebar]` 分隔条）仍在无加载错误（当前会话无节点正常隐藏）、better-sidebar 客户端加载/容器/样式正常。111：备份 `/root/.dsh`（117MB tar）→ 同步 theme-center 0.4.3（md5 `0e342bda` 与本地/112 完全一致）→ npm -g dsh rc.8（官方 registry 强制，npmmirror 延迟）→ 延迟 detach 重启 `dsh-web.service`；验证全过——服务 active、rc.8、**Codex 深蓝皮肤自动恢复**（`--dsw-alias-bg-base #181818`）、三卡片渲染、console 0 错误
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/package.json`、`theme-center/AGENTS.md`、`AGENTS.md`；npm `@npm-liqingfeng/dsh-theme-center@0.4.3`；111/112 全局 dsh rc.8、112 `profiles/web/{package.json,dsh.profile.bundles,pnpm-workspace.yaml allowBuilds}`、111/112 `/root/.dsh.bak-rc8-*.tar.gz`
+- 备注：**教训**——theme-center 引用的 DSH client 模块系统契约再次兑现「DSH 升级需复核」：rc.8 移除 `window.__DSH_MODULES__`，改为 `ctx.get("modules")`；皮肤执行应在**真实根上下文**取模块系统而非硬编码 window 全局；111 前端从 rc.6(slots) 前端直升 rc.8（keyed slot 契约 0.4.3 兼容）；better-sidebar 此前 112 丢失系 08-17 重装 5 插件时未含（bundles 缺条目），已补装 0.13.1 并验证；112 npmmirror 元数据延迟致 `dsh add` 认不到刚发的 0.4.3，改 profile 目录 `pnpm install --registry=https://registry.npmjs.org/` 强制官方解决；备份产出 `/root/.dsh.bak-rc8-20260820-{020529,022042}.tar.gz`
+
 ### 2026-08-17 theme-center 根治「白底白字」：撤销全局 foreground 白、仅自研暗色态保留按钮白字 v0.4.2
 
 - 变更内容：用户反馈"白色主题下仍有白底白字、其他主题也有（不只深海蓝）"。根因确认：v0.4.0 为修暗色按钮做的「14 款 `--dsw-alias-label-primary-foreground/-inverted:#ffffff` 全局兜底」误伤——官方浅底控件（下拉/Open 配置按钮/ghost 等默认浅灰底残留）用 foreground 即白→白字浅底。修复：①**撤销全局 foreground=白**（14 款）；②自研 6 款（cat/mint/cyber/apple/tokyo/nord）仅**暗色态**保留按钮白字（深底白字，亮色态回官方/皮肤自动对比）；③白色主题浅底控件回官方 foreground（浅底深字）。112 四主题两模式实测：白色（paper/sakura）New Session/OpenCfg/Light 卡=浅底深字、暗色（ocean/catppuccin）深底浅字——白底白字全消除；Light 卡沿 v0.4.1 的 module-platform 主题化（#20232a 深 / #f5f5f7 浅）保持。版本 0.4.2

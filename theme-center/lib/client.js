@@ -17,10 +17,12 @@ window.__ModuleLoader__.load({
 		 * 服务）与背景遮罩滑杆（--dsw-skin-scrim）。
 		 *
 		 * 主题执行走内核自身的模块系统（与皮肤中心 try-on 相同路径）：
-		 * <script> 加载同源 bundle → __ModuleLoader__ 注册工厂 →
-		 * __DSH_MODULES__.import 物化（自动注入皮肤样式）→ apply(miniCtx)
+		 * <script> 加载同源 bundle → __ModuleLoader__.load 注册工厂 →
+		 * modules.import 物化（自动注入皮肤样式）→ apply(miniCtx)
 		 * 挂载。miniCtx 只提供 effect 生命周期，get 委托真实上下文
 		 * （ths/trading 皮肤可读取 connection 服务，缺失时优雅降级）。
+		 * 模块系统获取：rc.7 及更早 window.__DSH_MODULES__；rc.8 起
+		 * window 全局移除，改经 ctx.get("modules")（windowModules 内回退链）。
 		 *
 		 * 引擎为纯呈现层：不写配置文件、不发 cordis 事件、不触及模型请求；
 		 * 所有写入（body 属性、样式、favicon、document.title、DOM）都由
@@ -528,9 +530,15 @@ window.__ModuleLoader__.load({
 			});
 		}
 
-		/** 内核客户端模块系统（window.__DSH_MODULES__）。 */
+		/** 内核客户端模块系统：0.1.0-rc.7 及更早暴露为 window.__DSH_MODULES__；rc.8 起 window 全局移除，改经 client 根上下文 ctx.get("modules") 提供（dsh-client-modules 经 ctx.reflect.provide("modules", moduleSystem) 注册）。 */
 		function windowModules() {
-			return window.__DSH_MODULES__;
+			if (window.__DSH_MODULES__ !== undefined) return window.__DSH_MODULES__;
+			try {
+				const ctx = realCtxRef;
+				return ctx !== null && typeof ctx.get === "function" ? ctx.get("modules") : undefined;
+			} catch {
+				return undefined;
+			}
 		}
 
 		/** 加载并物化一个皮肤，返回其 apply。 */

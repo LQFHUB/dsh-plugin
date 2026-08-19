@@ -140,6 +140,12 @@
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
 
+### 2026-08-20 兼容 DSH 0.1.0-rc.8：内核模块系统获取改 ctx.get("modules")（window.__DSH_MODULES__ 已移除）v0.4.3
+
+- 变更内容：rc.8 前端重构 client 模块系统（@deepseek-ai/dsh-client-modules），**移除 `window.__DSH_MODULES__` 全局**（仅保留 `__ModuleLoader__` 注册 facade：mode/pendingQueue/load/create），模块系统实体改经 client 根上下文 `ctx.reflect.provide("modules", moduleSystem)` 提供。修复：`windowModules()` 双路径——rc.7 及更早 `window.__DSH_MODULES__`（未升级前端兼容）/ rc.8 `realCtxRef.get("modules")`（apply 时已保存真实根 ctx；miniCtx.get 委托同一上下文）；**`import`/`invalidate` API 与旧全局同构一致**（ClientModuleSystem），皮肤 bundle 走 `__ModuleLoader__.load` 自注册**零修改兼容**；顶部注释同步。版本 0.4.2→0.4.3 发布 npm（26 款皮肤全包）
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/package.json`、`theme-center/AGENTS.md`
+- 备注：**规范 4.2 更新（必须）**：模块系统获取=兼容双路径——`window.__DSH_MODULES__` 存在时优先（rc.7 及更早），否则 `realCtxRef.get("modules")`（rc.8+），**不得硬编码 window 全局**；「DSH 升级需复核」条款本次兑现为实测修复（rc.8 移除全局，112 首测捕获「window.__DSH_MODULES__ 不可用、皮肤无法加载」）；**112/111 实测全过**——catppuccin 自动恢复、skin-ocean 试穿成功、令牌/侧栏渐变/半透明/遮罩全生效、console 0 错误、Plugins 三卡片 keyed slot 兼容渲染；111 external 同步 md5 `0e342bda` 与本地/112 完全一致
+
 ### 2026-08-17 精刻 Codex 深蓝：侧边栏多层蓝黑过渡复刻参考图层次（右下蓝黑光晕 + 对角 135deg 多色标）v0.3.5
 
 - 变更内容：用户反馈"左侧边栏的过渡色不够细节、不够复刻、没有截图的高级"。对 image/1.png 侧边栏做二维颜色矩阵精细采样（x0/70/140…540 × y0/150…1800）：左上 `#1e2024` 灰黑 → 中 `#181818` 纯黑 → 右下 `#1a212d`/`#1a2030` 蓝黑加深，右段 x490+ 仍黑、x420 附近有条带——是复杂二维过渡而非单段线性。重刻 sidebar-fill 为**多层背景**：右下角 `radial-gradient(circle at 88% 94%, rgba(26,32,48,0.60))` 蓝黑光晕 + 左上一缕微光 `rgba(255,255,255,0.025)` + 对角 `linear-gradient(135deg, #1e2024→#181818(30%)→#1a212d(70%)→#1a2030)`；亮色同步（右下淡蓝光晕 + 135deg 浅灰）；body 暗色 backdrop 同步精刻（顶部蓝雾 + 右下蓝光 + 135deg 黑底）；smoke 断言更新（多层 radial+135deg）；版本 0.3.5
