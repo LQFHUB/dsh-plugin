@@ -1,0 +1,21 @@
+{
+  "id": "codex",
+  "name": "Codex 深蓝",
+  "nameEn": "Codex 深蓝",
+  "author": "LQFHUB（theme-center 自研）",
+  "tagline": "Codex AI 极简深空 · 黑底 + 蓝黑过渡渐变 · 磨砂毛玻璃面板 · 亮暗双形态",
+  "description": "Codex AI 极简深空 · 黑底 + 蓝黑过渡渐变 · 磨砂毛玻璃面板 · 亮暗双形态",
+  "tags": [
+    "theme-center",
+    "custom"
+  ],
+  "accent": "#339cff",
+  "bodyAttr": "data-dsh-codex",
+  "package": "@user/dsh-client-ui-skin-codex",
+  "wiring": {
+    "id": "ui-skin-codex",
+    "bundleWired": false
+  },
+  "preview": {},
+  "order": 20
+}

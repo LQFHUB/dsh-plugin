@@ -54,6 +54,7 @@ window.__ModuleLoader__.load({
 			{ id: "skin-midnight", name: "深夜黑", accent: "#7c8cff", tagline: "纯黑 OLED · 极简深邃 · 暗色系", attr: "data-dsh-skin-midnight", package: "@user/dsh-client-ui-skin-skin-midnight", readsScrim: false },
 			{ id: "skin-paper", name: "暖纸", accent: "#b45309", tagline: "暖纸米黄 · 护眼柔和 · 亮色系", attr: "data-dsh-skin-paper", package: "@user/dsh-client-ui-skin-skin-paper", readsScrim: false },
 			{ id: "skin-sakura", name: "樱花粉", accent: "#db2777", tagline: "樱花粉 · 温柔治愈 · 亮色系", attr: "data-dsh-skin-sakura", package: "@user/dsh-client-ui-skin-skin-sakura", readsScrim: false },
+			{ id: "codex", name: "Codex 深蓝", accent: "#339cff", tagline: "Codex AI 极简深空 · 黑底 + 蓝黑过渡渐变 · 磨砂毛玻璃面板 · 亮暗双形态", attr: "data-dsh-codex", package: "@user/dsh-client-ui-skin-codex", readsScrim: false },
 		];
 		const THEME_BY_ID = new Map(THEMES.map((t) => [t.id, t]));
 

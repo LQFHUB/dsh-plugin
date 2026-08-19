@@ -18,7 +18,7 @@
 
 | 文件夹 | 作用 |
 |:---|:---|
-| `theme-center/` | 主题中心（一体化 v0.3.0）：23 款皮肤 + 「主题/外观」双 Tab 设置卡（试穿/应用/亮暗/遮罩 + 聊天宽度 + 聊天区精简百分比压制 + 会话区字号缩放 + 全站字体 + 隐藏思考/工具/上下文开关）；**配置保存到服务器（settings.yaml），一处配置、所有终端生效**；其他插件 UI 需适配它（见第六节主题适配契约） |
+| `theme-center/` | 主题中心（一体化 v0.3.3）：24 款皮肤 + 「主题/外观」双 Tab 设置卡（试穿/应用/亮暗/遮罩 + 聊天宽度 + 聊天区精简百分比压制 + 会话区字号缩放 + 全站字体 + 隐藏思考/工具/上下文开关）；**配置保存到服务器（settings.yaml），一处配置、所有终端生效**；其他插件 UI 需适配它（见第六节主题适配契约） |
 | `web-lan/` | dsh Web 局域网直连（免反代）：crypto polyfill + apiProxy relay + isLoopback |
 | `navbar/` | 对话节点导航条（贴左侧边栏，节点跳转/悬停预览/pin 精选，中英文定位） |
 | `notify-sound/` | 会话提示音（Web Audio 合成 6 音、事件触发、配置跨浏览器同步、提示音设置卡，皮肤令牌适配） |
@@ -37,7 +37,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 30 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 31 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+### 2026-08-17 theme-center 新增自研皮肤：Codex 深蓝（参考 image/1.png 配色——黑底 + 蓝黑过渡渐变 + 磨砂毛玻璃，亮暗双形态）v0.3.3
+
+- 变更内容：用户需求"参考 image/1.png（Codex 主题）的侧边栏和会话区配色开发一个主题，只参考配色"+ "注意过渡色和磨砂质感"；确认亮暗双形态 + 磨砂仅主界面（设置面板不透明）。PIL 像素取色（模型不支持读图）：会话区近黑 `#181818`、侧边栏下部蓝黑渐变带 `#1a212d`→`#1a2030`、卡片/输入框 `#2a2a2a`、accent `#339cff`/`#95c9f9`、文字 `#dfdfdf`/`#b6b6b6`/`#8a8a8a`；生成 161 变量骨架 + 注入 root `backdrop-filter: blur(20px)` 磨砂 + 面板 rgba 半透明（bg-base 不透明）+ `.VOzbGW_panel` 设置面板不透明 + sidebar 蓝黑渐变 + body 双态渐变；踩坑：CSS 字符串拼接注入产生 `n body[...]` 非法选择器，改「解析 const CSS → 改写 → 重序列化」健壮注入；THEMES/SKIN_IDS/meta/smoke+8/README/§6 同步；版本 0.3.3
+- 涉及路径：`theme-center/lib/skins/codex.js`、`theme-center/lib/meta/codex.json`、`theme-center/lib/{client,index}.js`、`theme-center/package.json`、`theme-center/tests/smoke.mjs`、`theme-center/README.md`、`theme-center/AGENTS.md`、`AGENTS.md`
+- 备注：**112 实测全过**（暗色 bgBase `#181818`/layer1 rgba 半透明/sidebar 蓝黑渐变/root blur(20px)/设置面板 rgb(24,24,24) 不透明；亮色 bgBase `#f7f7f8`/浅灰 sidebar 渐变/blur 保留；视觉模型评审磨砂克制精致、渐变深邃、类 Codex 极简风；验证用服务器 settings theme=codex，验证后还原）；112 为 npm 安装（external 已删），更新走覆盖 `profiles/web/node_modules/@npm-liqingfeng/dsh-theme-center` 包目录 + 重启；111 link 安装（rsync external）；npm 0.3.3 待发布
+
 ### 2026-08-17 修复：settings.plugin.item keyed slot 契约适配（rc.7 前端 key=设置命名空间）+ 112 全新安装 5 插件
 
 - 变更内容：112 全新 npm 安装 5 插件后浏览器报 `Failed to load plugins / keyed slot "settings.plugin.item" requires options.key`——根因：112 前端依赖 `dsh-client-ui-slots@0.1.0-rc.7`（111 为 rc.6），rc.7 将 `settings.plugin.item` 改为 **keyed slot：必须 `options.key` 且 key = 卡片编辑的设置命名空间**（官方 dsh-client-ui-settings-plugins 注释 "keyed by the namespace it edits"，渲染按 `entryKey: ns` 过滤）；旧代码只传 `id`（rc.6 list 契约）。修复三插件 `slots.register` 同时补 `key`（兼容 rc.6 list 要求 id + rc.7 keyed 要求 key）：theme-center `key: "theme"→"theme-center"`（**首版 0.3.1 误用 "theme" 致卡片不渲染**，0.3.2 修正；notify-sound/describe-image 的 key 恰等于命名空间首版即成功）；版本 theme-center 0.3.0→0.3.2、notify-sound/describe-image 0.1.0→0.1.1 重新发布 npm；smoke 补 key 契约断言；112 显式版本号升级（`add <pkg>@<ver>`，首次 0.3.2 因刚发布 pnpm 失败重试即好）+ 重启；**112 实测全过**：console 0 错误、Plugins 配置页三卡片渲染（主题/提示音/图像理解）、主题卡片 23 款皮肤 + 双 Tab + 服务端同步提示 + 紫粉拿铁已应用；另确认 112 升级时需 `minimumReleaseAge: 0`（pnpm-workspace.yaml）与 profile `.npmrc` 官方 registry（全局 npmmirror 延迟）

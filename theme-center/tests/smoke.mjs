@@ -21,7 +21,7 @@ const read = (rel) => readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8'
 
 // 1. 包清单
 assert.equal(pkg.name, '@npm-liqingfeng/dsh-theme-center', '包名应为 @npm-liqingfeng/dsh-theme-center')
-assert.equal(pkg.version, '0.3.2', '版本应为 0.3.2（keyed slot 适配）')
+assert.equal(pkg.version, '0.3.3', '版本应为 0.3.3（Codex 深蓝皮肤）')
 assert.equal(pkg.exports['.'], './lib/index.js', 'exports["."] 应指向 lib/index.js')
 assert.equal(pkg.exports['./client'], './lib/client.js', 'exports["./client"] 应指向 lib/client.js')
 assert.equal(pkg.dsh.bundle.patch, './cordis.patch.yml', 'bundle patch 应指向 cordis.patch.yml')
@@ -66,6 +66,18 @@ for (const f of skinFiles) {
   assert.ok(skinIds.includes(f.replace(/\.js$/, '')), `lib/skins/${f} 应在注册表中登记`)
 }
 assert.equal(skinIds.length, skinFiles.length, '注册表皮肤数应与 lib/skins 文件数一致')
+// Codex 深蓝专项：参照 image/1.png 配色，黑底+蓝黑过渡+磨砂（2026-08-17 新增）
+assert.ok(themeIds.includes('codex'), '注册表应含 codex（Codex 深蓝）')
+assert.match(clientSrc, /"codex", name: "Codex 深蓝", accent: "#339cff"/, 'codex 注册条目应为中文名 Codex 深蓝 + 蓝 accent')
+assert.match(clientSrc, /attr: "data-dsh-codex"/, 'codex 应注册 data-dsh-codex 属性')
+assert.ok(skinFiles.includes('codex.js'), '注册表 codex 应有 lib/skins/codex.js 文件')
+const codexBundle = read('lib/skins/codex.js')
+assert.match(codexBundle, /data-dsh-codex/, 'codex bundle 应作用于 data-dsh-codex')
+assert.match(codexBundle, /backdrop-filter: blur\(20px\)/, 'codex 主界面应有毛玻璃磨砂（root backdrop-filter blur）')
+assert.match(codexBundle, /\.VOzbGW_panel \{ background: var\(--dsw-alias-bg-base\) !important; \}/, 'codex 设置面板应不透明（磨砂仅主界面）')
+assert.match(codexBundle, /specific-sidebar-fill: linear-gradient\(180deg, rgba\(26,33,46,0.96\)/, 'codex 侧边栏应有蓝黑过渡渐变（参考图侧边栏下部）')
+assert.match(codexBundle, /linear-gradient\(180deg, #1e2024 0%, #181818/, 'codex 暗色背景应有黑底过渡渐变')
+assert.match(read('lib/meta/codex.json'), /"name": "Codex 深蓝"/, 'codex 应有 meta 元数据')
 
 // 5. 一体化模块存在性（宽度 / 精简 / 双 Tab）
 assert.match(clientSrc, /const WIDTH_PRESETS = \[896, 1024, 1152, 1280, 1440, 1600\]/, '应有 6 档宽度预设')

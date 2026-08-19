@@ -115,13 +115,13 @@
 1. **本地检查**：`node --check` 全部 JS；注册表与 `lib/skins/` 文件一一对应；disposer 配对检查。
 2. **112 验证**（playwright-core + chromium headless，沿用既有方法）：
    - 页面注入 `theme-center/client.js`；`/api/theme-center/bundle/<id>` 返回 200 + 皮肤脚本；
-   - 卡片：24 行（官方默认 + 23 皮肤）、行内容齐全；**双 Tab（主题/外观）渲染与切换**；
+   - 卡片：25 行（官方默认 + 24 皮肤）、行内容齐全；**双 Tab（主题/外观）渲染与切换**；
    - 试穿 / 退出试穿**完全还原**（属性、背景、样式、DOM、标题）；
    - **先试穿再应用同一主题**：应用后主题保持（属性/背景/样式标签齐全，不回默认）——2026-08-16 实测踩坑场景，必须回归；
    - 应用 / localStorage 持久化 / **刷新自动恢复**；
    - 官方默认**干净还原**（无皮肤属性/样式/DOM，标题还原）；
    - 亮暗预览、背景遮罩滑杆（含持久化）；
-   - 23 款皮肤全量冒烟（逐款应用核对 body 属性）；
+   - 24 款皮肤全量冒烟（逐款应用核对 body 属性）；
    - DOM 皮肤抽查（xp 任务栏/开始按钮、miku 标题栏）、多皮肤连续切换标题链；
    - **聊天宽度**：外观 Tab 选档 → 对话列/输入框变宽 + localStorage 持久化 + 刷新恢复；标题栏无宽度按钮；
    - **聊天区精简**：0% / 70% / 100% 三档计算样式断言（Think 标题字号与摘要透明度、工具卡行高、Context 卡来源透明度）；0% 与卸载态完全一致；`body[data-tc-focus]` 门控属性存在/移除成对；
@@ -139,6 +139,12 @@
 
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
+
+### 2026-08-17 新增自研皮肤：Codex 深蓝（参考 image/1.png 配色——黑底 + 蓝黑过渡渐变 + 磨砂毛玻璃，亮暗双形态）v0.3.3
+
+- 变更内容：用户需求"参考 image/1.png（Codex 主题）的侧边栏和会话区配色开发一个主题，只参考配色"，并补充"注意过渡色和磨砂质感"；确认亮暗双形态 + 磨砂仅主界面（设置面板不透明）。**取色**（PIL 像素采样，模型不支持读图）：会话区近黑 `#181818` 79%、侧边栏下部大片蓝黑渐变带 `#1a212d`→`#1a2030`（y750~1750 占 60%）、卡片/输入框 `#2a2a2a`、accent 亮蓝 `#339cff`/浅蓝 `#95c9f9`、正文 `#dfdfdf`、次文字 `#b6b6b6`、弱文字 `#8a8a8a`、侧边栏文字 `#c2c3c3`。**实现**：`/tmp/gen-codex-only.py`（由 gen-skins.py 剥离）生成 161 变量亮/暗骨架 → 注入磨砂：root `backdrop-filter: blur(20px) saturate(1.15)` + 面板 rgba 半透明（layer-1 `rgba(30,32,37,0.86)` 等，bg-base 保持不透明）+ `.VOzbGW_panel { background: var(--dsw-alias-bg-base) !important }` 设置面板不透明（hash 类名 DSH 升级需复核）+ sidebar-fill 蓝黑渐变模拟过渡带 + body 双态渐变（暗：`#1e2024`→`#181818` 基底 + 左下部蓝黑光晕；亮：浅白底 + 淡蓝光晕）；**踩坑修复**：CSS 字符串注入拼接 bug 产生 `n body[...]` 非法选择器（规则永不匹配、设置面板仍半透明）——改用「解析 `const CSS` JSON 字符串 → 整体改写 → 重序列化」的健壮注入器（幂等）；注册表 THEMES +1（24 款）、宿主 SKIN_IDS +1、lib/meta/codex.json、smoke +8 断言、README 清单/数量、§6 验证清单 24 款皮肤；版本 0.3.3
+- 涉及路径：`theme-center/lib/skins/codex.js`、`theme-center/lib/meta/codex.json`、`theme-center/lib/{client,index}.js`、`theme-center/package.json`（0.3.3）、`theme-center/tests/smoke.mjs`、`theme-center/README.md`、`theme-center/AGENTS.md`
+- 备注：**112 实测全过**（暗色 bgBase `#181818` + layer1 rgba 半透明 + sidebar 蓝黑渐变 + root blur(20px) + 设置面板 rgb(24,24,24) 不透明 + body 渐变；亮色 bgBase `#f7f7f8` + 浅灰 sidebar 渐变 + blur 保留；视觉模型评审：磨砂克制精致、渐变深邃、可读性好、类 Codex/现代 IDE 极简风；112 验证用服务器 settings theme=codex，验证后还原）；112 为 npm 安装（external 已不存在），更新走覆盖 `profiles/web/node_modules/@npm-liqingfeng/dsh-theme-center` 包目录 + 重启；**111 待部署**（link 安装，rsync external）；npm 0.3.3 待发布
 
 ### 2026-08-17 修复：settings.plugin.item keyed slot 契约（rc.7 前端 key=设置命名空间），发布 0.3.2
 
