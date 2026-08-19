@@ -21,7 +21,7 @@ const read = (rel) => readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8'
 
 // 1. 包清单
 assert.equal(pkg.name, '@npm-liqingfeng/dsh-theme-center', '包名应为 @npm-liqingfeng/dsh-theme-center')
-assert.equal(pkg.version, '0.3.5', '版本应为 0.3.5（Codex 深蓝皮肤）')
+assert.equal(pkg.version, '0.3.6', '版本应为 0.3.5（14 款磨砂改造）')
 assert.equal(pkg.exports['.'], './lib/index.js', 'exports["."] 应指向 lib/index.js')
 assert.equal(pkg.exports['./client'], './lib/client.js', 'exports["./client"] 应指向 lib/client.js')
 assert.equal(pkg.dsh.bundle.patch, './cordis.patch.yml', 'bundle patch 应指向 cordis.patch.yml')
@@ -79,6 +79,21 @@ assert.match(codexBundle, /specific-sidebar-fill: radial-gradient\(circle at 88%
 assert.match(codexBundle, /bg-mask-1: rgba\(0, 0, 0, 0.42\)/, 'codex 设置面板遮罩应为中性黑（背景变暗模糊，非蓝蒙层）')
 assert.match(codexBundle, /linear-gradient\(135deg, #1e2024 0%, #181818 32%/, 'codex 暗色背景应有对角黑底多层渐变')
 assert.match(read('lib/meta/codex.json'), /"name": "Codex 深蓝"/, 'codex 应有 meta 元数据')
+
+// 其余 13 款目标皮肤（2026-08-17 统一改造）：磨砂 root blur / 发送按钮 info 品牌色 / mask 中性黑 / 设置面板不透明
+const FROST_TARGETS = ['harbor','catppuccin','mint-fresh','cyber-neon','apple-minimal','tokyo-night','nord','skin-ocean','skin-graphite','skin-forest','skin-sunset','skin-midnight','skin-paper','skin-sakura']
+for (const t of FROST_TARGETS) {
+  const b = read('lib/skins/' + t + '.js')
+  assert.match(b, /backdrop-filter: ?blur\(20px\)/, t + ' 应有磨砂 root blur')
+  assert.match(b, /button-info-fill/, t + ' 发送按钮应使用品牌主色（info-fill）')
+  assert.match(b, /bg-mask-1: ?rgba\(0, ?0, ?0,/, t + ' 设置遮罩应为中性黑（非品牌深色蒙层）')
+  assert.match(b, /VOzbGW_panel/, t + ' 设置面板应不透明')
+}
+// 亮暗双形态 6 款：亮色态侧边栏应浅色化（不与白主题割裂）
+const LIGHT_SIDE = ['catppuccin','mint-fresh','cyber-neon','apple-minimal','tokyo-night','nord']
+for (const t of LIGHT_SIDE) {
+  assert.match(read('lib/skins/' + t + '.js'), /:not\(\[data-ds-dark-theme\]\) \{ --dsw-specific-sidebar-fill/, t + ' 亮色态侧边栏应浅色化')
+}
 
 // 5. 一体化模块存在性（宽度 / 精简 / 双 Tab）
 assert.match(clientSrc, /const WIDTH_PRESETS = \[896, 1024, 1152, 1280, 1440, 1600\]/, '应有 6 档宽度预设')
