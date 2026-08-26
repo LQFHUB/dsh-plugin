@@ -428,14 +428,84 @@ window.__ModuleLoader__.load({
 			}
 		}
 
-		/** 外观扩展 store：三个状态共享一个快照（useSyncExternalStore 需稳定引用）。 */
+				//#region 玻璃质感增强层（参考 NoNameLeGo/dsh-catppuccin-theme MIT；color-mix 从皮肤令牌派生，自动跟随任意主题亮/暗）
+		const GLASS_KEY = "dsh-theme-center:glass:v1";
+		const GLASS_FIELD = { enabled: "glassEnabled", blur: "glassBlur", frost: "glassFrost" };
+		const GLASS_BLUR_DEFAULT = 14;
+		const GLASS_FROST_DEFAULT = 50;
+		const GLASS_ENABLED_DEFAULT = false;
+
+		function readSavedGlass() {
+			try {
+			const raw = readStored(GLASS_KEY);
+			if (raw === null) return { enabled: GLASS_ENABLED_DEFAULT, blur: GLASS_BLUR_DEFAULT, frost: GLASS_FROST_DEFAULT };
+			const obj = JSON.parse(raw);
+			return { enabled: obj.enabled === true, blur: Number.isFinite(obj.blur) ? Math.max(0, Math.min(40, obj.blur)) : GLASS_BLUR_DEFAULT, frost: Number.isFinite(obj.frost) ? Math.max(0, Math.min(100, obj.frost)) : GLASS_FROST_DEFAULT };
+			} catch { return { enabled: GLASS_ENABLED_DEFAULT, blur: GLASS_BLUR_DEFAULT, frost: GLASS_FROST_DEFAULT }; }
+		}
+
+		let glassStyleEl = null;
+		let glassStampDisposer = null;
+
+		function glassCss() {
+			return [
+				"[data-tc-glass] body{--tc-glass-card:color-mix(in srgb,var(--dsw-alias-bg-layer-1) calc(52% * var(--tc-glass-frost,1)),transparent);--tc-glass-card-raised:color-mix(in srgb,var(--dsw-alias-bg-layer-1) calc(64% * var(--tc-glass-frost,1)),transparent);--tc-glass-card-hover:color-mix(in srgb,var(--dsw-alias-bg-layer-1) calc(76% * var(--tc-glass-frost,1)),transparent);--tc-glass-rim:color-mix(in srgb,var(--dsw-alias-label-primary) 18%,transparent);--tc-glass-rim-soft:color-mix(in srgb,var(--dsw-alias-label-primary) 12%,transparent);--tc-glass-edge:inset 0 1px 0 rgba(255,255,255,0.42);--tc-glass-drop:0 10px 32px color-mix(in srgb,var(--dsw-alias-bg-mask-2) 38%,transparent);background:var(--dsw-alias-bg-base)}",
+				"[data-tc-glass] body[data-ds-dark-theme]{--tc-glass-rim:color-mix(in srgb,var(--dsw-alias-label-primary) 24%,transparent);--tc-glass-rim-soft:color-mix(in srgb,var(--dsw-alias-label-primary) 16%,transparent);--tc-glass-edge:inset 0 1px 0 rgba(255,255,255,0.08);--tc-glass-drop:0 10px 32px rgba(2,6,14,0.45)}",
+				'[data-tc-glass] [data-tc-glass-frame]{background:transparent}',
+				'[data-tc-glass] [data-tc-glass-details]{background:transparent}',
+				'[data-tc-glass] [data-phase] [class*="composerSeat"]{background:none}',
+				"[data-tc-glass] [data-tc-glass-surface],[data-tc-glass] [data-tc-glass-add],[data-tc-glass] header,[data-tc-glass] [data-tc-glass-sidebar-root],[data-tc-glass] [data-tc-glass-inputbar]{background:var(--tc-glass-card-raised);border:1px solid var(--tc-glass-rim);box-shadow:var(--tc-glass-edge);backdrop-filter:blur(var(--tc-glass-blur,14px));-webkit-backdrop-filter:blur(var(--tc-glass-blur,14px))}",
+				"[data-tc-glass] [data-tc-glass-trajectory]{background:var(--tc-glass-card);border:1px solid var(--tc-glass-rim-soft);box-shadow:var(--tc-glass-drop);backdrop-filter:blur(var(--tc-glass-blur,14px));-webkit-backdrop-filter:blur(var(--tc-glass-blur,14px))}",
+				"[data-tc-glass] [data-tc-glass-stats]{background:var(--tc-glass-card);border:1px solid var(--dsw-alias-border-l2);box-shadow:var(--tc-glass-edge)}",
+				"[data-tc-glass] .VOzbGW_panel{background:var(--dsw-alias-bg-base)!important}",
+			].join("");
+		}
+
+		const GLASS_SEAMS = [
+			{ attribute: "data-tc-glass-frame", selector: ":has(> [class*='sidebarCol'])" },
+			{ attribute: "data-tc-glass-sidebar-root", selector: "[class*='sidebarCol'] [class*='root']", first: true },
+			{ attribute: "data-tc-glass-surface", selector: "button[class*='newSession']" },
+			{ attribute: "data-tc-glass-trajectory", selector: "[data-conversation-composer-overlay]" },
+			{ attribute: "data-tc-glass-details", selector: "[class*='detailsCol'] [class*='root']", first: true },
+			{ attribute: "data-tc-glass-inputbar", selector: ":has(> [data-composer-card])" },
+			{ attribute: "data-tc-glass-add", selector: "[data-composer-card] [class*='add']" },
+			{ attribute: "data-tc-glass-stats", selector: "[data-slot='conversation.composer.dock'] [class*='root']" },
+		];
+		function stampGlass() {
+			for (const seam of GLASS_SEAMS) {
+						if (seam.first) { const el = document.querySelector(seam.selector); if (el !== null && !el.hasAttribute(seam.attribute)) el.setAttribute(seam.attribute, ""); }
+						else { for (const el of document.querySelectorAll(seam.selector)) { if (!el.hasAttribute(seam.attribute)) el.setAttribute(seam.attribute, ""); } }
+			}
+		}
+		function startGlassStamper() { stampGlass(); if (typeof MutationObserver === "undefined") return () => {}; const o = new MutationObserver(stampGlass); o.observe(document.documentElement, { childList: true, subtree: true }); return () => o.disconnect(); }
+
+		function applyGlassState() {
+			const html = document.documentElement;
+			if (html != null) {
+				if (currentGlass.enabled) { html.setAttribute("data-tc-glass", ""); html.style.setProperty("--tc-glass-blur", String(currentGlass.blur) + "px"); html.style.setProperty("--tc-glass-frost", String(currentGlass.frost / 50)); }
+				else { html.removeAttribute("data-tc-glass"); html.style.removeProperty("--tc-glass-blur"); html.style.removeProperty("--tc-glass-frost"); }
+			}
+			if (glassStyleEl !== null) glassStyleEl.textContent = glassCss();
+		}
+
+		let currentGlass = readSavedGlass();
+		function setGlass(key, value) {
+			if (!Object.prototype.hasOwnProperty.call(currentGlass, key)) return;
+			const clamped = key === "enabled" ? !!value : Math.max(0, Math.min(key === "blur" ? 40 : 100, Math.round(value)));
+			const next = Object.assign({}, currentGlass, { [key]: clamped });
+			if (JSON.stringify(next) === JSON.stringify(currentGlass)) return;
+			currentGlass = next; writeStored(GLASS_KEY, JSON.stringify(next)); applyGlassState(); notifyAppearance(); scheduleServerWrite(GLASS_FIELD[key], next[key]);
+		}
+		//#endregion
+
+/** 外观扩展 store：三个状态共享一个快照（useSyncExternalStore 需稳定引用）。 */
 		let currentTextScale = readSavedTextScale();
 		let currentFont = readSavedFont();
 		let currentHide = readSavedHide();
-		let appearanceSnapshot = { textScale: currentTextScale, font: currentFont, hide: currentHide };
+		let appearanceSnapshot = { textScale: currentTextScale, font: currentFont, hide: currentHide, glass: currentGlass };
 		const appearanceListeners = new Set();
 		function notifyAppearance() {
-			appearanceSnapshot = { textScale: currentTextScale, font: currentFont, hide: currentHide };
+			appearanceSnapshot = { textScale: currentTextScale, font: currentFont, hide: currentHide, glass: currentGlass };
 			for (const listener of [...appearanceListeners]) listener();
 		}
 		function subscribeAppearance(listener) {
@@ -981,6 +1051,20 @@ window.__ModuleLoader__.load({
 						}),
 						react.createElement("span", { key: "t" }, label),
 					])),
+							react.createElement("div", { className: "tc-secTitle", key: "glassTitle" }, "玻璃质感"),
+				react.createElement("label", { className: "tc-checkRow", key: "glassEnable" }, [
+					react.createElement("input", { type: "checkbox", className: "tc-check", checked: !!appearanceState.glass.enabled, key: "i", onChange: (event) => setGlass("enabled", event.target.checked) }),
+					react.createElement("span", { key: "t" }, "启用玻璃拟态（边框/高光/投影，配色自动跟随当前主题）"),
+				]),
+				react.createElement("div", { className: "tc-scrimRow", key: "glassBlurRow" }, [
+					react.createElement("label", { className: "tc-scrimLabel", htmlFor: "tc-glass-blur", key: "l" }, "模糊度 " + appearanceState.glass.blur + "px"),
+					react.createElement("input", { id: "tc-glass-blur", className: "tc-scrim", type: "range", min: "0", max: "40", step: "1", value: String(appearanceState.glass.blur), key: "i", onChange: (event) => setGlass("blur", Number(event.target.value)) }),
+				]),
+				react.createElement("div", { className: "tc-scrimRow", key: "glassFrostRow" }, [
+					react.createElement("label", { className: "tc-scrimLabel", htmlFor: "tc-glass-frost", key: "l" }, "磨砂度 " + appearanceState.glass.frost + "%"),
+					react.createElement("input", { id: "tc-glass-frost", className: "tc-scrim", type: "range", min: "0", max: "100", step: "5", value: String(appearanceState.glass.frost), key: "i", onChange: (event) => setGlass("frost", Number(event.target.value)) }),
+				]),
+				react.createElement("p", { className: "tc-note", key: "glassNote" }, "开启后顶栏/侧边栏/输入框/统计行/聊天气泡呈磨砂玻璃卡片（半透明+边框+白顶高光+投影），关闭=官方原样"),
 			];
 
 			return react.createElement("li", {
@@ -1020,7 +1104,7 @@ window.__ModuleLoader__.load({
 		/** 滑杆类字段服务器写去抖（拖动时防刷屏）。 */
 		const WRITE_DEBOUNCE_MS = 400;
 		/** 去抖字段（离散控件即时写）。 */
-		const SERVER_DEBOUNCED_FIELDS = { scrim: true, focus: true, textScale: true };
+		const SERVER_DEBOUNCED_FIELDS = { scrim: true, focus: true, textScale: true , glassBlur: true, glassFrost: true };
 		/** 隐藏开关本地键 → 服务器字段名。 */
 		const HIDE_FIELD = { think: "hideThink", tool: "hideTool", context: "hideContext" };
 
@@ -1036,6 +1120,9 @@ window.__ModuleLoader__.load({
 				hideThink: false,
 				hideTool: false,
 				hideContext: false,
+				glassEnabled: false,
+				glassBlur: 14,
+				glassFrost: 50,
 			};
 		}
 
@@ -1057,6 +1144,9 @@ window.__ModuleLoader__.load({
 			out.hideThink = value.hideThink === true;
 			out.hideTool = value.hideTool === true;
 			out.hideContext = value.hideContext === true;
+			out.glassEnabled = value.glassEnabled === true;
+			out.glassBlur = num(value.glassBlur, 0, 40, 14);
+			out.glassFrost = num(value.glassFrost, 0, 100, 50);
 			return out;
 		}
 
@@ -1072,6 +1162,9 @@ window.__ModuleLoader__.load({
 				{ field: "hideThink", op: "set", value: currentHide.think === true },
 				{ field: "hideTool", op: "set", value: currentHide.tool === true },
 				{ field: "hideContext", op: "set", value: currentHide.context === true },
+				{ field: "glassEnabled", op: "set", value: currentGlass.enabled === true },
+				{ field: "glassBlur", op: "set", value: currentGlass.blur },
+				{ field: "glassFrost", op: "set", value: currentGlass.frost },
 			];
 		}
 
@@ -1216,6 +1309,9 @@ window.__ModuleLoader__.load({
 				setHide("think", value.hideThink);
 				setHide("tool", value.hideTool);
 				setHide("context", value.hideContext);
+				setGlass("enabled", value.glassEnabled);
+				setGlass("blur", value.glassBlur);
+				setGlass("frost", value.glassFrost);
 			} finally {
 				applyingRemote = false;
 			}
@@ -1367,6 +1463,12 @@ window.__ModuleLoader__.load({
 					delete document.body.dataset.tcHide;
 				};
 			}, "theme-center: appearance styles");
+
+			// 玻璃质感增强层：样式 + 接缝 stamping + 恢复持久化，随卸载收回
+			ctx.effect(() => {
+				const styleEl = document.createElement("style"); styleEl.dataset.plugin = "dsh-theme-center"; styleEl.dataset.pluginCss = "dsh-theme-center/glass"; glassStyleEl = styleEl; document.head.appendChild(styleEl); glassStampDisposer = startGlassStamper(); applyGlassState();
+				return () => { styleEl.remove(); glassStyleEl = null; if (glassStampDisposer !== null) { glassStampDisposer(); glassStampDisposer = null; } const html = document.documentElement; if (html != null) { html.removeAttribute("data-tc-glass"); html.style.removeProperty("--tc-glass-blur"); html.style.removeProperty("--tc-glass-frost"); } };
+			}, "theme-center: glass styles");
 
 			// 服务端同步：一处配置、所有终端生效（作用域/轮询/迁移/diff 应用，随卸载收回）
 			startServerSync(ctx);

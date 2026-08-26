@@ -67,6 +67,9 @@ export const Config = z.object({
   hideThink: z.boolean().default(false),
   hideTool: z.boolean().default(false),
   hideContext: z.boolean().default(false),
+  glassEnabled: z.boolean().default(false),
+  glassBlur: z.number().min(0).max(40).default(14),
+  glassFrost: z.number().min(0).max(100).default(50),
 })
 
 /**

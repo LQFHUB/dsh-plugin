@@ -21,7 +21,7 @@ const read = (rel) => readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8'
 
 // 1. 包清单
 assert.equal(pkg.name, '@npm-liqingfeng/dsh-theme-center', '包名应为 @npm-liqingfeng/dsh-theme-center')
-assert.equal(pkg.version, '0.4.2', '版本应为 0.3.5（14 款磨砂改造）')
+assert.equal(pkg.version, '0.5.0', '版本应为 0.5.0（玻璃质感增强层）')
 assert.equal(pkg.exports['.'], './lib/index.js', 'exports["."] 应指向 lib/index.js')
 assert.equal(pkg.exports['./client'], './lib/client.js', 'exports["./client"] 应指向 lib/client.js')
 assert.equal(pkg.dsh.bundle.patch, './cordis.patch.yml', 'bundle patch 应指向 cordis.patch.yml')
@@ -45,8 +45,8 @@ assert.equal(host.SETTINGS_API_PATH, '/theme-center/settings', '设置路由应�
 assert.equal(typeof host.buildSettingsView, 'function', '应导出 buildSettingsView')
 assert.equal(typeof host.applySettingsWrites, 'function', '应导出 applySettingsWrites')
 const configDesc = String(host.Config)
-for (const field of ['theme', 'scrim', 'width', 'focus', 'textScale', 'font', 'hideThink', 'hideTool', 'hideContext']) {
-  assert.match(configDesc, new RegExp(field), `Config 应有 ${field} 字段（9 项全覆盖）`)
+for (const field of ['theme', 'scrim', 'width', 'focus', 'textScale', 'font', 'hideThink', 'hideTool', 'hideContext', 'glassEnabled', 'glassBlur', 'glassFrost']) {
+  assert.match(configDesc, new RegExp(field), `Config 应有 ${field} 字段（12 项全覆盖）`)
 }
 
 // 4. 浏览器 bundle：模块 id + 主题注册表与 lib/skins 一一对应
@@ -54,6 +54,14 @@ const clientSrc = read('lib/client.js')
 assert.match(clientSrc, /__ModuleLoader__\.load\(/, 'client.js 应为 __ModuleLoader__ 模块')
 assert.match(clientSrc, /id: "@npm-liqingfeng\/dsh-theme-center"/, 'client.js 模块 id 应为 @npm-liqingfeng/dsh-theme-center')
 assert.match(clientSrc, /key: "theme-center"/, '卡片注册 key 应为设置命名空间 theme-center（rc.7 keyed slot 契约）')
+// 玻璃质感增强层（参考 NoNameLeGo/dsh-catppuccin-theme MIT）
+assert.match(clientSrc, /glassCss/, 'client 应有玻璃质感增强层')
+assert.match(clientSrc, /data-tc-glass/, 'glass 应有 html 门控属性 data-tc-glass')
+assert.match(clientSrc, /color-mix\(in srgb/, 'glass 应使用 color-mix 从皮肤令牌派生（自动跟随主题）')
+assert.match(clientSrc, /--tc-glass-rim/, 'glass 应有真实边框 rim 要素')
+assert.match(clientSrc, /--tc-glass-edge/, 'glass 应有白顶内高光 edge 要素（玻璃签名）')
+assert.match(clientSrc, /--tc-glass-drop/, 'glass 应有柔和投影 drop 要素')
+assert.match(clientSrc, /玻璃质感/, '外观 Tab 应有玻璃质感节')
 
 const skinFiles = readdirSync(new URL('../lib/skins/', import.meta.url)).filter((f) => f.endsWith('.js'))
 const themeIds = [...clientSrc.matchAll(/\{ id: "([a-z0-9-]+)", name: "[^"]+", accent:/g)].map((m) => m[1])
@@ -247,7 +255,7 @@ moduleExports.apply(fakeCtx)
 // 设置断言
 assert.equal(fakeDoc.body.dataset.dshThemeCenter, '', '应设置 body[data-dsh-theme-center] 作用域')
 assert.equal(fakeDoc.body.dataset.tcFocus, '', '压制默认 80% 应挂 body[data-tc-focus] 门控')
-assert.equal(created.filter((el) => el.tagName === 'STYLE').length, 5, '应注入 5 个样式元素（card/width/focus/table/appearance）')
+assert.equal(created.filter((el) => el.tagName === 'STYLE').length, 6, '应注入 6 个样式元素（card/width/focus/table/appearance/glass）')
 const widthStyle = created.find((el) => el.dataset.pluginCss === 'dsh-theme-center/width')
 assert.ok(widthStyle, '应有 width 样式元素')
 assert.match(widthStyle.textContent, /--dsh-chat-content-width:896px/, '默认宽度应落地 896px')
@@ -263,10 +271,14 @@ assert.equal(fakeDoc.body.dataset.tcScale, '', '默认 80% 应挂 data-tc-scale 
 assert.equal(fakeDoc.body.dataset.tcFont, undefined, '默认字体不应挂 data-tc-font')
 assert.equal(fakeDoc.body.dataset.tcHide, undefined, '默认不应挂 data-tc-hide')
 assert.match(appearanceStyle.textContent, /--tc-text-scale:0\.8/, '默认 80% 应落地 --tc-text-scale:0.8')
+// 玻璃质感增强层：默认关闭（无 data-tc-glass），样式含 color-mix 四要素
+const glassStyle = created.find((el) => el.dataset.pluginCss === 'dsh-theme-center/glass')
+assert.ok(glassStyle, '应有 glass 样式元素')
+assert.match(glassStyle.textContent, /color-mix\(in srgb/, 'glass 样式应含 color-mix 派生的四要素')
 
 // 收回断言（disposer 逆序执行）
 const disposers = effects.filter((d) => typeof d === 'function')
-assert.ok(disposers.length >= 7, '应有 ≥7 个 disposer（作用域/四样式/外观扩展/引擎/服务端同步×2）')
+assert.ok(disposers.length >= 8, '应有 ≥8 个 disposer（作用域/四样式/外观扩展/玻璃/引擎/服务端同步×2）')
 for (const dispose of disposers) dispose()
 assert.equal(fakeDoc.body.dataset.dshThemeCenter, undefined, 'disposer 应移除 body[data-dsh-theme-center]')
 assert.equal(fakeDoc.body.dataset.tcFocus, undefined, 'disposer 应移除 body[data-tc-focus] 门控')

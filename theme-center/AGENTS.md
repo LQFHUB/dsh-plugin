@@ -140,6 +140,12 @@
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
 
+### 2026-08-27 theme-center v0.5.0：集成 NoNameLeGo/dsh-catppuccin-theme 玻璃拟态（可开关玻璃质感增强层，外观 Tab）
+
+- 变更内容：用户要求集成 https://github.com/NoNameLeGo/dsh-catppuccin-theme（MIT）的玻璃拟态细节到 theme-center（放插件>主题>外观）。对照分析：该项目玻璃四要素（color-mix 半透明 card + 真实边框 rim + 白顶内高光 edge + 柔和投影 drop + blur）正是本插件此前磨砂"看不出来"的缺失（旧实现仅 blur+硬编码 rgba，无边框/高光/投影）。集成=新增**玻璃质感增强层模块**（纯 JS，外观 Tab 新增「玻璃质感」节，可开关+滑杆）：①`glassCss()` 用 `color-mix(in srgb, var(--dsw-alias-*), transparent)` 从皮肤令牌派生四要素，自动跟随全部 24 款皮肤亮/暗（比原项目仅 4 款 catppuccin 更通用）；②接缝 stamping（MutationObserver 盖 `data-tc-glass-*` 属性，锚点 header/sidebarCol/newSession/composer/data-slot，DSH 升级需复核）；③html `data-tc-glass` 门控+`--tc-glass-blur/frost` 变量，默认关闭=官方原样、关闭零残留；④`.VOzbGW_panel` 保持不透明；⑤持久化 `dsh-theme-center:glass:v1` + 服务器 schema 三字段（glassEnabled/glassBlur/glassFrost）复用了 §4.9 同步；版本 0.4.3→0.5.0；smoke +12 断言（schema 12 项/glass 模块/四要素/样式元素 5→6/disposer ≥8）
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/lib/index.js`、`theme-center/tests/smoke.mjs`、`theme-center/package.json`、`theme-center/AGENTS.md`、`AGENTS.md`
+- 备注：**112/111 实测全过**（玻璃四要素真实生效：header `color(srgb.../0.55)` 半透明 color-mix+`blur(14px)`+白顶内高光 `rgba(255,255,255,0.08) inset`+rim 边框；关闭 data-tc-glass 完全还原；新会话按钮同玻璃）；**部署坑**：首轮 rsync 112 未生效（md5 仍旧 0.4.3，verify 时玻璃曾测得生效是误判），补装后 md5 `17b90564` 一致 0.5.0；npm 0.5.0 已发布；**mica 浮动卡布局未做（仅四要素+stamp）**，后续可选增强；color-mix 需 Chrome 111+
+
 ### 2026-08-20 兼容 DSH 0.1.0-rc.8：内核模块系统获取改 ctx.get("modules")（window.__DSH_MODULES__ 已移除）v0.4.3
 
 - 变更内容：rc.8 前端重构 client 模块系统（@deepseek-ai/dsh-client-modules），**移除 `window.__DSH_MODULES__` 全局**（仅保留 `__ModuleLoader__` 注册 facade：mode/pendingQueue/load/create），模块系统实体改经 client 根上下文 `ctx.reflect.provide("modules", moduleSystem)` 提供。修复：`windowModules()` 双路径——rc.7 及更早 `window.__DSH_MODULES__`（未升级前端兼容）/ rc.8 `realCtxRef.get("modules")`（apply 时已保存真实根 ctx；miniCtx.get 委托同一上下文）；**`import`/`invalidate` API 与旧全局同构一致**（ClientModuleSystem），皮肤 bundle 走 `__ModuleLoader__.load` 自注册**零修改兼容**；顶部注释同步。版本 0.4.2→0.4.3 发布 npm（26 款皮肤全包）
