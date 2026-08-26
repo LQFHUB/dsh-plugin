@@ -37,7 +37,14 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 6 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 7 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+### 2026-08-27 theme-center v0.5.1：玻璃拟态修复（完整复用原项目 mica 模式达原效果 + 修设置面板锚定）
+
+- 变更内容：用户反馈玻璃质感未达原项目效果 + 设置面板跑左侧边栏。修复：完整复用原项目 glass.module.css（618 行 mica/compat 双模式 + fade/corner）+ 默认 mica(float) 模式 + 原项目 sidebarCol:has(dialog) 规则解决设置面板锚定 + fade DOM + brightness 变量；版本 0.5.1
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/tests/smoke.mjs`、`theme-center/package.json`、`theme-center/AGENTS.md`、`AGENTS.md`
+- 备注：112 mica 实测设置面板 x=399 正常、float 激活、无 JS 错；npm 0.5.1 已发布、111 已同步
+
+
 ### 2026-08-27 theme-center v0.5.0：集成 dsh-catppuccin-theme 玻璃拟态（可开关玻璃质感增强层）
 
 - 变更内容：按用户要求集成 NoNameLeGo/dsh-catppuccin-theme（MIT）的玻璃拟态到 theme-center（插件>主题>外观）。新增**玻璃质感增强层**：color-mix 从皮肤令牌派生四要素（半透明+边框 rim+白顶高光 edge+投影 drop+blur）自动跟随 24 款皮肤、接缝 stamping、html data-tc-glass 门控+blur/frost 滑杆、默认关、服务器同步三字段、外观 Tab「玻璃质感」节；版本 0.5.0

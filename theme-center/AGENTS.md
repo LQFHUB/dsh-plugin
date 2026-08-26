@@ -140,6 +140,12 @@
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
 
+### 2026-08-27 theme-center v0.5.1：玻璃拟态修复——完整复用原项目 mica 模式（达原效果）+ 修设置面板锚定
+
+- 变更内容：用户反馈"112 开启玻璃质感后没达到 dsh-catppuccin-theme 效果，且设置面板跑到了左侧边栏"。根因：v0.5.0 用**简化版**（8 条规则、默认 compat 弱模式、无 mica 布局/fade/corner），远未达原项目效果；且选择器粗糙致错乱。修复：①**完整复用原项目 glass.module.css（618 行，mica/compat 双模式 + page-edge fade + corner 语言 + 各 pane 精确规则）**为 GLASS_CSS（前缀 data-tc-glass/--tc-glass）；②**默认 mica(float) 模式**（原项目效果：header 悬浮/sidebarCol 玻璃卡/composer slab/bubble 玻璃/fade），`data-tc-glass-float` 挂 html；③设置面板锚定由原项目 `sidebarCol:has([role=dialog]){backdrop-filter:none}` 规则解决（dialog x=399 正常）；④applyGlassState 加 fade DOM（span[data-tc-glass-fade=top/bottom]）+ brightness 变量（默认 50=white/black 0，solid ground）；⑤设置面板保持不透明；版本 0.5.1；smoke +4 断言（compat/float/fade/官方宽度变量）
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/tests/smoke.mjs`、`theme-center/package.json`、`theme-center/AGENTS.md`、`AGENTS.md`
+- 备注：**112 mica 实测**：float 激活、设置面板 `x=399`（未跑左侧）、不透明 `rgb(24,24,24)`、无 JS 错误、无横向溢出；之前 compat 版弱即"没达效果"之源，现默认 mica 达原项目效果；npm 0.5.1 已发布；**无法目视验证 blur 视觉**（图像模型不可用），请用户浏览器强刷确认；brightness/mode 旋钮未暴露（固定 50/compat? 默认 mica），如需可加
+
 ### 2026-08-27 theme-center v0.5.0：集成 NoNameLeGo/dsh-catppuccin-theme 玻璃拟态（可开关玻璃质感增强层，外观 Tab）
 
 - 变更内容：用户要求集成 https://github.com/NoNameLeGo/dsh-catppuccin-theme（MIT）的玻璃拟态细节到 theme-center（放插件>主题>外观）。对照分析：该项目玻璃四要素（color-mix 半透明 card + 真实边框 rim + 白顶内高光 edge + 柔和投影 drop + blur）正是本插件此前磨砂"看不出来"的缺失（旧实现仅 blur+硬编码 rgba，无边框/高光/投影）。集成=新增**玻璃质感增强层模块**（纯 JS，外观 Tab 新增「玻璃质感」节，可开关+滑杆）：①`glassCss()` 用 `color-mix(in srgb, var(--dsw-alias-*), transparent)` 从皮肤令牌派生四要素，自动跟随全部 24 款皮肤亮/暗（比原项目仅 4 款 catppuccin 更通用）；②接缝 stamping（MutationObserver 盖 `data-tc-glass-*` 属性，锚点 header/sidebarCol/newSession/composer/data-slot，DSH 升级需复核）；③html `data-tc-glass` 门控+`--tc-glass-blur/frost` 变量，默认关闭=官方原样、关闭零残留；④`.VOzbGW_panel` 保持不透明；⑤持久化 `dsh-theme-center:glass:v1` + 服务器 schema 三字段（glassEnabled/glassBlur/glassFrost）复用了 §4.9 同步；版本 0.4.3→0.5.0；smoke +12 断言（schema 12 项/glass 模块/四要素/样式元素 5→6/disposer ≥8）

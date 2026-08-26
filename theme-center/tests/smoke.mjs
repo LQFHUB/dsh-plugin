@@ -21,7 +21,7 @@ const read = (rel) => readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8'
 
 // 1. 包清单
 assert.equal(pkg.name, '@npm-liqingfeng/dsh-theme-center', '包名应为 @npm-liqingfeng/dsh-theme-center')
-assert.equal(pkg.version, '0.5.0', '版本应为 0.5.0（玻璃质感增强层）')
+assert.equal(pkg.version, '0.5.1', '版本应为 0.5.1（玻璃修复：完整 compat + fade）')
 assert.equal(pkg.exports['.'], './lib/index.js', 'exports["."] 应指向 lib/index.js')
 assert.equal(pkg.exports['./client'], './lib/client.js', 'exports["./client"] 应指向 lib/client.js')
 assert.equal(pkg.dsh.bundle.patch, './cordis.patch.yml', 'bundle patch 应指向 cordis.patch.yml')
@@ -62,6 +62,10 @@ assert.match(clientSrc, /--tc-glass-rim/, 'glass 应有真实边框 rim 要素')
 assert.match(clientSrc, /--tc-glass-edge/, 'glass 应有白顶内高光 edge 要素（玻璃签名）')
 assert.match(clientSrc, /--tc-glass-drop/, 'glass 应有柔和投影 drop 要素')
 assert.match(clientSrc, /玻璃质感/, '外观 Tab 应有玻璃质感节')
+assert.match(clientSrc, /data-tc-glass-compat/, 'glass CSS 应含 compat 模式规则（温和玻璃、不改布局）')
+assert.match(clientSrc, /data-tc-glass-float/, 'glass CSS 应含 mica(float) 模式规则（可选浮动卡）')
+assert.match(clientSrc, /data-tc-glass-fade/, 'glass CSS 应含 page-edge fade 渐变模糊规则')
+assert.match(clientSrc, /--dsh-composer-card-max-width/, 'glass 应复用官方 composer 宽度变量')
 
 const skinFiles = readdirSync(new URL('../lib/skins/', import.meta.url)).filter((f) => f.endsWith('.js'))
 const themeIds = [...clientSrc.matchAll(/\{ id: "([a-z0-9-]+)", name: "[^"]+", accent:/g)].map((m) => m[1])
