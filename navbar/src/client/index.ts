@@ -178,7 +178,11 @@ export default {
         let n: HTMLElement | null = start
         while (n !== null && n !== document.body) {
           const r = n.getBoundingClientRect()
-          if (r.width > 40 && r.left <= 10) return n
+          // 侧边栏列容器（宽~280）。放宽 left<=16 兼容玻璃 mica 的 sidebarCol margin:12px
+          // （玻璃下侧边栏列 left=12），并加 width<=420 排除全宽 AppFrame/其他大容器——
+          // 否则玻璃下遍历父链会匹配到全宽 AppFrame（left=0），anchor 错取全宽右缘、
+          // 被 maxLeft 钳到对话流左缘导致导航条错位。
+          if (r.width > 40 && r.width <= 420 && r.left <= 16) return n
           n = n.parentElement
         }
         return null

@@ -163,7 +163,7 @@ window.__ModuleLoader__.load({
 						let n = start;
 						while (n !== null && n !== document.body) {
 							const r = n.getBoundingClientRect();
-							if (r.width > 40 && r.left <= 10) return n;
+							if (r.width > 40 && r.width <= 420 && r.left <= 16) return n;
 							n = n.parentElement;
 						}
 						return null;

@@ -140,6 +140,12 @@
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
 
+### 2026-08-27 theme-center v0.5.2 + dsh-navbar v0.3.1：玻璃模式 navbar 位置错乱 + 渐变色不兼容修复
+
+- 变更内容：用户反馈"开启玻璃质感后对话节点导航条（navbar）位置出问题 + 渐变色好像也不兼容了"。**根因**（112 实测）：①navbar `sidebarOf()` 的 `containerOf` 只判 `left<=10`——玻璃 mica 给 `[class*='sidebarCol']` 加 `margin:12px`（侧边栏列 left 0→12），遍历父链误匹配到全宽 AppFrame（left=0, w=1600），`position()` 错取全宽右缘、被 `maxLeft` 钳到对话流左缘=错位；②玻璃 CSS `[data-tc-glass] body{background:color-mix(...)}`（原项目 solid ground，shorthand 重置 background-image）覆盖皮肤渐变背景=渐变不兼容。**修复**：navbar `containerOf` 宽松锚点 `left<=10`→`left<=16` + 加 `width<=420`（排除全宽 AppFrame，玻璃下匹配 sidebarCol w=256 l=12）→ position 贴玻璃卡右缘+12；theme-center GLASS_CSS body 背景 `background:`→`background-color:`（仅设底色 solid ground，**保留皮肤渐变 background-image**，玻璃卡透出渐变）；版本 theme-center 0.5.2、navbar 0.3.1；smoke 全绿
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/tests/smoke.mjs`、`theme-center/package.json`、`navbar/src/client/index.ts`、`navbar/lib/client.js`、`navbar/package.json`、`theme-center/AGENTS.md`、`AGENTS.md`
+- 备注：**112 实测**：玻璃 on 时 body 渐变背景保留（radial-gradient 不丢，background-color 修改生效）、sidebarCol 右缘 268（玻璃卡）+ 分隔条中心 280 稳定；navbar 修复逻辑正确（匹配 sidebarCol 而非 AppFrame），但 headless 下 navbar 未激活无法看实际位置，需用户浏览器确认；npm theme-center 0.5.2 + navbar 0.3.1 已发布、111 已同步
+
 ### 2026-08-27 theme-center v0.5.1：玻璃拟态修复——完整复用原项目 mica 模式（达原效果）+ 修设置面板锚定
 
 - 变更内容：用户反馈"112 开启玻璃质感后没达到 dsh-catppuccin-theme 效果，且设置面板跑到了左侧边栏"。根因：v0.5.0 用**简化版**（8 条规则、默认 compat 弱模式、无 mica 布局/fade/corner），远未达原项目效果；且选择器粗糙致错乱。修复：①**完整复用原项目 glass.module.css（618 行，mica/compat 双模式 + page-edge fade + corner 语言 + 各 pane 精确规则）**为 GLASS_CSS（前缀 data-tc-glass/--tc-glass）；②**默认 mica(float) 模式**（原项目效果：header 悬浮/sidebarCol 玻璃卡/composer slab/bubble 玻璃/fade），`data-tc-glass-float` 挂 html；③设置面板锚定由原项目 `sidebarCol:has([role=dialog]){backdrop-filter:none}` 规则解决（dialog x=399 正常）；④applyGlassState 加 fade DOM（span[data-tc-glass-fade=top/bottom]）+ brightness 变量（默认 50=white/black 0，solid ground）；⑤设置面板保持不透明；版本 0.5.1；smoke +4 断言（compat/float/fade/官方宽度变量）

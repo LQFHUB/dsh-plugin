@@ -37,7 +37,14 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 7 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 8 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+### 2026-08-27 theme-center v0.5.2 + dsh-navbar v0.3.1：玻璃模式 navbar 位置错乱 + 渐变色不兼容修复
+
+- 变更内容：玻璃开启后 navbar（对话节点导航条）位置错乱 + 渐变色不兼容。根因：navbar `sidebarOf()` 的 `left<=10` 在玻璃 sidebarCol margin:12px 下误匹配全宽 AppFrame→anchor 取全宽右缘被钳到对话流左；玻璃 body `background:` shorthand 重置皮肤渐变 background-image。修复：navbar 锚点 `left<=16`+`width<=420`（排除全宽，匹配 sidebarCol）；玻璃 body 背景改 `background-color:`（保留皮肤渐变）；theme-center 0.5.2 + navbar 0.3.1
+- 涉及路径：`theme-center/lib/client.js`、`navbar/{src/client/index.ts,lib/client.js}`、`theme-center/package.json`、`navbar/package.json`、`AGENTS.md`
+- 备注：112 实测玻璃 on 渐变背景保留、sidebarCol 右缘 268/分隔条 280 稳定；navbar 实际位置需用户浏览器确认；两包已发布 npm + 111 已同步
+
+
 ### 2026-08-27 theme-center v0.5.1：玻璃拟态修复（完整复用原项目 mica 模式达原效果 + 修设置面板锚定）
 
 - 变更内容：用户反馈玻璃质感未达原项目效果 + 设置面板跑左侧边栏。修复：完整复用原项目 glass.module.css（618 行 mica/compat 双模式 + fade/corner）+ 默认 mica(float) 模式 + 原项目 sidebarCol:has(dialog) 规则解决设置面板锚定 + fade DOM + brightness 变量；版本 0.5.1
