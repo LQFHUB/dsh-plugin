@@ -25,6 +25,13 @@
 | `describe-image/` | 图像理解工具（视觉模型描述图片，configured 模式复用已配置模型 + 「图像理解」设置卡） |
 | （外部）`dsh-better-sidebar` | VSCode 风格右侧侧边栏工作台（文件资源管理器/CodeMirror 编辑器/终端/Git/浏览器/子代理，服务化 `ctx.betterSidebar` 三方扩展）——npm 安装，仓库 https://github.com/omdsh-dev/DSH-better-sidebar（MIT） |
 
+### 官方上游源码（只读参考）
+
+- `upstream/DeepSeek-Harness/`：**官方源码的本地镜像**（独立 git 仓库，已 `--filter=blob:none` 浅克隆 master，当前 HEAD 对应 v0.1.2-alpha.1 发布）。用途：**开发/排查时直接在本地看官方实现**（源码、`docs/`、agent 决策笔记 `.agents/notes/`），不依赖网络。
+- **更新方法**（需要时手动执行）：在 `upstream/DeepSeek-Harness/` 下 `git pull`（treeless 模式按需拉取 blob，网络不稳时加 `-c index.threads=1` 重试）。更新后可 `git log --oneline -1` 确认版本。
+- **只读性质**：本目录仅作参考，**不得向官方仓库提交/推送**；其 .git 独立，不参与插件仓库版本管理。已在 `.gitignore` 中忽略 `upstream/`，不会误提交。
+- 注意：`upstream/` 内是另一个 git 仓库（嵌套仓库），git 命令可能报 `dubious ownership`——用 `git -c safe.directory=<该目录绝对路径>` 或环境变量方式处理，勿写全局配置。
+
 ## 三、添加新功能的流程（必须遵守）
 
 1. **先询问，再动手**：在添加任何新功能之前，Agent 必须先询问用户：是否创建一个新文件夹来开发该功能（还是放进现有文件夹）。
@@ -37,7 +44,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 8 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 9 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+### 2026-08-29 新增 upstream/：官方 DeepSeek-Harness 源码本地镜像（treeless 浅克隆，供本地直接查阅官方代码）
+
+- 变更内容：按用户要求将官方仓库 [deepseek-ai/DeepSeek-Harness](https://github.com/deepseek-ai/DeepSeek-Harness) 拉到本目录 `upstream/DeepSeek-Harness/`，作为**只读参考**（开发/排查时本地直接看官方源码、`docs/`、`.agents/notes/`，不依赖网络）。**克隆方式**：`--filter=blob:none`（treeless 部分克隆）+ `--single-branch --branch master`，规避网络不稳导致的 `premature end of pack file`；当前 HEAD `cd5ef8148`（对应 v0.1.2-alpha.1 发布）；工作区 8953 文件、约 133MB、`git fsck` 通过。**更新方法**：在该目录 `git pull`（按需拉 blob，不稳时加 `-c index.threads=1` 重试）。**纳入约定**：`.gitignore` 忽略 `upstream/`（不误提交进插件仓库）；AGENTS.md 第二节新增「官方上游源码（只读参考）」小节、第六节补充本地源码查阅指引。
+- 涉及路径：`upstream/DeepSeek-Harness/`（新建，独立 git 仓库）、`.gitignore`、`AGENTS.md`
+- 备注：目录所有权处理——嵌套仓库 git 命令报 `dubious ownership`，用 `git -c safe.directory=<绝对路径>` 或 `GIT_CONFIG_*` 环境变量注入，勿写全局配置；treeless 克隆初始 `--no-checkout` 后需 `git reset --hard HEAD` 才落地工作区文件
+
 ### 2026-08-27 theme-center v0.5.2 + dsh-navbar v0.3.1：玻璃模式 navbar 位置错乱 + 渐变色不兼容修复
 
 - 变更内容：玻璃开启后 navbar（对话节点导航条）位置错乱 + 渐变色不兼容。根因：navbar `sidebarOf()` 的 `left<=10` 在玻璃 sidebarCol margin:12px 下误匹配全宽 AppFrame→anchor 取全宽右缘被钳到对话流左；玻璃 body `background:` shorthand 重置皮肤渐变 background-image。修复：navbar 锚点 `left<=16`+`width<=420`（排除全宽，匹配 sidebarCol）；玻璃 body 背景改 `background-color:`（保留皮肤渐变）；theme-center 0.5.2 + navbar 0.3.1
@@ -120,6 +133,8 @@
 ## 六、官方文档索引（参考资料）
 
 本目录开发基于 DSH（DeepSeek Harness），官方文档位于 [deepseek-ai/DeepSeek-Harness](https://github.com/deepseek-ai/DeepSeek-Harness) 仓库的 `docs/` 目录，中英双语。开发前如需查阅规范，优先使用以下文档：
+
+> 💡 **本地查阅**：官方源码已在 `upstream/DeepSeek-Harness/` 建立本地镜像（见第二节「官方上游源码」），需要看具体实现/决策笔记时直接读本地文件（如 `packages/` 源码、`.agents/notes/` 决策记录、`docs/` 中英文档），不必依赖网络；需要更新时在该目录 `git pull`。
 
 **开发基础（入门必读）**
 - [第一个插件](https://github.com/deepseek-ai/DeepSeek-Harness/blob/master/docs/user/develop/basic/index.zh.md)：插件本质、三种形态（函数/对象/类）、inject 依赖、自动清理

@@ -12,3 +12,6 @@ dist/
 # 日志与临时文件
 *.log
 .DS_Store
+
+# 官方上游源码（只读参考，独立 git 仓库，不纳入本仓库）
+upstream/
