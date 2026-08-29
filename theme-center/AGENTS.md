@@ -78,6 +78,7 @@
 - 只作用于聊天区过程展示：Think 思考行（`[data-variant="think"]`）、工具调用卡（`[data-chat-flow-kind="tool-call"]`，含 Bash/Read/Cordis 插件卡）、上下文注入卡（`[data-chat-flow-kind="context"]`）。
 - **插值不变量**：所有规则以 `--tc-focus`（0-1）+ `calc()` 线性插值，`0` 时各属性计算值与官方默认**完全一致**；非插值规则（错误卡标题 ellipsis）由 `body[data-tc-focus]` 门控，pct=0 时整组失效。
 - **只改字号/行高/透明度/尺寸，不写任何颜色**——皮肤令牌不动即天然适配全部皮肤与亮/暗；选择器一律作用域限定 `body[data-dsh-theme-center][data-tc-focus]`，不污染官方 UI 与其他插件。
+- **100% 压制目标值（v0.5.5 增强，2026-08-29）**：标题 `14→11.5px / 行高 24→16px / 透明度 1→0.55`（`TITLE` 模板）；摘要与来源 `14→11px / 24→16px / 1→0.4`（`SUMMARY` 模板，**v0.5.5 起摘要/来源也压字号**——此前 tool-call 摘要、context 来源仅压透明度未压字号，用户反馈 100% 仍不够）；图标 `14→10px`；Cordis 行 `32→18px`；三处标题均淡化（此前 tool/context 标题 opacity=1 未淡）。0% 时仍与官方完全一致。
 - 宽度规则作用域限定 `body[data-dsh-theme-center]`，覆盖 `--dsh-chat-content-width` / `--dsh-composer-card-max-width` 并释放 userStack 上限。
 - 三个样式元素（card/width/focus）均挂 `data-plugin="dsh-theme-center"` + 各自 `data-pluginCss`，disposer 全量收回（含门控属性）。
 
@@ -139,6 +140,12 @@
 
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
+
+### 2026-08-29 theme-center v0.5.5：聊天区精简压制增强——摘要/来源补字号压制 + 全部标题淡化 + 更紧凑（用户反馈 100% 仍不够）
+
+- 变更内容：用户反馈"聊天区精简压制调到 100% 还是不够"。实测基线（100%）：Think/工具卡标题 12px/18px、摘要仅压透明度 0.6 但**字号未压（仍 14px/24px）**、工具卡/上下文标题 opacity=1 未淡化。修复 `focusCss`：① 摘要/来源改用独立 `SUMMARY` 模板（字号 14→11px、行高 24→16px、透明度 1→0.4，此前 tool-call 摘要、context 来源只压透明度不压字号）；② `TITLE` 模板加透明度（1→0.55）并更紧凑（字号 14→11.5px、行高 24→16px）——此前 tool/context 标题不淡化；③ 图标 14→10px；④ Cordis 行 32→18px。0% 仍与官方完全一致（插值不变量）。版本 0.5.4→0.5.5
+- 涉及路径：`theme-center/lib/client.js`（focusCss + 注释）、`theme-center/tests/smoke.mjs`（断言 14px-2px→2.5px + 新增 SUMMARY 断言 + 版本）、`theme-center/package.json`（0.5.5）、`theme-center/AGENTS.md`（4.6 + §6 + 变更记录）、`AGENTS.md`
+- 备注：**本机 GUI 实测（Playwright 注入）**：100% 时 Think/工具/上下文标题 11.5px/16px/0.55、摘要与来源 11px/16px/0.4（此前摘要 14px 未压）、三处标题均淡化；`--tc-focus:1` 时全部命中；112/111 待部署验证 + npm 发布
 
 ### 2026-08-29 theme-center v0.5.4：表格收缩适配内容（fit-content + 解除列宽上下限），消除"内容少却强制很宽、大量空白"
 

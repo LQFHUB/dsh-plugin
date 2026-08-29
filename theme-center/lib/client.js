@@ -184,28 +184,32 @@ window.__ModuleLoader__.load({
 		 * 规则一起由 body[data-tc-focus] 门控（pct=0 时属性不存在，规则失效）。
 		 * 只改字号/行高/透明度/尺寸，不写任何颜色——皮肤令牌不变即天然适配
 		 * theme-center 全部皮肤与官方亮/暗。
+		 * v0.5.5 增强（100% 时）：标题 14→11.5px/行高 24→16px/透明度 1→0.55；
+		 * 摘要与来源 14→11px/行高 24→16px/透明度 1→0.4（此前摘要/来源未压字号、
+		 * 工具/上下文标题未淡化，用户反馈 100% 仍不够）；图标 14→10px；Cordis 行 32→18px。
 		 */
 		function focusCss(fraction) {
 			const F = "body[data-dsh-theme-center][data-tc-focus]";
-			const TITLE = "font-size:calc(14px - 2px * var(--tc-focus));line-height:calc(24px - 6px * var(--tc-focus))";
-			const ICON = "width:calc(14px - 3px * var(--tc-focus));height:calc(14px - 3px * var(--tc-focus))";
+			const TITLE = "font-size:calc(14px - 2.5px * var(--tc-focus));line-height:calc(24px - 8px * var(--tc-focus));opacity:calc(1 - .45 * var(--tc-focus))";
+			const SUMMARY = "font-size:calc(14px - 3px * var(--tc-focus));line-height:calc(24px - 8px * var(--tc-focus));opacity:calc(1 - .6 * var(--tc-focus))";
+			const ICON = "width:calc(14px - 4px * var(--tc-focus));height:calc(14px - 4px * var(--tc-focus))";
 			return [
 				F + "{--tc-focus:" + fraction + "}",
-				// Think 思考行：标题/摘要字号变小、摘要变淡、图标缩小
-				F + ' [data-variant="think"] [class*="title"]{' + TITLE + ";opacity:calc(1 - .25 * var(--tc-focus))}",
-				F + ' [data-variant="think"] [class*="summary"]{' + TITLE + ";opacity:calc(1 - .4 * var(--tc-focus))}",
+				// Think 思考行：标题/摘要字号变小变淡、图标缩小
+				F + ' [data-variant="think"] [class*="title"]{' + TITLE + "}",
+				F + ' [data-variant="think"] [class*="summary"]{' + SUMMARY + "}",
 				F + ' [data-variant="think"] [class*="leading"] svg{' + ICON + "}",
-				// 工具调用卡：标题变小、摘要变淡、图标缩小
+				// 工具调用卡：标题/摘要字号变小变淡、图标缩小
 				F + ' [data-chat-flow-kind="tool-call"] [class*="title"]{' + TITLE + "}",
-				F + ' [data-chat-flow-kind="tool-call"] [class*="summary"]{opacity:calc(1 - .4 * var(--tc-focus))}',
+				F + ' [data-chat-flow-kind="tool-call"] [class*="summary"]{' + SUMMARY + "}",
 				F + ' [data-chat-flow-kind="tool-call"] [class*="leading"] svg{' + ICON + "}",
-				// Cordis 插件卡行整体变矮（min-height 32px → 22px）
+				// Cordis 插件卡行整体变矮（min-height 32px → 18px）
 				F + ' [data-chat-flow-kind="tool-call"] [data-tool="cordis_run"] [class*="row"],' +
 					F + ' [data-chat-flow-kind="tool-call"] [data-tool="cordis_stop"] [class*="row"],' +
-					F + ' [data-chat-flow-kind="tool-call"] [data-tool="cordis_undefine"] [class*="row"]{min-height:calc(32px - 10px * var(--tc-focus))}',
-				// 上下文注入卡：标题变小、来源变淡、图标缩小
+					F + ' [data-chat-flow-kind="tool-call"] [data-tool="cordis_undefine"] [class*="row"]{min-height:calc(32px - 14px * var(--tc-focus))}',
+				// 上下文注入卡：标题变小变淡、来源变小变淡、图标缩小
 				F + ' [data-chat-flow-kind="context"] [class*="title"]{' + TITLE + "}",
-				F + ' [data-chat-flow-kind="context"] [class*="source"]{opacity:calc(1 - .4 * var(--tc-focus))}',
+				F + ' [data-chat-flow-kind="context"] [class*="source"]{' + SUMMARY + "}",
 				F + ' [data-chat-flow-kind="context"] [class*="leading"] svg{' + ICON + "}",
 				// 错误工具卡标题截断（门控规则，pct>0 即生效）
 				F + ' [data-chat-flow-kind="tool-call"] [data-state="error"] [class*="title"]{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}',

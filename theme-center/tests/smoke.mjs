@@ -21,7 +21,7 @@ const read = (rel) => readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8'
 
 // 1. 包清单
 assert.equal(pkg.name, '@npm-liqingfeng/dsh-theme-center', '包名应为 @npm-liqingfeng/dsh-theme-center')
-assert.equal(pkg.version, '0.5.4', '版本应为 0.5.4（表格收缩适配内容：fit-content + 解除列宽上下限）')
+assert.equal(pkg.version, '0.5.5', '版本应为 0.5.5（聊天区精简压制增强：摘要/来源补字号压制 + 标题淡化 + 更紧凑）')
 assert.equal(pkg.exports['.'], './lib/index.js', 'exports["."] 应指向 lib/index.js')
 assert.equal(pkg.exports['./client'], './lib/client.js', 'exports["./client"] 应指向 lib/client.js')
 assert.equal(pkg.dsh.bundle.patch, './cordis.patch.yml', 'bundle patch 应指向 cordis.patch.yml')
@@ -114,7 +114,8 @@ assert.match(clientSrc, /--dsh-chat-content-width/, '宽度规则应覆盖内容
 assert.match(clientSrc, /FOCUS_DEFAULT = 80/, '压制默认应为 80%')
 assert.match(clientSrc, /dsh-theme-center:focus:v1/, '应有压制持久化键')
 assert.match(clientSrc, /--tc-focus/, '压制 CSS 应使用 --tc-focus 插值变量')
-assert.match(clientSrc, /calc\(14px - 2px \* var\(--tc-focus\)\)/, 'Think/工具卡标题字号应线性插值')
+assert.match(clientSrc, /calc\(14px - 2\.5px \* var\(--tc-focus\)\)/, 'Think/工具卡/上下文标题字号应线性插值（v0.5.5 增强：14→11.5px）')
+assert.match(clientSrc, /calc\(14px - 3px \* var\(--tc-focus\)\)/, '摘要/来源字号应线性插值（v0.5.5 补：14→11px，此前未压）')
 assert.match(clientSrc, /data-tc-focus/, '压制规则应由 body[data-tc-focus] 门控')
 assert.match(clientSrc, /\[data-variant="think"\] \[class\*="summary"\]/, '应有 Think 摘要变淡规则')
 assert.match(clientSrc, /\[data-chat-flow-kind="tool-call"\] \[class\*="summary"\]/, '应有工具卡摘要变淡规则')
@@ -266,7 +267,7 @@ assert.match(widthStyle.textContent, /--dsh-chat-content-width:896px/, '默认�
 const focusStyle = created.find((el) => el.dataset.pluginCss === 'dsh-theme-center/focus')
 assert.ok(focusStyle, '应有 focus 样式元素')
 assert.match(focusStyle.textContent, /--tc-focus:0\.8/, '默认压制 80% 应落地 --tc-focus:0.8')
-assert.match(focusStyle.textContent, /calc\(14px - 2px \* var\(--tc-focus\)\)/, 'focus 样式应含插值规则')
+assert.match(focusStyle.textContent, /calc\(14px - 2\.5px \* var\(--tc-focus\)\)/, 'focus 样式应含增强插值规则（标题字号）')
 assert.equal(created.find((el) => el.dataset.pluginCss === 'dsh-theme-center/card').textContent.length > 100, true, 'card 样式应有内容')
 // 外观扩展默认态：字号 100%（无门控）、字体 default（无门控）、隐藏全关（无门控），样式文本为空
 const appearanceStyle = created.find((el) => el.dataset.pluginCss === 'dsh-theme-center/appearance')

@@ -2,6 +2,12 @@
 
 > AGENTS.md「四、变更记录」超过 5 条后的归档存放处（按原格式、时间倒序）。最新记录始终在 AGENTS.md。
 
+### 2026-08-27 theme-center v0.5.0：集成 dsh-catppuccin-theme 玻璃拟态（可开关玻璃质感增强层）
+
+- 变更内容：按用户要求集成 NoNameLeGo/dsh-catppuccin-theme（MIT）的玻璃拟态到 theme-center（插件>主题>外观）。新增**玻璃质感增强层**：color-mix 从皮肤令牌派生四要素（半透明+边框 rim+白顶高光 edge+投影 drop+blur）自动跟随 24 款皮肤、接缝 stamping、html data-tc-glass 门控+blur/frost 滑杆、默认关、服务器同步三字段、外观 Tab「玻璃质感」节；版本 0.5.0
+- 涉及路径：`theme-center/lib/{client,index}.js`、`theme-center/tests/smoke.mjs`、`theme-center/package.json`、`theme-center/AGENTS.md`、`AGENTS.md`
+- 备注：112/111 双机部署 0.5.0 + 实测四要素生效（header 半透明 color-mix+blur14px+白顶高光+rim）、关闭零残留；npm 0.5.0 已发布
+
 ### 2026-08-26 将 112 的 dsh web 配置为 systemd 服务 dsh-web.service 并开机自启（参考 111）
 
 - 变更内容：按用户指示参考 111 的 dsh-web.service，为 112（AI-2/ubuntu-112）新增 systemd 服务 `/etc/systemd/system/dsh-web.service`（`Type=simple`、`WorkingDirectory=/root`、`ExecStart=/usr/local/bin/dsh web`、`Restart=on-failure`、`RestartSec=5`、`StandardOutput/Error=append:/root/dsh-web.log`）；凭据走 `.credentials.yaml`，unit 不硬编码 Key；`systemctl enable --now` 设开机自启并启动（`multi-user.target.wants/dsh-web.service`）；原 setsid 手动进程已停；`/root/restart-dsh.sh` 改为 `systemctl restart dsh-web` 防双进程冲突。
