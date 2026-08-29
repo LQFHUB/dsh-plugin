@@ -27,8 +27,8 @@
 
 ### 官方上游源码（只读参考）
 
-- `upstream/DeepSeek-Harness/`：**官方源码的本地镜像**（独立 git 仓库，已 `--filter=blob:none` 浅克隆 master，当前 HEAD 对应 v0.1.2-alpha.1 发布）。用途：**开发/排查时直接在本地看官方实现**（源码、`docs/`、agent 决策笔记 `.agents/notes/`），不依赖网络。
-- **更新方法**（需要时手动执行）：在 `upstream/DeepSeek-Harness/` 下 `git pull`（treeless 模式按需拉取 blob，网络不稳时加 `-c index.threads=1` 重试）。更新后可 `git log --oneline -1` 确认版本。
+- `upstream/DeepSeek-Harness/`：**官方源码的本地镜像**（独立 git 仓库，已 `--filter=blob:none` 完整历史部分克隆 master，当前 HEAD 对应 v0.1.2-alpha.1 发布；**含全量提交历史 14226 条，可直接 `git log` 查看变更记录**）。用途：**开发/排查时直接在本地看官方实现**（源码、`docs/`、agent 决策笔记 `.agents/notes/`），不依赖网络。
+- **更新方法**（需要时手动执行）：在 `upstream/DeepSeek-Harness/` 下 `git pull`（部分克隆按需拉取 blob，网络不稳时加 `-c index.threads=1` 重试）。更新后可 `git log --oneline -1` 确认版本。
 - **只读性质**：本目录仅作参考，**不得向官方仓库提交/推送**；其 .git 独立，不参与插件仓库版本管理。已在 `.gitignore` 中忽略 `upstream/`，不会误提交。
 - 注意：`upstream/` 内是另一个 git 仓库（嵌套仓库），git 命令可能报 `dubious ownership`——用 `git -c safe.directory=<该目录绝对路径>` 或环境变量方式处理，勿写全局配置。
 
@@ -45,11 +45,11 @@
 
 <details>
 <summary>📜 变更记录（共 9 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
-### 2026-08-29 新增 upstream/：官方 DeepSeek-Harness 源码本地镜像（treeless 浅克隆，供本地直接查阅官方代码）
+### 2026-08-29 新增 upstream/：官方 DeepSeek-Harness 源码本地镜像（完整历史部分克隆，可直接看官方变更记录）
 
-- 变更内容：按用户要求将官方仓库 [deepseek-ai/DeepSeek-Harness](https://github.com/deepseek-ai/DeepSeek-Harness) 拉到本目录 `upstream/DeepSeek-Harness/`，作为**只读参考**（开发/排查时本地直接看官方源码、`docs/`、`.agents/notes/`，不依赖网络）。**克隆方式**：`--filter=blob:none`（treeless 部分克隆）+ `--single-branch --branch master`，规避网络不稳导致的 `premature end of pack file`；当前 HEAD `cd5ef8148`（对应 v0.1.2-alpha.1 发布）；工作区 8953 文件、约 133MB、`git fsck` 通过。**更新方法**：在该目录 `git pull`（按需拉 blob，不稳时加 `-c index.threads=1` 重试）。**纳入约定**：`.gitignore` 忽略 `upstream/`（不误提交进插件仓库）；AGENTS.md 第二节新增「官方上游源码（只读参考）」小节、第六节补充本地源码查阅指引。
+- 变更内容：按用户要求将官方仓库 [deepseek-ai/DeepSeek-Harness](https://github.com/deepseek-ai/DeepSeek-Harness) 拉到本目录 `upstream/DeepSeek-Harness/`，作为**只读参考**（开发/排查时本地直接看官方源码、`docs/`、`.agents/notes/`，不依赖网络）。**克隆方式**：`--filter=blob:none`（部分克隆，blob 按需拉取，**完整保留全部提交历史 14226 条，可直接 `git log` 看官方变更记录**）+ `--single-branch --branch master`，规避网络不稳导致的 `premature end of pack file`；当前 HEAD `cd5ef8148`（对应 v0.1.2-alpha.1 发布）；工作区 8953 文件、约 133MB、`git fsck` 通过。**更新方法**：在该目录 `git pull`（按需拉 blob，不稳时加 `-c index.threads=1` 重试）。**纳入约定**：`.gitignore` 忽略 `upstream/`（不误提交进插件仓库）；AGENTS.md 第二节新增「官方上游源码（只读参考）」小节、第六节补充本地源码查阅指引。
 - 涉及路径：`upstream/DeepSeek-Harness/`（新建，独立 git 仓库）、`.gitignore`、`AGENTS.md`
-- 备注：目录所有权处理——嵌套仓库 git 命令报 `dubious ownership`，用 `git -c safe.directory=<绝对路径>` 或 `GIT_CONFIG_*` 环境变量注入，勿写全局配置；treeless 克隆初始 `--no-checkout` 后需 `git reset --hard HEAD` 才落地工作区文件
+- 备注：目录所有权处理——嵌套仓库 git 命令报 `dubious ownership`，用 `git -c safe.directory=<绝对路径>` 或 `GIT_CONFIG_*` 环境变量注入，勿写全局配置；部分克隆初始 `--no-checkout` 后需 `git reset --hard HEAD` 才落地工作区文件
 
 ### 2026-08-27 theme-center v0.5.2 + dsh-navbar v0.3.1：玻璃模式 navbar 位置错乱 + 渐变色不兼容修复
 
