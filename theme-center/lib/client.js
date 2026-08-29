@@ -267,19 +267,22 @@ window.__ModuleLoader__.load({
 
 		//#region 表格列宽
 		/**
-		 * 表格撑满列宽：官方 markdown 渲染器把表格设为 width:max-content 且
-		 * td/th max-width 封顶 min(30vw,320px)——中文长文本被压进 320px 窄列
-		 * 疯狂换行，表格只占列宽一半。这里在助手回答/用户消息内覆盖为
-		 * 撑满整列 + 解除列上限（超宽表格仍由官方 overflow-x 容器横向滚动）。
+		 * 表格收缩适配内容：官方 markdown 渲染器把表格设为 width:max-content 且
+		 * td/th min-width:100px + max-width:min(30vw,320px)——列宽被 100px 下限
+		 * 硬撑（内容少的列大量空白、列数一多表格就被撑得过宽），中文长文本又
+		 * 被压进 320px 窄列疯狂换行。这里在助手回答/用户消息内覆盖为
+		 * width:fit-content（表格收缩到内容宽度，max-width:100% 防溢出）+ 解除
+		 * 列宽上下限（min-width:0 / max-width:none）——列宽完全由内容决定：
+		 * 内容少则表格窄、无空白；内容多则 clamp 到容器宽度、列内换行，不超宽。
 		 * 只作用于 [data-chat-flow-kind] 稳定属性，不依赖 hash 类名。
 		 */
 		const TABLE_CSS =
 			'body[data-dsh-theme-center] [data-chat-flow-kind="assistant-step"] table,' +
-			userKindsSel('body[data-dsh-theme-center]', ' table') + '{width:100% !important;max-width:100% !important}' +
+			userKindsSel('body[data-dsh-theme-center]', ' table') + '{width:fit-content !important;max-width:100% !important}' +
 			'body[data-dsh-theme-center] [data-chat-flow-kind="assistant-step"] th,' +
 			'body[data-dsh-theme-center] [data-chat-flow-kind="assistant-step"] td,' +
 			userKindsSel('body[data-dsh-theme-center]', ' th') + ',' +
-			userKindsSel('body[data-dsh-theme-center]', ' td') + '{max-width:none}';
+			userKindsSel('body[data-dsh-theme-center]', ' td') + '{max-width:none;min-width:0}';
 		//#endregion
 
 		//#region 外观扩展（会话区字号 / 网站字体 / 隐藏开关）

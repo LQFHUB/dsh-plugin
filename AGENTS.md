@@ -44,7 +44,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 9 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 5 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+### 2026-08-29 theme-center v0.5.4：表格收缩适配内容（fit-content + 解除列宽上下限），消除"内容少却强制很宽、大量空白"
+
+- 变更内容：用户反馈"很少的内容却强制很宽的表格、大量空白"。根因：官方 td/th min-width:100px 按列数硬撑列宽（6 列表格 776px、"开发量"列内容仅 19px 却占 132px）；v0.5.2 表格列宽模块只解除 max-width 未解除 min-width。修复：TABLE_CSS 改 `width:fit-content !important` + `td/th min-width:0`——列宽完全由内容决定：内容少表格收缩无空白、内容多 clamp 到容器不超宽（同时解决上轮 6 列表格溢出 264px 问题）。版本 0.5.3→0.5.4
+- 涉及路径：`theme-center/lib/client.js`（TABLE_CSS）、`theme-center/tests/smoke.mjs`、`theme-center/package.json`、`theme-center/AGENTS.md`（4.7 + §6 + 变更记录）、`AGENTS.md`
+- 备注：本机 GUI 实测（Playwright 注入）：1280px 视口 6 列表格 928→811/707px、5 列→636px、3 列→566/718px（列 47~131px 紧凑无空白）、内容最多的社区方案表仍占满合理；640px 窄视口 512px 内不溢出；`width:auto` 无效（均分占满）而 `fit-content`/`max-content` 有效；官方 md-table-wide hover 滚动不受影响；`fit-content` 需 Chrome 111+；**112/111 待部署验证**（按流程 112 验证后询问再部署 111）；部署环境本机存在 `theme-center/lib/skins/codex.js`、`lib/meta/codex.json`、根 `CHANGELOG.md` 权限被改 000（既有未提交异常，git 记录 100755/100644/100644），已 chmod 恢复 codex 两个
+
 ### 2026-08-29 新增 upstream/：官方 DeepSeek-Harness 源码本地镜像（完整历史部分克隆，可直接看官方变更记录）
 
 - 变更内容：按用户要求将官方仓库 [deepseek-ai/DeepSeek-Harness](https://github.com/deepseek-ai/DeepSeek-Harness) 拉到本目录 `upstream/DeepSeek-Harness/`，作为**只读参考**（开发/排查时本地直接看官方源码、`docs/`、`.agents/notes/`，不依赖网络）。**克隆方式**：`--filter=blob:none`（部分克隆，blob 按需拉取，**完整保留全部提交历史 14226 条，可直接 `git log` 看官方变更记录**）+ `--single-branch --branch master`，规避网络不稳导致的 `premature end of pack file`；当前 HEAD `cd5ef8148`（对应 v0.1.2-alpha.1 发布）；工作区 8953 文件、约 133MB、`git fsck` 通过。**更新方法**：在该目录 `git pull`（按需拉 blob，不稳时加 `-c index.threads=1` 重试）。**纳入约定**：`.gitignore` 忽略 `upstream/`（不误提交进插件仓库）；AGENTS.md 第二节新增「官方上游源码（只读参考）」小节、第六节补充本地源码查阅指引。
@@ -70,33 +76,6 @@
 - 变更内容：按用户要求集成 NoNameLeGo/dsh-catppuccin-theme（MIT）的玻璃拟态到 theme-center（插件>主题>外观）。新增**玻璃质感增强层**：color-mix 从皮肤令牌派生四要素（半透明+边框 rim+白顶高光 edge+投影 drop+blur）自动跟随 24 款皮肤、接缝 stamping、html data-tc-glass 门控+blur/frost 滑杆、默认关、服务器同步三字段、外观 Tab「玻璃质感」节；版本 0.5.0
 - 涉及路径：`theme-center/lib/{client,index}.js`、`theme-center/tests/smoke.mjs`、`theme-center/package.json`、`theme-center/AGENTS.md`、`AGENTS.md`
 - 备注：112/111 双机部署 0.5.0 + 实测四要素生效（header 半透明 color-mix+blur14px+白顶高光+rim）、关闭零残留；npm 0.5.0 已发布
-
-### 2026-08-26 将 112 的 dsh web 配置为 systemd 服务 dsh-web.service 并开机自启（参考 111）
-
-- 变更内容：按用户指示参考 111 的 dsh-web.service，为 112（AI-2/ubuntu-112）新增 systemd 服务 `/etc/systemd/system/dsh-web.service`（`Type=simple`、`WorkingDirectory=/root`、`ExecStart=/usr/local/bin/dsh web`、`Restart=on-failure`、`RestartSec=5`、`StandardOutput/Error=append:/root/dsh-web.log`）；凭据走 `.credentials.yaml`，unit 不硬编码 Key；`systemctl enable --now` 设开机自启并启动（`multi-user.target.wants/dsh-web.service`）；原 setsid 手动进程已停；`/root/restart-dsh.sh` 改为 `systemctl restart dsh-web` 防双进程冲突。
-- 涉及路径：112 `/etc/systemd/system/dsh-web.service`、`/root/restart-dsh.sh`、`AGENTS.md`（服务重启前处理说明同步更新）
-- 备注：验证通过——服务 `enabled`+`active(running)`（Main PID node）、HTTP 200、`/root/dsh-web.log` 正常追加；sensenova 思考等级（reasoningEfforts）等 settings 配置不受影响、全部保留；同 111 开机自动拉起。
-
-### 2026-08-21 修复 Win 离线包“新建会话 unscoped context”：根因=profile 树混入 @deepseek-ai 副本致 dsh-scope 双份 Symbol；重打 169MB 包并本机完整复现验证
-
-- 变更内容：用户内网机器（WIN10，win-x64 离线包）新建会话报 `agent-presets: refusing to compose an unscoped context`。**排查过程**：①配置全对（settings.describe 显示 gateway provider/agent-default-model 已加载）；②scope 诊断脚本（cordis Context+createScope+scopeOf）机制正常；③111 上最小 profile 复现成功、**用户 zip 完整 profile 复现失败**（同错误）；④二分后**连最小 profile 也失败** → 触发点与插件无关；⑤对照 repro2（成功）vs repro3（失败）目录差异 → **zip 的 `profiles/web/node_modules/@deepseek-ai/` 存在整套 dsh 核心包副本**（14MB：cordis/dsh-scope/dsh-agent-presets/dsh-host-apiproxy/dsh-session 等几十个，打包时装 better-sidebar 依赖时 npm 提升进 profile 树）；111 生产该目录为空（依赖走全局）。**机制**：dsh-scope 被加载两份 → `Symbol("dsh.scope")` 跨实例不相等 → createScope 写 tag、scopeOf 读不到 → unscoped context。**修复**：删除 `profiles/web/node_modules/@deepseek-ai`（插件运行时依赖向上解析到 profiles/node_modules 的 heal 链接/全局树，单份模块）；111 上删副本后最小+完整 8-bundle profile 三种 payload（空/cwd/workspaceId）session.create **全部 ok=True**。**重打**：win-x64 包 169MB（sha `58805c14…`，CRC/48629 清单全过），README 增排错条目（含旧包一键修复命令 `rmdir /s /q ...\profiles\web\node_modules\@deepseek-ai`）
-- 涉及路径：`offline-pack/win-x64/{dsh-offline-win-x64.zip（重打 169MB）、README-WIN.md（排错+一键修复）、MANIFEST.sha256}`、`AGENTS.md`
-- 备注：教训——**npm 在 profile 目录装插件依赖会把 @deepseek-ai 核心包提升进 profile 树**，与全局树形成双份模块；Symbol 跨实例不相等类问题只会在特定模块（dsh-scope）出现且表现诡异（启动正常、配置正常、仅 agent 创建失败）；打包后必须**检查 profiles/web/node_modules/@deepseek-ai 为空**（与 111 生产对照）；排查方法论：settings.describe 验证配置 → 最小/完整 profile 对照复现 → 目录差异对比 → Symbol 双份推理；用户侧旧包最快修复=删该目录重启，无需重部署
-### 2026-08-20 修 Windows“选择工作区 Failed to fetch”：原生目录框在远程/计划任务场景弹不出→强制 browse；31.101 真机端到端验证通过
-
-- 变更内容：用户反馈 31.101 上 Web 界面“选择工作区 / Choose workspace”报 `Failed to fetch`。**根因**（源码定位）：`dsh-host-directory-picker-auto` 按引导时事实选后端——bindHost=127.0.0.1 且非 SSH 环境且平台 win32 → 选 **native**（`dsh-host-directory-picker-native`，koffi→user32 弹系统目录框，**阻塞 HTTP 直到关框**）；本次 dsh 由 SSH/计划任务在 RDP 会话拉起、或不在可交互桌面 → 系统框弹不出 → 请求挂起 → 前端 fetch 拒绝 → `Failed to fetch`。**修复**：无用户配置项，但 resolver 有「设置了 `SSH_CONNECTION`/`SSH_TTY` → 无条件 browse」分支 → VM 上 `dsh-autostart.cmd` 加 `set "SSH_CONNECTION=remote"` 后经计划任务 DSHWeb 重启 → 改用「网页内目录浏览」后端。**真机端到端验证**：本机 ssh 隧道 `13101→VM:3080` + Playwright 浏览器实测——点 Choose workspace 弹出网页内 Select Workspace Directory（列出 VM 目录），选 Documents→Open，左侧 Workspaces 出现 Documents，全程无 Failed to fetch。**包更新**：`win-x64/README-WIN.md` 排错节增加该问题与 `set SSH_CONNECTION=remote` 开关说明；`win-x64/dsh.cmd` 顶部加注释版开关；主包重打（173MB，sha256 `0f5a3a1f…78f58c`，CRC/清单全过）并同步到 VM（31.101 上 dsh 现以 browse 运行，pid 3560，HTTP 200）
-- 涉及路径：`offline-pack/win-x64/{dsh-offline-win-x64.zip（重打）、README-WIN.md、dsh.cmd(新增源码)}`、`AGENTS.md`；31.101 上 `C:\Users\LEE\dsh-autostart.cmd`（SSH_CONNECTION）+ 计划任务 DSHWeb
-- 备注：dsh 的目录选择后端是“自适应”设计（本地桌面用系统框、远程/无显示用网页浏览），无 settings 开关，仅 env（SSH_CONNECTION/SSH_TTY）可强制 browse，属有意为之的“通过 SSH 启动”信号；远程/受限/计划任务运行 Windows 一律建议 browse；验证册：隧道+Playwright 打开网页→点 Choose workspace→确认弹网页内目录框→选目录→侧栏出现工作区
-### 2026-08-20 修复 Windows 离线包启动失败：根因=**必须 Node 22**（Node 20 缺 zstd/withResolvers/stripTypeScriptTypes），Node22 整合进主包重打
-
-- 变更内容：用户在 Win10 VM（31.101）运行 dsh.cmd 报 `createZstdDecompress`/`Promise.withResolvers`/`stripTypeScriptTypes`/`Cannot find package('全局'、6 插件)` 崩溃。**根因确诊（决定性本地复现）**：这些全是 **Node 22 API**（dsh rc.8 用到 `node:zlib` zstd 系列、`Promise.withResolvers`、`node:module.stripTypeScriptTypes`），Win10 是 Node 20.12.2 → 必炸；用官方 Node 20.12.2 在本地 Linux 跑同一 dsh 得到 **逐条一致**的错误（含 16 处 Cannot find package，证明"找不到包"是 Node20 致加载器内部解析不可用的**连锁反应**，非插件放错——插件在 profiles\web\node_modules 与 Linux 同构，Node22 下正常）。对照组 Node22 正常启动 HTTP 服务。**修复**：Node 22 从"可选兜底"升为**必需品并整合进主包**（`dsh-offline-win-x64.zip` 内顶层 `node-v22.23.2-win-x64\`），`dsh.cmd`/`verify.cmd` 重写为**默认用内置 node22.exe**（缺失再退 PATH node 且校验 >=22）；`README-WIN.md` 全文改写（必须 Node 22、附带 3 个 API 缺失症状表、node-pty warn 若 Node22 仍出现则为缺 VC++ 运行库）。重打包 173MB（含 Node22，约 50038 文件 MANIFEST 全过、zip CRC 全过），sha256 `604de9fc…173020`；工作区 `win-x64/MANIFEST.sha256` 已同步为该包内置版本。**VM 真机自动验证受限**：31.101 仅开 RDP(3389)（无 SSH/WinRM），PVE(31.100) API 登录 ticket OK 但后续 GET 被 401（cookie 异常），RDP 自动化不可靠 → 放弃自动远程装；给用户清晰"VM 复测清单"（删旧 .dsh 重新解压新 zip → verify.cmd → dsh.cmd）
-- 涉及路径：`offline-pack/win-x64/{dsh-offline-win-x64.zip（重打 173MB）、README-WIN.md（改写）、MANIFEST.sha256（同步）}`, `AGENTS.md`
-- 备注：教训——dsh rc.8「engines 无硬要求但代码用 Node22 API」属隐性前置，装机/文档须以 Node22 为基线；本地复现法（下载同版本 Node20 跑同一个 dsh）是跨平台排查的快速手段；插件 bundle 的 bare-name 解析靠 loader 内部 baseUrl=profile 机制，Node 低版本会让其退化裸解析而误报"找不到包"，勿据此改布局
-### 2026-08-20 新增 offline-pack/win-x64/：dsh+插件 Windows 离线包（纯 zip，无需联网/管理员，去 dshmarket/web-lan）
-
-- 变更内容：用户要在**完全隔离、内网权限受限、已装 Node v20.12.2** 的 Win10 上装 dsh+插件（不能联网不连内网）→ 产出 Windows 离线 zip。**核心方案**：不复制 Linux 树（原生模块是 ELF、可选依赖只有 linux 变体、有 /root 路径链接，直接拷必挂），而是在 111 上**按 win32-x64 重新解析依赖**产出 Windows 树：`npm install --os=win32 --cpu=x64 --ignore-scripts`（实测该参数能正确选中 win32 平台可选包）。范围（用户确认）：**去** dshmarket、web-lan；**含** theme-center/navbar/notify-sound/describe-image + better-sidebar + global-rules。**布局**：`%USERPROFILE%\.dsh`（家目录）下 `node_modules\`＝win32 全局依赖树（含 `@img/sharp-win32-x64`、`@koromix/koffi-win32-x64`、`@vscode/ripgrep-win32-x64`、`node-addon-require-builtin-win32-x64-msvc`），`profiles\web\`＝profile（better-sidebar/global-rules npm 装 + 4 插件按 `files` 白名单**真实目录**物化，无 `link:`、无符号链接、无 /root 路径 → 不需要管理员权限）；机制依据：`resolveBundleDir` 从安装锚点(全局)+profileDir 两级解析 bundle，插件 walkup 命中 `.dsh\node_modules\@deepseek-ai\*`。产物 `win-x64/dsh-offline-win-x64.zip`（137MB，解压到用户目录即得 `.dsh\`）+ `dsh.cmd`/`verify.cmd`（CRLF）/`README-WIN.md`/`MANIFEST.sha256`（47979 文件全过）+ 可选 `node-v22.23.2-win-x64.zip`（35MB，Node20 ABI 不兼容兜底）。**验证**（本机可做）：npm 实测选中 win32 包、两处树 win32 原生齐（无 linux 变体）、node-pty win32 prebuild 在、插件目录无 dev 文件、`node --check` 关键 JS 过、zip CRC 全过。Windows 侧验收=`verify.cmd`（真实运行只能在目标机，README 已写验收清单）
-- 涉及路径：`offline-pack/win-x64/`（新建：dsh-offline-win-x64.zip、node-v22.23.2-win-x64.zip、README-WIN.md、MANIFEST.sha256、SHASUMS256.txt）、`AGENTS.md`
-- 备注：dsh rc.8 无 engines 硬要求（仅 2 依赖声明 `>=20`）→ Node 20 够用，Node22 包仅兜底；bash 类工具在 Windows 无 bash 降级（文档注明）；`--port` CLI 不生效需 `--patch` 覆盖 webserver；构建基于 npm 10.9.8 的 `--os/--cpu` 跨平台解析（方案经小包实测可行，构建后抽查 win32 包名为准）；未验证项为 Windows 上真实运行（node-pty/ABI 以 verify.cmd 验收），这是诚实边界
 </details>
 
 ---

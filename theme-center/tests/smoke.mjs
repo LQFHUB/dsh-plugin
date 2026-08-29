@@ -21,7 +21,7 @@ const read = (rel) => readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8'
 
 // 1. 包清单
 assert.equal(pkg.name, '@npm-liqingfeng/dsh-theme-center', '包名应为 @npm-liqingfeng/dsh-theme-center')
-assert.equal(pkg.version, '0.5.2', '版本应为 0.5.2（玻璃修复：navbar锚点+渐变保留）')
+assert.equal(pkg.version, '0.5.4', '版本应为 0.5.4（表格收缩适配内容：fit-content + 解除列宽上下限）')
 assert.equal(pkg.exports['.'], './lib/index.js', 'exports["."] 应指向 lib/index.js')
 assert.equal(pkg.exports['./client'], './lib/client.js', 'exports["./client"] 应指向 lib/client.js')
 assert.equal(pkg.dsh.bundle.patch, './cordis.patch.yml', 'bundle patch 应指向 cordis.patch.yml')
@@ -129,11 +129,11 @@ assert.match(clientSrc, /dataset\.pluginCss = "dsh-theme-center\/width"/, '应�
 assert.match(clientSrc, /dataset\.pluginCss = "dsh-theme-center\/focus"/, '应有 focus 样式元素')
 assert.match(clientSrc, /dataset\.pluginCss = "dsh-theme-center\/table"/, '应有 table 样式元素')
 assert.match(clientSrc, /dataset\.pluginCss = "dsh-theme-center\/appearance"/, '应有 appearance 样式元素')
-// 表格撑满列宽：覆盖 max-content 为 100% + 解除 td/th 320px 列上限，作用域限助手回答/用户消息
+// 表格收缩适配内容：width:max-content/min-width:100px 硬撑列宽致空白与过宽，覆盖为 fit-content 收缩到内容宽 + 解除列宽上下限（min-width:0/max-width:none），作用域限助手回答/用户消息
 assert.match(clientSrc, /data-chat-flow-kind="assistant-step"\] table/, '应有助手回答表格规则')
 assert.match(clientSrc, /userKindsSel\('body\[data-dsh-theme-center\]', ' table'\)/, '应有用户消息表格规则（含 steering 通道）')
-assert.match(clientSrc, /width:100% !important;max-width:100% !important/, '表格应撑满列宽')
-assert.match(clientSrc, /max-width:none/, '应解除 td/th 列宽上限')
+assert.match(clientSrc, /width:fit-content !important;max-width:100% !important/, '表格应收缩到内容宽度（fit-content，max-width 防溢出）')
+assert.match(clientSrc, /max-width:none;min-width:0/, '应解除 td/th 列宽上下限（320px 上限 + 100px 下限）')
 // 外观扩展：会话区字号缩放（16/28 基线 calc，门控 data-tc-scale，不影响 Think/工具/上下文）
 assert.match(clientSrc, /TEXT_SCALE_DEFAULT = 80/, '字号默认应为 80%')
 assert.match(clientSrc, /TEXT_SCALE_OFFICIAL = 100/, '官方原样锚点应为 100%（与默认值解耦）')
@@ -142,7 +142,7 @@ assert.match(clientSrc, /calc\(16px \* var\(--tc-text-scale\)\)/, '应有字号�
 assert.match(clientSrc, /calc\(28px \* var\(--tc-text-scale\)\)/, '应有行高缩放 calc 规则')
 assert.match(clientSrc, /data-composer-card="true"\] div:has\(> textarea\)\{font-size:calc\(16px \* var\(--tc-text-scale\)\)\}/, '输入框内容应随字号缩放（缩放 textarea 父层，backdrop 可见文字/textarea 光标/mirror 测量三层一并 inherit；行高保持官方 24px 防垂直错位）')
 assert.match(clientSrc, /USER_TEXT_KINDS = \['user', 'steering'\]/, '用户消息通道应含 steering（2026-08-17 实测发送内容走 steering 通道不缩放）')
-assert.match(clientSrc, /userKindsSel\(F, ' \[data-time-hover-root\] > div:first-child > div'\)/, '用户气泡字号/字体规则应覆盖 user+steering 且每项带完整门控前缀（逗号列表前缀只作用于第一项）')
+assert.match(clientSrc, /userKindsSel\(F, ' \[data-time-hover-root\] > div:first-child > div'\)/, '用户气泡字号/字体规则应覆盖 user+steering 且锚点在 userStack 层（生成中更早命中，避免流式时 16px 抖动）')
 assert.match(clientSrc, /data-tc-scale/, '字号缩放应由 data-tc-scale 门控')
 // 会话区标题（markdown h1-h6）为官方固定 px 令牌，缩放须重定义令牌（calc 乘法 + 随全站字体）
 assert.match(clientSrc, /--dsw-font-markdown-h1/, '应有 h1 标题令牌基线')

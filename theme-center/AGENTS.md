@@ -82,8 +82,8 @@
 - 三个样式元素（card/width/focus）均挂 `data-plugin="dsh-theme-center"` + 各自 `data-pluginCss`，disposer 全量收回（含门控属性）。
 
 ### 4.7 表格列宽模块（必须）
-- **动机**：官方 markdown 渲染器 `table { width:max-content }` + `td/th { max-width: min(30vw,320px) }`——中文长文本被压进 320px 窄列疯狂换行，表格只占列宽一半（2026-08-16 实测 452px/896px）。
-- 覆盖规则：助手回答/用户消息内（`[data-chat-flow-kind="assistant-step"|"user"]`）`table{width:100% !important;max-width:100% !important}` + `td/th{max-width:none}`；**只依赖稳定 data 属性，不依赖 hash 类名**；超宽表格仍由官方 `overflow-x:auto` 容器横向滚动。
+- **动机**：官方 markdown 渲染器 `table { width:max-content }` + `td/th { min-width:100px; max-width:min(30vw,320px) }`——列宽被 **100px 下限硬撑**（内容少的列大量空白、列数一多表格就被撑得过宽；2026-08-29 实测 6 列表格 776px、其中"开发量"列内容 19px 却占 132px），中文长文本又被压进 320px 窄列疯狂换行（2026-08-16 实测 452px/896px）。
+- 覆盖规则：助手回答/用户消息内（`[data-chat-flow-kind="assistant-step"|"user"|"steering"]`）`table{width:fit-content !important;max-width:100% !important}` + `td/th{min-width:0;max-width:none}`——**列宽完全由内容决定**：内容少则表格收缩到内容宽度、无空白；内容多则 clamp 到容器宽度、列内换行，不超宽；**只依赖稳定 data 属性，不依赖 hash 类名**；极少数不可断行内容（长 URL）溢出仍由官方 `overflow-x:auto`/`md-table-wide` hover 滚动兜底。
 - 常开不设开关（用户确认）；样式独立 `<style>`（`data-pluginCss="dsh-theme-center/table"`），disposer 收回。
 
 ### 4.8 外观扩展模块（必须）
@@ -125,7 +125,7 @@
    - DOM 皮肤抽查（xp 任务栏/开始按钮、miku 标题栏）、多皮肤连续切换标题链；
    - **聊天宽度**：外观 Tab 选档 → 对话列/输入框变宽 + localStorage 持久化 + 刷新恢复；标题栏无宽度按钮；
    - **聊天区精简**：0% / 70% / 100% 三档计算样式断言（Think 标题字号与摘要透明度、工具卡行高、Context 卡来源透明度）；0% 与卸载态完全一致；`body[data-tc-focus]` 门控属性存在/移除成对；
-   - **表格列宽**：助手回答内表格 `width=100%`（撑满内容列）、`td/th max-width=none`（>320px 列正常展开）、超宽表格仍横向滚动；用户消息表格同样生效；
+   - **表格列宽**：助手回答内表格 `width=fit-content`（收缩到内容宽度、内容少则表格窄无空白）、`td/th min-width:0 + max-width=none`（列宽由内容决定，>320px 列正常展开）、内容多时 clamp 到容器宽度不溢出；用户消息表格同样生效；
    - **外观扩展·字号**：滑块 100%/125%/90% 三档计算样式断言（markdown 容器与 p/表格/代码 = 16px×N、28px×N，容差 0.1px）；**标题 h1-h6 同步缩放**（探针断言 h1 24→30px、h2 22→27.5px、h3 20→25px、h4-6 16→20px @125%，h2 行高 32→40px）；**输入框内容同步缩放**（探针断言 125% → 20px/30px、90% → 14.4px/21.6px、100% 还原 16px/24px）；**Think 行/工具卡/上下文卡字号不变**；`data-tc-scale` 门控存在/移除成对；刷新恢复；
    - **外观扩展·字体**：下拉逐项切换 → `body` 与 markdown 容器 `fontFamily` 命中对应 stack、代码块字体不变；**标题 family 跟随所选字体**（仅字体态字号仍官方：h2 22px + YaHei；字体+125% 组合态：h2 27.5px + YaHei）；default 还原；刷新恢复；
    - **外观扩展·隐藏**：三开关逐项勾选 → 对应元素 `display:none`、取消恢复；与压制 70% 共存；`data-tc-hide` 门控值正确；
@@ -139,6 +139,12 @@
 
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
+
+### 2026-08-29 theme-center v0.5.4：表格收缩适配内容（fit-content + 解除列宽上下限），消除"内容少却强制很宽、大量空白"
+
+- 变更内容：用户反馈"很少的内容却强制很宽的表格、表格中大量空白，不太合理"。根因：官方 markdown 渲染器 `td/th{min-width:100px}`（+padding 共 132px/列）按列数硬撑列宽——实测 6 列表格 776px、"开发量"列内容仅 19px 却占 132px；v0.5.2 表格列宽模块只解除 `max-width:none`（320px 上限）未解除 100px 下限。修复：`TABLE_CSS` 改 `table{width:fit-content !important;max-width:100% !important}` + `td/th{min-width:0;max-width:none}`——列宽完全由内容决定：内容少则表格收缩到内容宽度、无空白；内容多则 clamp 到容器宽度、列内换行，**不超宽**（同时解决上轮"6 列表格溢出 264px"问题）。版本 0.5.3→0.5.4
+- 涉及路径：`theme-center/lib/client.js`（TABLE_CSS + 注释）、`theme-center/tests/smoke.mjs`（表格断言 + 版本断言）、`theme-center/package.json`（0.5.4）、`theme-center/AGENTS.md`（4.7 + §6 验证清单）、`AGENTS.md`
+- 备注：**本机 GUI 浏览器实测（Playwright 注入验证）**：1280px 视口 6 列表格 928px→811/707/707px、5 列表格→636px、3 列表格→566/718px（列 47~131px 紧凑、无空白），内容最多的社区方案表仍占满 928px 合理；640px 窄视口 512px 内不溢出（修复前 776px 溢出 264px）；`width:auto` 无效（表格占满容器均分列宽），`fit-content`/`max-content` 有效且结果一致（内容不足时收缩）；官方 `md-table-wide`（≥4 列 overflow-x:hidden、hover 滚动）不受影响——表格 ≤ 容器后滚动条不触发；极少数不可断行内容（长 URL）溢出仍由官方容器滚动兜底；`fit-content` 需 Chrome 111+（与 glass color-mix 要求一致）；**112/111 待部署验证**（112 部署目录为 npm 包覆盖 `profiles/web/node_modules/@npm-liqingfeng/dsh-theme-center` + 重启；按流程 112 验证后询问用户再部署 111）；部署环境本机有 `lib/skins/codex.js`、`lib/meta/codex.json` 权限被改 000（既有未提交异常，git 记录 100755/100644），已 chmod 恢复
 
 ### 2026-08-27 theme-center v0.5.2 + dsh-navbar v0.3.1：玻璃模式 navbar 位置错乱 + 渐变色不兼容修复
 
