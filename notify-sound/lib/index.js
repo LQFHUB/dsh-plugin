@@ -17,7 +17,6 @@
  */
 
 import z from '@deepseek-ai/schemastery'
-import { installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'
 
 export const name = 'notify-sound'
 export const inject = ['webServer']
@@ -134,7 +133,7 @@ export async function applySettingsWrites(ctx, writes) {
       else if (write.op === 'unset') delete user[write.field]
     }
   }
-  await settings.replace(settingsNamespace(SETTINGS_NAMESPACE), user, current.revision)
+  await settings.replace(SETTINGS_NAMESPACE, user, current.revision)
   const next = buildSettingsView(ctx)
   if (next === null) throw new Error('notify-sound settings namespace is not registered')
   return next
@@ -182,13 +181,15 @@ export function registerSettingsRoute(ctx) {
 }
 
 export function apply(ctx, config = {}) {
-  // settings 服务在启动时异步加载文档后才可用；installSettingsSection 用
-  // ctx.inject 迟绑定：settings 就绪后（或早已就绪时立即）注册，完全没有
-  // settings 服务的 profile 中静默不注册。webServer 同理可选。
-  installSettingsSection(ctx, SETTINGS_NAMESPACE, Config, config, {
-    setSource: () => {},
-    onChange: () => {},
-    validate: () => {},
+  // settings 服务在启动时异步加载文档后才可用；ctx.inject 迟绑定：
+  // settings 就绪后（或早已就绪时立即）注册，完全没有 settings 服务的
+  // profile 中静默不注册。webServer 同理可选。
+  ctx.inject(['settings'], (sctx) => {
+    sctx.settings.installSection(ctx, SETTINGS_NAMESPACE, Config, config, {
+      setSource: () => {},
+      onChange: () => {},
+      validate: () => {},
+    })
   })
   registerSettingsRoute(ctx)
 }

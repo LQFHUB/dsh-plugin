@@ -13,7 +13,6 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import { installSettingsSection } from '@deepseek-ai/dsh-settings'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { GenericCallView } from '@deepseek-ai/dsh-tools'
 import { registerAttachRoute } from './attach-routes.ts'
@@ -127,14 +126,16 @@ export function apply(ctx: Context, config: Config = {}): void {
     resolveConfig(config)
   }
   let current: () => Config = () => config
-  installSettingsSection(ctx, DESCRIBE_IMAGE_SETTINGS_NAMESPACE, Config, config, {
-    setSource: (source) => {
-      current = source
-    },
-    onChange: () => {},
-    validate: (value) => {
-      if (value.baseURL !== undefined || value.model !== undefined) resolveConfig(value)
-    },
+  ctx.inject(['settings'], (sctx) => {
+    sctx.settings.installSection(ctx, DESCRIBE_IMAGE_SETTINGS_NAMESPACE, Config, config, {
+      setSource: (source) => {
+        current = source
+      },
+      onChange: () => {},
+      validate: (value) => {
+        if (value.baseURL !== undefined || value.model !== undefined) resolveConfig(value)
+      },
+    })
   })
   const spec = (): ResolvedConfig => resolveConfig(current())
   // 本次挂载作用域内的短生命周期语义缓存：TTL 内相同图片 + 指令复用

@@ -69,7 +69,7 @@
 
 ## 🔧 工作原理 / How it works
 
-- **配置存储**：宿主半区注册 `notify-sound` 设置命名空间（`installSettingsSection`，dsh-settings），配置落在 profile 设置的用户层（服务端落盘）。官方 apiproxy 的 settings 白名单不暴露第三方命名空间，故宿主另注册 **`/notify-sound/settings` 路由**（GET 视图 / POST 批量写，同源护栏 + revision 栅栏）作为读写接缝
+- **配置存储**：宿主半区经 `ctx.inject(['settings'], sctx => sctx.settings.installSection(...))`（dsh-settings）注册 `notify-sound` 设置命名空间，配置落在 profile 设置的用户层（服务端落盘）。官方 apiproxy 的 settings 白名单不暴露第三方命名空间，故宿主另注册 **`/notify-sound/settings` 路由**（GET 视图 / POST 批量写，同源护栏 + revision 栅栏）作为读写接缝
 - **浏览器作用域**：`NotifyConfigScope` 实现 SettingsScope 契约直连该路由；启动拉取一次，写入即 POST 落盘，另每 30s + 聚焦/可见刷新——所有浏览器读同一份配置即天然同步
 - **音效引擎**：Web Audio 合成（Oscillator + Gain），`AudioContext` 惰性创建；首次播放受浏览器自动播放策略约束，页面任意交互（如点「试听」）后即解锁
 - **事件监听**：订阅 `sessions.list` 快照（`byId/ids/current/jobsBySession`），无轮询、无额外数据通道

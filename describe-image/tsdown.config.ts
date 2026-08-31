@@ -20,7 +20,7 @@ const CLIENT_EXTERNALS: readonly string[] = [
   'react',
   '@deepseek-ai/cordis',
   '@deepseek-ai/dsh-client-locale',
-  '@deepseek-ai/dsh-client-runtime/client',
+  '@deepseek-ai/dsh-client-store',
   '@deepseek-ai/dsh-client-ui-conversation/client',
   '@deepseek-ai/dsh-client-ui-settings/client',
   '@deepseek-ai/dsh-client-ui-slots',

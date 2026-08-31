@@ -386,7 +386,7 @@ window.__ModuleLoader__.load({
 					F + ' [data-chat-flow-kind="assistant-step"] :where(p,li,blockquote,th,td){font-size:' + SCALE + ";line-height:" + LHEIGHT + "}",
 					F + ' [data-chat-flow-kind="assistant-step"] :not(pre) > code{font-size:calc(14px * var(--tc-text-scale))}',
 					F + ' [data-chat-flow-kind="assistant-step"] pre{font-size:calc(13px * var(--tc-text-scale));line-height:calc(22px * var(--tc-text-scale))}',
-					userKindsSel(F, ' [data-time-hover-root] > div:first-child > div') + '{font-size:' + SCALE + ";line-height:" + LHEIGHT + "}",
+					userKindsSel(F, ' [data-actions-reveal] > div:first-child > div') + ',' + userKindsSel(F, ' [data-time-hover-root] > div:first-child > div') + '{font-size:' + SCALE + ";line-height:" + LHEIGHT + "}",
 					// 输入框（composer）：官方基线 16px 实测（0.1.0-rc.6，DSH 升级需复核），
 					// 锚点 data-composer-card="true"（稳定属性，页面唯一 textarea），与正文同门控同比例。
 					// 官方为三层架构：backdrop 渲染可见文字 / textarea 透明文字+光标 / mirror 高度测量，
@@ -406,7 +406,7 @@ window.__ModuleLoader__.load({
 					"body[data-dsh-theme-center]{--tc-text-scale:1}",
 					F + "{--dsw-font-family:" + stack + ";" + headingTokensCss(stack) + "}",
 					F + ' [data-chat-flow-kind="assistant-step"] [class*="_markdown_"],' + userKindsSel(F, ' [class*="_markdown_"]') + '{font-family:' + stack + "}",
-					userKindsSel(F, ' [data-time-hover-root] > div:first-child > div') + '{font-family:' + stack + "}",
+					userKindsSel(F, ' [data-actions-reveal] > div:first-child > div') + ',' + userKindsSel(F, ' [data-time-hover-root] > div:first-child > div') + '{font-family:' + stack + "}",
 				);
 			}
 			if (state.hide.think) parts.push('body[data-dsh-theme-center][data-tc-hide~="think"] [data-variant="think"]{display:none !important}');

@@ -21,12 +21,9 @@ function makeFakeSettings(initialUser) {
   const defaults = Config({})
   const service = {
     writable: true,
-    register: (ns, schema, opts) => {
-      state.registerCalls.push({ ns: String(ns), opts })
-      return {
-        get: () => ({ ...defaults, ...state.user }),
-        watch: () => {},
-      }
+    // dsh v0.1.2-alpha.2 新 API：SettingsProvider.installSection（替代旧 register）
+    installSection: (owner, ns, schema, entry, hooks) => {
+      state.registerCalls.push({ ns: String(ns), opts: hooks })
     },
     describe: () => [{
       ns: SETTINGS_NAMESPACE,

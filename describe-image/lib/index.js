@@ -1,4 +1,3 @@
-import { installSettingsSection, settingsNamespace } from "@deepseek-ai/dsh-settings";
 import { defineTool } from "@deepseek-ai/dsh-tools";
 import { launchEnvironmentOf } from "@deepseek-ai/dsh-launch-environment";
 import z from "@deepseek-ai/schemastery";
@@ -478,7 +477,7 @@ async function applySettingsWrites(ctx, writes) {
 		if (write.op === "set") user[write.field] = write.value;
 		else delete user[write.field];
 	}
-	await settings.replace(settingsNamespace(SETTINGS_NAMESPACE), user, current.revision);
+	await settings.replace(SETTINGS_NAMESPACE, user, current.revision);
 	const next = buildSettingsView(ctx);
 	if (next === null) throw new Error("describe-image settings namespace is not registered");
 	return next;
@@ -632,7 +631,7 @@ const Config = z.object({
 	configuredModelId: z.string()
 });
 /** Settings namespace carrying the endpoint, model, and key reference the Plugins card edits. */
-const DESCRIBE_IMAGE_SETTINGS_NAMESPACE = settingsNamespace("describe-image");
+const DESCRIBE_IMAGE_SETTINGS_NAMESPACE = "describe-image";
 /**
 * Resolve raw config into validated connection facts. Programmatic construction may bypass
 * Schemastery normalization, so every default and bound is re-judged here; a non-empty composition
@@ -1089,14 +1088,16 @@ function describeImageCallView(args) {
 function apply(ctx, config = {}) {
 	if (config.baseURL !== void 0 || config.model !== void 0) resolveConfig(config);
 	let current = () => config;
-	installSettingsSection(ctx, DESCRIBE_IMAGE_SETTINGS_NAMESPACE, Config, config, {
-		setSource: (source) => {
-			current = source;
-		},
-		onChange: () => {},
-		validate: (value) => {
-			if (value.baseURL !== void 0 || value.model !== void 0) resolveConfig(value);
-		}
+	ctx.inject(["settings"], (sctx) => {
+		sctx.settings.installSection(ctx, DESCRIBE_IMAGE_SETTINGS_NAMESPACE, Config, config, {
+			setSource: (source) => {
+				current = source;
+			},
+			onChange: () => {},
+			validate: (value) => {
+				if (value.baseURL !== void 0 || value.model !== void 0) resolveConfig(value);
+			}
+		});
 	});
 	const spec = () => resolveConfig(current());
 	const visionCache = createVisionCache();

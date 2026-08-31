@@ -15,7 +15,6 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import { isSameOriginRequest, json, readJsonBody } from './attach-routes.ts'
 import { listConfiguredVisionModels } from './configured-models.ts'
 
@@ -87,7 +86,7 @@ export async function applySettingsWrites(ctx: Context, writes: readonly Setting
     if (write.op === 'set') user[write.field] = write.value
     else delete user[write.field]
   }
-  await settings.replace(settingsNamespace(SETTINGS_NAMESPACE), user, current.revision)
+  await settings.replace(SETTINGS_NAMESPACE, user, current.revision)
   const next = buildSettingsView(ctx)
   if (next === null) throw new Error('describe-image settings namespace is not registered')
   return next

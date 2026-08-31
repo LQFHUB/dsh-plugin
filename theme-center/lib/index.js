@@ -28,7 +28,6 @@ import { readFileSync, statSync } from 'node:fs'
 import { join as joinPath } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import z from '@deepseek-ai/schemastery'
-import { installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'
 
 /** lib/skins/ 目录（bundle 存放处），以本文件位置解析，link 安装同样有效。 */
 const SKINS_DIR = fileURLToPath(new URL('./skins/', import.meta.url))
@@ -214,7 +213,7 @@ export async function applySettingsWrites(ctx, writes) {
       else if (write.op === 'unset') delete user[write.field]
     }
   }
-  await settings.replace(settingsNamespace(SETTINGS_NAMESPACE), user, current.revision)
+  await settings.replace(SETTINGS_NAMESPACE, user, current.revision)
   const next = buildSettingsView(ctx)
   if (next === null) throw new Error('theme-center settings namespace is not registered')
   return next
@@ -300,15 +299,17 @@ function bundleRoute() {
  * 挂载设置命名空间与路由。失败只记录日志、绝不抛出——web shell 在插件
  * apply 抛错时会整体启动失败，主题配置同步服务不能把 GUI 拖垮（浏览器
  * 半区在 settings 服务缺失/路由不可达时静默降级为 localStorage 模式）。
- * installSettingsSection 经 ctx.inject 迟绑定：settings 就绪后（或早已
+ * sctx.settings.installSection 经 ctx.inject 迟绑定：settings 就绪后（或早已
  * 就绪时立即）注册，完全没有 settings 服务的 profile 中静默不注册。
  */
 export function apply(ctx, config = {}) {
   try {
-    installSettingsSection(ctx, SETTINGS_NAMESPACE, Config, config, {
-      setSource: () => {},
-      onChange: () => {},
-      validate: () => {},
+    ctx.inject(['settings'], (sctx) => {
+      sctx.settings.installSection(ctx, SETTINGS_NAMESPACE, Config, config, {
+        setSource: () => {},
+        onChange: () => {},
+        validate: () => {},
+      })
     })
     registerSettingsRoute(ctx)
   } catch (error) {

@@ -2,6 +2,34 @@
 
 > AGENTS.md「四、变更记录」超过 5 条后的归档存放处（按原格式、时间倒序）。最新记录始终在 AGENTS.md。
 
+### 2026-08-29 theme-center v0.5.4：表格收缩适配内容（fit-content + 解除列宽上下限），消除"内容少却强制很宽、大量空白"
+
+- 变更内容：用户反馈"很少的内容却强制很宽的表格、大量空白"。根因：官方 td/th min-width:100px 按列数硬撑列宽（6 列表格 776px、"开发量"列内容仅 19px 却占 132px）；v0.5.2 表格列宽模块只解除 max-width 未解除 min-width。修复：TABLE_CSS 改 `width:fit-content !important` + `td/th min-width:0`——列宽完全由内容决定：内容少表格收缩无空白、内容多 clamp 到容器不超宽（同时解决上轮 6 列表格溢出 264px 问题）。版本 0.5.3→0.5.4
+- 涉及路径：`theme-center/lib/client.js`（TABLE_CSS）、`theme-center/tests/smoke.mjs`、`theme-center/package.json`、`theme-center/AGENTS.md`（4.7 + §6 + 变更记录）、`AGENTS.md`
+- 备注：本机 GUI 实测（Playwright 注入）：1280px 视口 6 列表格 928→811/707px、5 列→636px、3 列→566/718px（列 47~131px 紧凑无空白）、内容最多的社区方案表仍占满合理；640px 窄视口 512px 内不溢出；`width:auto` 无效（均分占满）而 `fit-content`/`max-content` 有效；官方 md-table-wide hover 滚动不受影响；`fit-content` 需 Chrome 111+；**112/111 待部署验证**（按流程 112 验证后询问再部署 111）；部署环境本机存在 `theme-center/lib/skins/codex.js`、`lib/meta/codex.json`、根 `CHANGELOG.md` 权限被改 000（既有未提交异常，git 记录 100755/100644/100644），已 chmod 恢复 codex 两个
+
+
+### 2026-08-29 新增 upstream/：官方 DeepSeek-Harness 源码本地镜像（完整历史部分克隆，可直接看官方变更记录）
+
+- 变更内容：按用户要求将官方仓库 [deepseek-ai/DeepSeek-Harness](https://github.com/deepseek-ai/DeepSeek-Harness) 拉到本目录 `upstream/DeepSeek-Harness/`，作为**只读参考**（开发/排查时本地直接看官方源码、`docs/`、`.agents/notes/`，不依赖网络）。**克隆方式**：`--filter=blob:none`（部分克隆，blob 按需拉取，**完整保留全部提交历史 14226 条，可直接 `git log` 看官方变更记录**）+ `--single-branch --branch master`，规避网络不稳导致的 `premature end of pack file`；当前 HEAD `cd5ef8148`（对应 v0.1.2-alpha.1 发布）；工作区 8953 文件、约 133MB、`git fsck` 通过。**更新方法**：在该目录 `git pull`（按需拉 blob，不稳时加 `-c index.threads=1` 重试）。**纳入约定**：`.gitignore` 忽略 `upstream/`（不误提交进插件仓库）；AGENTS.md 第二节新增「官方上游源码（只读参考）」小节、第六节补充本地源码查阅指引。
+- 涉及路径：`upstream/DeepSeek-Harness/`（新建，独立 git 仓库）、`.gitignore`、`AGENTS.md`
+- 备注：目录所有权处理——嵌套仓库 git 命令报 `dubious ownership`，用 `git -c safe.directory=<绝对路径>` 或 `GIT_CONFIG_*` 环境变量注入，勿写全局配置；部分克隆初始 `--no-checkout` 后需 `git reset --hard HEAD` 才落地工作区文件
+
+
+### 2026-08-27 theme-center v0.5.2 + dsh-navbar v0.3.1：玻璃模式 navbar 位置错乱 + 渐变色不兼容修复
+
+- 变更内容：玻璃开启后 navbar（对话节点导航条）位置错乱 + 渐变色不兼容。根因：navbar `sidebarOf()` 的 `left<=10` 在玻璃 sidebarCol margin:12px 下误匹配全宽 AppFrame→anchor 取全宽右缘被钳到对话流左；玻璃 body `background:` shorthand 重置皮肤渐变 background-image。修复：navbar 锚点 `left<=16`+`width<=420`（排除全宽，匹配 sidebarCol）；玻璃 body 背景改 `background-color:`（保留皮肤渐变）；theme-center 0.5.2 + navbar 0.3.1
+- 涉及路径：`theme-center/lib/client.js`、`navbar/{src/client/index.ts,lib/client.js}`、`theme-center/package.json`、`navbar/package.json`、`AGENTS.md`
+- 备注：112 实测玻璃 on 渐变背景保留、sidebarCol 右缘 268/分隔条 280 稳定；navbar 实际位置需用户浏览器确认；两包已发布 npm + 111 已同步
+
+
+
+### 2026-08-27 theme-center v0.5.1：玻璃拟态修复（完整复用原项目 mica 模式达原效果 + 修设置面板锚定）
+
+- 变更内容：用户反馈玻璃质感未达原项目效果 + 设置面板跑左侧边栏。修复：完整复用原项目 glass.module.css（618 行 mica/compat 双模式 + fade/corner）+ 默认 mica(float) 模式 + 原项目 sidebarCol:has(dialog) 规则解决设置面板锚定 + fade DOM + brightness 变量；版本 0.5.1
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/tests/smoke.mjs`、`theme-center/package.json`、`theme-center/AGENTS.md`、`AGENTS.md`
+- 备注：112 mica 实测设置面板 x=399 正常、float 激活、无 JS 错；npm 0.5.1 已发布、111 已同步
+
 ### 2026-08-27 theme-center v0.5.0：集成 dsh-catppuccin-theme 玻璃拟态（可开关玻璃质感增强层）
 
 - 变更内容：按用户要求集成 NoNameLeGo/dsh-catppuccin-theme（MIT）的玻璃拟态到 theme-center（插件>主题>外观）。新增**玻璃质感增强层**：color-mix 从皮肤令牌派生四要素（半透明+边框 rim+白顶高光 edge+投影 drop+blur）自动跟随 24 款皮肤、接缝 stamping、html data-tc-glass 门控+blur/frost 滑杆、默认关、服务器同步三字段、外观 Tab「玻璃质感」节；版本 0.5.0
