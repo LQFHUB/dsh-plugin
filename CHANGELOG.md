@@ -2,6 +2,12 @@
 
 > AGENTS.md「四、变更记录」超过 5 条后的归档存放处（按原格式、时间倒序）。最新记录始终在 AGENTS.md。
 
+### 2026-08-31 describe-image 迁移 alpha.2（settings API + client store 依赖修正）
+
+- 变更内容：① host 端 settings API 迁移（settingsNamespace/installSettingsSection → installSection + 字符串命名空间，config-resolve.ts/settings-routes.ts/index.ts）；② client 端修复 alpha.2 模块表缺失依赖：`@deepseek-ai/dsh-client-runtime`（rc 时代包名，alpha 已废）→ 运行时实际只用 `createSnapshotStore`，改从 `@deepseek-ai/dsh-client-store`（alpha.2 模块表种子词）导入，tsdown CLIENT_EXTERNALS 与 package.json dsh.client.inject 同步替换。验证：tsdown build 成功、lib/client.js 无 dsh-client-runtime require、112 部署后 console 0 错误 + describe_image 工具被 agent 正常调用（配置解析/错误报告正确）。
+- 涉及路径：`describe-image/src/{config-resolve,settings-routes,index}.ts`、`describe-image/src/client/settings-form.ts`、`describe-image/tsdown.config.ts`、`describe-image/package.json`、`describe-image/lib/`、`AGENTS.md`
+- 备注：describe_image 成功调用需有效视觉端点配置（112 当前 configuredProvider=opencode-go 无 baseURL、VISION_API_KEY 未设，属配置层待完善）
+
 ### 2026-08-29 notify-sound 迁移 dsh-settings v0.1.2-alpha.2 API（installSettingsSection/settingsNamespace 移除 → SettingsProvider.installSection）
 
 - 变更内容：官方 dsh v0.1.2-alpha.2 的 `@deepseek-ai/dsh-settings` 移除了顶层导出 `settingsNamespace()` 与 `installSettingsSection()`，改为 SettingsProvider 实例方法 `installSection(owner, ns, schema, entry, hooks)`。迁移 notify-sound 宿主半区：① 删除 `import { installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'`（该文件不再用 dsh-settings 任何导出，整行删）；② `settings.replace(settingsNamespace(SETTINGS_NAMESPACE), ...)` → `settings.replace(SETTINGS_NAMESPACE, ...)`；③ `installSettingsSection(ctx, ...)` → 包进 `ctx.inject(['settings'], sctx => sctx.settings.installSection(ctx, SETTINGS_NAMESPACE, Config, config, hooks))`（原无 try/catch，直接执行语义保留）；同步更新 test-host.mjs 假件（fake settings 用 `installSection` 替代旧 `register`）、README.md 配置存储说明。验证：node --check 两文件通过、test-host/test-client 全 PASS、grep 无残留

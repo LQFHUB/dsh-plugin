@@ -1,9 +1,13 @@
-// @npm-liqingfeng/dsh-web-lan 单元测试（node:test，零依赖）：isLoopback 重写
+// @npm-liqingfeng/dsh-web-lan 单元测试（node:test，零依赖）：isLoopback 重写 + 局域网免认证注入
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   rewriteClientJs,
   CLIENT_JS_RE,
+  patchBrowserAuth,
+  AUTHORIZE_INDEX_RE,
+  AUTHORIZE_INDEX_NEW,
+  LAN_AUTHORITY_FN,
 } from '../lib/index.js'
 
 // ── isLoopback 重写（rewriteClientJs）──────────────────────────────────────
@@ -46,5 +50,46 @@ describe('rewriteClientJs', () => {
     const out = src.replace(CLIENT_JS_RE, 'isLoopback: true')
     assert.equal((out.match(/isLoopback: true/g) || []).length, 2)
     CLIENT_JS_RE.lastIndex = 0
+  })
+})
+
+// ── 局域网免认证注入（patchBrowserAuth）────────────────────────────────────
+
+describe('patchBrowserAuth', () => {
+  const HOST = [
+    'import x from "y";',
+    'class Auth {',
+    '\t\tif (this.isAuthenticated(req)) return true;',
+    '\t\tthis.writeUnauthorized(req, res);',
+    '\t\treturn false;',
+    '}',
+    '',
+  ].join('\n')
+
+  it('追加 isLanAuthority 函数并替换放行条件为「已认证 OR 局域网来源」', () => {
+    const out = patchBrowserAuth(HOST)
+    assert.ok(out.includes('function isLanAuthority'), '应注入 isLanAuthority')
+    assert.ok(out.includes(AUTHORIZE_INDEX_NEW), '应替换放行条件')
+    assert.ok(!out.includes('if (this.isAuthenticated(req)) return true;'), '原放行行应被替换')
+    // 注入函数不含会影响原有逻辑的内容
+    assert.ok(out.startsWith('import x from "y";'), '文件头不变')
+  })
+
+  it('幂等：二次调用不再改变（函数已存在、放行条件已替换）', () => {
+    const once = patchBrowserAuth(HOST)
+    assert.equal(patchBrowserAuth(once), once)
+  })
+
+  it('LAN_AUTHORITY_FN 语法合法（可被 eval 解析）', () => {
+    // 用 Function 构造验证注入函数语法（不执行）
+    const fn = new Function(`return (${LAN_AUTHORITY_FN});`)()
+    assert.equal(typeof fn, 'function')
+    assert.equal(fn('192.168.31.112:3080'), true)
+    assert.equal(fn('10.0.0.5'), true)
+    assert.equal(fn('127.0.0.1:3080'), true)
+    assert.equal(fn('172.20.0.1'), true)
+    assert.equal(fn('example.com'), false)
+    assert.equal(fn('8.8.8.8'), false)
+    assert.equal(fn(void 0), false)
   })
 })
