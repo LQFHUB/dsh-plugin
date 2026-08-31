@@ -2,6 +2,12 @@
 
 > AGENTS.md「四、变更记录」超过 5 条后的归档存放处（按原格式、时间倒序）。最新记录始终在 AGENTS.md。
 
+### 2026-08-29 theme-center v0.5.5：聊天区精简压制增强（摘要/来源补字号压制 + 全部标题淡化 + 更紧凑），用户反馈 100% 仍不够
+
+- 变更内容：用户反馈聊天区精简压制调到 100% 仍不够。实测 100%：工具卡摘要/上下文来源**字号未压**（仍 14px/24px）、工具卡/上下文标题未淡化（opacity 1）。`focusCss` 增强：摘要/来源改用独立 `SUMMARY` 模板（14→11px/行高 24→16px/透明度→0.4，此前只压透明度）、`TITLE` 模板加淡化（→0.55）并更紧凑（14→11.5px/16px）、图标→10px、Cordis 行→18px；0% 仍与官方完全一致（插值不变量）。版本 0.5.4→0.5.5
+- 涉及路径：`theme-center/lib/client.js`（focusCss）、`theme-center/tests/smoke.mjs`、`theme-center/package.json`、`theme-center/AGENTS.md`（4.6 + §6 + 变更记录）、`AGENTS.md`
+- 备注：本机 GUI 实测 100%：Think/工具/上下文标题 11.5px/16px/0.55、摘要与来源 11px/16px/0.4；**112 已部署验证通过**（新版 TITLE/SUMMARY 规则命中、服务 active）；111 待部署 + npm 待发布；本次一并归档 1 条旧记录（v0.5.0 玻璃拟态）至 CHANGELOG.md（保留 5 条）
+
 ### 2026-08-29 theme-center v0.5.4：表格收缩适配内容（fit-content + 解除列宽上下限），消除"内容少却强制很宽、大量空白"
 
 - 变更内容：用户反馈"很少的内容却强制很宽的表格、大量空白"。根因：官方 td/th min-width:100px 按列数硬撑列宽（6 列表格 776px、"开发量"列内容仅 19px 却占 132px）；v0.5.2 表格列宽模块只解除 max-width 未解除 min-width。修复：TABLE_CSS 改 `width:fit-content !important` + `td/th min-width:0`——列宽完全由内容决定：内容少表格收缩无空白、内容多 clamp 到容器不超宽（同时解决上轮 6 列表格溢出 264px 问题）。版本 0.5.3→0.5.4

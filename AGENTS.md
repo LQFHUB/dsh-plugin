@@ -44,34 +44,35 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 9 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 5 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+### 2026-08-31 web-lan v2.0 精简重构：适配 alpha.2 官方原生局域网能力（去掉 apiProxy relay，isLoopback 重写改文件）
+
+- 变更内容：官方 alpha.2 已原生覆盖局域网访问的绝大部分（webserver 0.0.0.0 + trustedHosts 放行特权 API + token 认证），且 `dsh-host-apiproxy` 在 alpha 系列已移除。重构 web-lan v1.0→v2.0：**去掉** apiProxy 特权 API relay（15 方法转发、makeRelay、toFetchHandler import、inject apiProxy——该能力官方原生覆盖且旧依赖已不存在）；**保留** randomUUID polyfill；**改造** isLoopback 重写为直接修改安装的 dsh-client-connection 包 client.js（官方 client-modules 的 serveBundle 从磁盘文件构建响应，改文件即改响应；apply 幂等执行，dsh 升级覆盖后重启自动恢复）。验证：node --test 6/6 PASS；112 部署 + 重启后局域网（非 loopback）访问 Settings→Plugins，主题 / 提示音 / 图像理解等配置卡正常渲染（isLoopback 重写生效、settings describe 走 host 模式）。
+- 涉及路径：`web-lan/lib/index.js`、`web-lan/test/index.test.js`、`web-lan/package.json`、`web-lan/README.md`、`AGENTS.md`
+- 备注：112 已部署 v2.0 验证通过（部署时先执行 patchClientJsFile 再重启一次到位）；外部插件 better-sidebar/dshmarket 仍临时停用（alpha.2 不兼容）
 ### 2026-08-31 112 升级 dsh v0.1.2-alpha.2 + 移除 web-lan/navbar + 官方局域网访问
 
 - 变更内容：按用户目标在 112（验证机）升级 dsh 0.1.1-rc.2 → 0.1.2-alpha.2（npm install -g @deepseek-ai/dsh@alpha，npmmirror 已同步）。**移除 dsh-web-lan 与 navbar 插件**（package.json dependencies + dsh.profile.bundles + node_modules 目录）。局域网访问改用**官方原生机制**：cordis.patch.yml 配置 webserver host:0.0.0.0 + 官方 runtime 自动推导 LAN IP 信任（替代 web-lan 的 apiProxy relay，特权 API 不再 403）；认证走官方 token（每次启动随机 launch token + 30 天签名 cookie，首次 `?token=` 访问后免 token）。外部插件 dsh-better-sidebar/dshmarket 因用被移除的 settingsNamespace/installSettingsSection 加载失败，已临时移出 bundles（node_modules 保留待上游适配）。
 - 涉及路径：112 `/usr/local/lib/node_modules/@deepseek-ai/dsh`、`/root/.dsh/profiles/web/{package.json,cordis.patch.yml,node_modules}`、`/root/dsh-web.log`
 - 备注：服务 active + 0.0.0.0:3080 监听；局域网从 111 访问页面/会话/工具正常；自研插件 + global-rules 在 Global plugins 全部 Enabled+Running；**局域网下插件配置卡不渲染属官方 isLoopback 设计**（非本机 settings describe 走 memory/unavailable），web-lan 的 isLoopback 重写即绕此限制
+
 ### 2026-08-31 theme-center 迁移 alpha.2（settings API + data-actions-reveal）
 
 - 变更内容：alpha.2 移除 dsh-settings 顶层导出 settingsNamespace/installSettingsSection（改 SettingsProvider.installSection），且官方 DOM 锚点 data-time-hover-root 改名 data-actions-reveal。迁移 theme-center：① lib/index.js 删除 import、`settings.replace(settingsNamespace(...))` → `settings.replace(SETTINGS_NAMESPACE,...)`、installSettingsSection → `ctx.inject(['settings'])` 内 `sctx.settings.installSection(...)`（保留 try/catch 语义）；② lib/client.js 两处 `[data-time-hover-root]` 选择器改双名兼容（`[data-actions-reveal], [data-time-hover-root]`，userKindsSel 逗号连接）。验证：node --check 两文件 + smoke.mjs PASS + grep 无残留。
 - 涉及路径：`theme-center/lib/{index,client}.js`、`AGENTS.md`
 - 备注：已部署 112 并验证（Global plugins Enabled+Running、/theme-center/settings 200、皮肤 bundle 加载）
+
 ### 2026-08-31 describe-image 迁移 alpha.2（settings API + client store 依赖修正）
 
 - 变更内容：① host 端 settings API 迁移（settingsNamespace/installSettingsSection → installSection + 字符串命名空间，config-resolve.ts/settings-routes.ts/index.ts）；② client 端修复 alpha.2 模块表缺失依赖：`@deepseek-ai/dsh-client-runtime`（rc 时代包名，alpha 已废）→ 运行时实际只用 `createSnapshotStore`，改从 `@deepseek-ai/dsh-client-store`（alpha.2 模块表种子词）导入，tsdown CLIENT_EXTERNALS 与 package.json dsh.client.inject 同步替换。验证：tsdown build 成功、lib/client.js 无 dsh-client-runtime require、112 部署后 console 0 错误 + describe_image 工具被 agent 正常调用（配置解析/错误报告正确）。
 - 涉及路径：`describe-image/src/{config-resolve,settings-routes,index}.ts`、`describe-image/src/client/settings-form.ts`、`describe-image/tsdown.config.ts`、`describe-image/package.json`、`describe-image/lib/`、`AGENTS.md`
 - 备注：describe_image 成功调用需有效视觉端点配置（112 当前 configuredProvider=opencode-go 无 baseURL、VISION_API_KEY 未设，属配置层待完善）
+
 ### 2026-08-29 notify-sound 迁移 dsh-settings v0.1.2-alpha.2 API（installSettingsSection/settingsNamespace 移除 → SettingsProvider.installSection）
 
 - 变更内容：官方 dsh v0.1.2-alpha.2 的 `@deepseek-ai/dsh-settings` 移除了顶层导出 `settingsNamespace()` 与 `installSettingsSection()`，改为 SettingsProvider 实例方法 `installSection(owner, ns, schema, entry, hooks)`。迁移 notify-sound 宿主半区：① 删除 `import { installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'`（该文件不再用 dsh-settings 任何导出，整行删）；② `settings.replace(settingsNamespace(SETTINGS_NAMESPACE), ...)` → `settings.replace(SETTINGS_NAMESPACE, ...)`；③ `installSettingsSection(ctx, ...)` → 包进 `ctx.inject(['settings'], sctx => sctx.settings.installSection(ctx, SETTINGS_NAMESPACE, Config, config, hooks))`（原无 try/catch，直接执行语义保留）；同步更新 test-host.mjs 假件（fake settings 用 `installSection` 替代旧 `register`）、README.md 配置存储说明。验证：node --check 两文件通过、test-host/test-client 全 PASS、grep 无残留
 - 涉及路径：`notify-sound/lib/index.js`、`notify-sound/tests/test-host.mjs`、`notify-sound/README.md`、`AGENTS.md`
 - 备注：apply 内 registerSettingsRoute 未受影响；test-host 假件现用 installSection 记录命名空间注册（断言不变）
-
-
-### 2026-08-29 theme-center v0.5.5：聊天区精简压制增强（摘要/来源补字号压制 + 全部标题淡化 + 更紧凑），用户反馈 100% 仍不够
-
-- 变更内容：用户反馈聊天区精简压制调到 100% 仍不够。实测 100%：工具卡摘要/上下文来源**字号未压**（仍 14px/24px）、工具卡/上下文标题未淡化（opacity 1）。`focusCss` 增强：摘要/来源改用独立 `SUMMARY` 模板（14→11px/行高 24→16px/透明度→0.4，此前只压透明度）、`TITLE` 模板加淡化（→0.55）并更紧凑（14→11.5px/16px）、图标→10px、Cordis 行→18px；0% 仍与官方完全一致（插值不变量）。版本 0.5.4→0.5.5
-- 涉及路径：`theme-center/lib/client.js`（focusCss）、`theme-center/tests/smoke.mjs`、`theme-center/package.json`、`theme-center/AGENTS.md`（4.6 + §6 + 变更记录）、`AGENTS.md`
-- 备注：本机 GUI 实测 100%：Think/工具/上下文标题 11.5px/16px/0.55、摘要与来源 11px/16px/0.4；**112 已部署验证通过**（新版 TITLE/SUMMARY 规则命中、服务 active）；111 待部署 + npm 待发布；本次一并归档 1 条旧记录（v0.5.0 玻璃拟态）至 CHANGELOG.md（保留 5 条）
 </details>
 
 ---
