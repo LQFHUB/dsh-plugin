@@ -45,16 +45,23 @@
 
 <details>
 <summary>📜 变更记录（共 5 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+### 2026-08-31 web-lan 2.2.1：修复局域网 API 401（免认证改为自动种 cookie）
+
+- 变更内容：用户反馈局域网访问"很多功能有问题"（模型 provider 加载失败、Agent 预设无法加载、不能添加工作区、连接异常，均报 /api/* HTTP 401）。根因：2.2 免认证是「index 直接放行但不种 cookie」，而 /api/* 请求经 rpc-host 的 browserAuth.isAuthenticated（cookie 认证）校验——局域网浏览器无 cookie → 全部 API 401。修复：authorizeIndex 对局域网来源的根路径请求**自动种 cookie**（等效 token 认证成功，复用 encodeCookie / sessionCookie），浏览器随后 API 请求带 cookie 通过认证；patchBrowserAuth 兼容旧版「直接放行」补丁升级（OLD_BYPASS_RE 先还原再替换）。版本 2.2→2.2.1。
+- 涉及路径：`web-lan/lib/index.js`、`web-lan/test/index.test.js`（+旧补丁升级测试 10 个）、`web-lan/package.json`、`AGENTS.md`
+- 备注：112 部署验证——无 cookie 访问 192.168.31.112:3080 返回 303+Set-Cookie；带 cookie 请求 llm/listProviders、agentPresets/list 均 ok:true（原 401）；浏览器验证：连接正常、Models provider（DeepSeek / 火山 / Custom）、Agent presets、添加工作区（目录选择器弹出）全部正常
 ### 2026-08-31 web-lan 2.2：局域网免 token 认证（修改官方 browser-auth，私有 IP 直连；公网仍认证）
 
 - 变更内容：用户反馈其他电脑访问 112 仍报 "dsh web authentication required"（官方 alpha.2 每次启动随机 launch token，无固定/禁用配置；rc.2 时代无此认证）。web-lan 增加 patchBrowserAuthFile：修改 dsh-client-connection host 半区（lib/index.js），注入 isLanAuthority 判断（10.x / 192.168.x / 172.16-31.x / loopback）并替换 authorizeIndex 放行条件为「已认证 OR 局域网来源」——局域网设备免 token 直连，公网 Host 仍走官方 token 认证。补丁幂等 + 部署时先执行再重启。版本 2.1→2.2。
 - 涉及路径：`web-lan/lib/index.js`、`web-lan/test/index.test.js`（+patchBrowserAuth 测试 9 个）、`web-lan/package.json`、`web-lan/README.md`、`AGENTS.md`
 - 备注：112 部署验证——无 cookie 访问 192.168.31.112:3080 返回 200（原 401）、配置卡（主题 / 提示音 / 图像理解）仍渲染、公网 Host（example.com）仍 401；**安全权衡**：局域网私有 IP 免 token（局域网内任意设备可访问 dsh），公网仍需 token
+
 ### 2026-08-31 web-lan 2.1 审核修复：移除冗余 randomUUID polyfill + 正则完整性校验
 
 - 变更内容：审核 web-lan v2.0 发现 randomUUID polyfill 冗余（官方前端一律用 crypto.getRandomValues 自实现 UUID——util-crypto 的 randomUUID / connection 的 randomUuid，lint 禁 crypto.randomUUID；三个自研插件 client 亦不用），按"去掉无用代码"移除 polyfill（injectPolyfill / MARKER / POLYFILL_SCRIPT / tapIndex，inject webServer→[]）；rewriteClientJs 正则（`/isLoopback:\s*[^,]+/g`）依赖表达式不含逗号（alpha.2 满足），在 patchClientJsFile 加替换完整性校验（残留非 true 的 isLoopback 表达式时告警），防未来 dsh 升级引入逗号导致静默破坏。测试 6 个（含不误伤 isLoopbackHostname / 幂等 / 多值断言）全 PASS。版本 2.0→2.1。
 - 涉及路径：`web-lan/lib/index.js`、`web-lan/test/index.test.js`、`web-lan/package.json`、`web-lan/README.md`、`AGENTS.md`
 - 备注：112 部署 2.1 验证通过——console 0 错误（无 randomUUID 问题）、配置卡（主题 / 提示音 / 图像理解）仍正常渲染、index.html 无 polyfill 标记；**已知项**：卸载 web-lan 后 client.js 保持 isLoopback:true（README 已给还原方法），部署需重启生效
+
 
 ### 2026-08-31 web-lan v2.0 精简重构：适配 alpha.2 官方原生局域网能力（去掉 apiProxy relay，isLoopback 重写改文件）
 
@@ -63,19 +70,12 @@
 - 备注：112 已部署 v2.0 验证通过（部署时先执行 patchClientJsFile 再重启一次到位）；外部插件 better-sidebar/dshmarket 仍临时停用（alpha.2 不兼容）
 
 
+
 ### 2026-08-31 112 升级 dsh v0.1.2-alpha.2 + 移除 web-lan/navbar + 官方局域网访问
 
 - 变更内容：按用户目标在 112（验证机）升级 dsh 0.1.1-rc.2 → 0.1.2-alpha.2（npm install -g @deepseek-ai/dsh@alpha，npmmirror 已同步）。**移除 dsh-web-lan 与 navbar 插件**（package.json dependencies + dsh.profile.bundles + node_modules 目录）。局域网访问改用**官方原生机制**：cordis.patch.yml 配置 webserver host:0.0.0.0 + 官方 runtime 自动推导 LAN IP 信任（替代 web-lan 的 apiProxy relay，特权 API 不再 403）；认证走官方 token（每次启动随机 launch token + 30 天签名 cookie，首次 `?token=` 访问后免 token）。外部插件 dsh-better-sidebar/dshmarket 因用被移除的 settingsNamespace/installSettingsSection 加载失败，已临时移出 bundles（node_modules 保留待上游适配）。
 - 涉及路径：112 `/usr/local/lib/node_modules/@deepseek-ai/dsh`、`/root/.dsh/profiles/web/{package.json,cordis.patch.yml,node_modules}`、`/root/dsh-web.log`
 - 备注：服务 active + 0.0.0.0:3080 监听；局域网从 111 访问页面/会话/工具正常；自研插件 + global-rules 在 Global plugins 全部 Enabled+Running；**局域网下插件配置卡不渲染属官方 isLoopback 设计**（非本机 settings describe 走 memory/unavailable），web-lan 的 isLoopback 重写即绕此限制
-
-
-
-### 2026-08-31 theme-center 迁移 alpha.2（settings API + data-actions-reveal）
-
-- 变更内容：alpha.2 移除 dsh-settings 顶层导出 settingsNamespace/installSettingsSection（改 SettingsProvider.installSection），且官方 DOM 锚点 data-time-hover-root 改名 data-actions-reveal。迁移 theme-center：① lib/index.js 删除 import、`settings.replace(settingsNamespace(...))` → `settings.replace(SETTINGS_NAMESPACE,...)`、installSettingsSection → `ctx.inject(['settings'])` 内 `sctx.settings.installSection(...)`（保留 try/catch 语义）；② lib/client.js 两处 `[data-time-hover-root]` 选择器改双名兼容（`[data-actions-reveal], [data-time-hover-root]`，userKindsSel 逗号连接）。验证：node --check 两文件 + smoke.mjs PASS + grep 无残留。
-- 涉及路径：`theme-center/lib/{index,client}.js`、`AGENTS.md`
-- 备注：已部署 112 并验证（Global plugins Enabled+Running、/theme-center/settings 200、皮肤 bundle 加载）
 </details>
 
 ---

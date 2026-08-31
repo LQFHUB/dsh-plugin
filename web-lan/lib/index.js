@@ -102,21 +102,43 @@ export const LAN_AUTHORITY_FN =
   'return false;' +
   '}'
 
-/** authorizeIndex 的放行分支（无 cookie 时的判断），替换为「已认证 OR 局域网来源」。 */
+/**
+ * authorizeIndex 的免认证注入：对局域网来源的根路径请求自动种 cookie（等效 token
+ * 认证成功），使浏览器随后对 /api/* 的请求带上有效 cookie（rpc-host 经
+ * browserAuth.isAuthenticated 校验 cookie，否则 /api 一律 401）。
+ */
 export const AUTHORIZE_INDEX_RE = /if \(this\.isAuthenticated\(req\)\) return true;/
-export const AUTHORIZE_INDEX_NEW = 'if (this.isAuthenticated(req) || isLanAuthority(requestAuthority(req.headers))) return true;'
+export const AUTHORIZE_INDEX_NEW =
+  'if (this.isAuthenticated(req)) return true;\n' +
+  '\t\tif (isLanAuthority(requestAuthority(req.headers)) && req.method === "GET" && url.pathname === "/") {\n' +
+  '\t\t\tconst lanAuthority = requestAuthority(req.headers);\n' +
+  '\t\t\tconst issuedAt = Date.now();\n' +
+  '\t\t\tconst expiresAt = issuedAt + this.maxAgeMilliseconds;\n' +
+  '\t\t\tconst value = encodeCookie({ version: COOKIE_PAYLOAD_VERSION, authority: lanAuthority, issuedAt, expiresAt }, this.secret);\n' +
+  '\t\t\tres.writeHead(303, { "cache-control": "no-store", "location": "/", "referrer-policy": "no-referrer", "set-cookie": sessionCookie(cookieName(lanAuthority), value, expiresAt, Math.floor(this.maxAgeMilliseconds / 1e3)) });\n' +
+  '\t\t\tres.end();\n' +
+  '\t\t\treturn false;\n' +
+  '\t\t}'
+
+/** 旧版补丁（直接放行，不种 cookie）的行——升级时先还原为原始行再统一替换。 */
+export const OLD_BYPASS_RE = /if \(this\.isAuthenticated\(req\) \|\| isLanAuthority\(requestAuthority\(req\.headers\)\)\) return true;/
 
 /**
  * 给 host 半区内容注入局域网免认证逻辑（纯函数，幂等）：
- * 追加 isLanAuthority 函数 + 把 authorizeIndex 放行条件改为「已认证 OR 局域网来源」。
+ * 追加 isLanAuthority 函数 + 在 authorizeIndex 注入「局域网来源自动种 cookie」块，
+ * 使局域网浏览器获得有效 cookie，随后 /api/* 请求（rpc-host 经 cookie 认证）不再 401。
  * @param content - dsh-client-connection lib/index.js 内容。
  * @returns 注入后的内容。
  */
 export function patchBrowserAuth(content) {
+  // 已注入种 cookie 块（幂等）：直接返回。
+  if (content.includes('isLanAuthority(requestAuthority(req.headers)) && req.method')) return content
   let out = content
   if (!out.includes('function isLanAuthority')) {
     out = out.replace(/\s*$/, '\n' + LAN_AUTHORITY_FN + '\n')
   }
+  // 升级旧版「直接放行」补丁为种 cookie 版本（若存在）。
+  out = out.replace(OLD_BYPASS_RE, 'if (this.isAuthenticated(req)) return true;')
   out = out.replace(AUTHORIZE_INDEX_RE, AUTHORIZE_INDEX_NEW)
   return out
 }

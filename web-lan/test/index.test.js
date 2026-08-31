@@ -66,18 +66,32 @@ describe('patchBrowserAuth', () => {
     '',
   ].join('\n')
 
-  it('追加 isLanAuthority 函数并替换放行条件为「已认证 OR 局域网来源」', () => {
+  it('追加 isLanAuthority 函数 + 局域网来源自动种 cookie 块', () => {
     const out = patchBrowserAuth(HOST)
     assert.ok(out.includes('function isLanAuthority'), '应注入 isLanAuthority')
-    assert.ok(out.includes(AUTHORIZE_INDEX_NEW), '应替换放行条件')
-    assert.ok(!out.includes('if (this.isAuthenticated(req)) return true;'), '原放行行应被替换')
-    // 注入函数不含会影响原有逻辑的内容
+    assert.ok(out.includes(AUTHORIZE_INDEX_NEW), '应注入种 cookie 块')
+    assert.ok(out.includes('isLanAuthority(requestAuthority(req.headers))'), '应判断局域网来源')
+    assert.ok(out.includes('set-cookie'), '应种 cookie（API 请求才能通过认证）')
+    assert.ok(out.includes('encodeCookie'), '应使用 encodeCookie 签名 cookie')
     assert.ok(out.startsWith('import x from "y";'), '文件头不变')
   })
 
-  it('幂等：二次调用不再改变（函数已存在、放行条件已替换）', () => {
+  it('幂等：二次调用不再改变（函数已存在、种 cookie 块已注入）', () => {
     const once = patchBrowserAuth(HOST)
     assert.equal(patchBrowserAuth(once), once)
+  })
+
+  it('升级旧版「直接放行」补丁为种 cookie 版本（兼容已打旧补丁的部署）', () => {
+    const oldPatched = HOST.replace(
+      'if (this.isAuthenticated(req)) return true;',
+      'if (this.isAuthenticated(req) || isLanAuthority(requestAuthority(req.headers))) return true;',
+    )
+    const out = patchBrowserAuth(oldPatched)
+    assert.ok(out.includes('set-cookie'), '应注入种 cookie 逻辑')
+    assert.ok(out.includes('isLanAuthority(requestAuthority(req.headers)) && req.method'), '应注入种 cookie 块')
+    assert.ok(!out.includes('|| isLanAuthority(requestAuthority(req.headers))) return true;'), '旧直接放行行应被升级')
+    // 升级后幂等
+    assert.equal(patchBrowserAuth(out), out)
   })
 
   it('LAN_AUTHORITY_FN 语法合法（可被 eval 解析）', () => {

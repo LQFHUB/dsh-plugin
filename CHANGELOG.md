@@ -2,6 +2,12 @@
 
 > AGENTS.md「四、变更记录」超过 5 条后的归档存放处（按原格式、时间倒序）。最新记录始终在 AGENTS.md。
 
+### 2026-08-31 theme-center 迁移 alpha.2（settings API + data-actions-reveal）
+
+- 变更内容：alpha.2 移除 dsh-settings 顶层导出 settingsNamespace/installSettingsSection（改 SettingsProvider.installSection），且官方 DOM 锚点 data-time-hover-root 改名 data-actions-reveal。迁移 theme-center：① lib/index.js 删除 import、`settings.replace(settingsNamespace(...))` → `settings.replace(SETTINGS_NAMESPACE,...)`、installSettingsSection → `ctx.inject(['settings'])` 内 `sctx.settings.installSection(...)`（保留 try/catch 语义）；② lib/client.js 两处 `[data-time-hover-root]` 选择器改双名兼容（`[data-actions-reveal], [data-time-hover-root]`，userKindsSel 逗号连接）。验证：node --check 两文件 + smoke.mjs PASS + grep 无残留。
+- 涉及路径：`theme-center/lib/{index,client}.js`、`AGENTS.md`
+- 备注：已部署 112 并验证（Global plugins Enabled+Running、/theme-center/settings 200、皮肤 bundle 加载）
+
 ### 2026-08-31 describe-image 迁移 alpha.2（settings API + client store 依赖修正）
 
 - 变更内容：① host 端 settings API 迁移（settingsNamespace/installSettingsSection → installSection + 字符串命名空间，config-resolve.ts/settings-routes.ts/index.ts）；② client 端修复 alpha.2 模块表缺失依赖：`@deepseek-ai/dsh-client-runtime`（rc 时代包名，alpha 已废）→ 运行时实际只用 `createSnapshotStore`，改从 `@deepseek-ai/dsh-client-store`（alpha.2 模块表种子词）导入，tsdown CLIENT_EXTERNALS 与 package.json dsh.client.inject 同步替换。验证：tsdown build 成功、lib/client.js 无 dsh-client-runtime require、112 部署后 console 0 错误 + describe_image 工具被 agent 正常调用（配置解析/错误报告正确）。
