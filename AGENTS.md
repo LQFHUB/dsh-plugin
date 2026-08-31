@@ -50,6 +50,11 @@
 - 变更内容：变更记录超 5 条，将最旧「2026-08-31 112 升级 dsh v0.1.2-alpha.2 + 移除 web-lan/navbar + 官方局域网访问」归档至 `CHANGELOG.md`（按原格式、时间倒序存放）；归档动作不计数
 - 涉及路径：`AGENTS.md`、`CHANGELOG.md`
 - 备注：AGENTS.md 保留最新 5 条历史记录
+### 2026-09-01 112 升级 dsh 0.1.2-alpha.2 → 0.1.2-alpha.3 + 回归验证（含 web-lan 双重启要点）
+
+- 变更内容：npm 最新 alpha.3（8/31）升级 112：`npm install -g @deepseek-ai/dsh@0.1.2-alpha.3`（524 依赖包更新）。**升级前 API 兼容性核对**（下载 alpha.2/alpha.3 逐项对比）：dsh-settings 导出（SettingsConflictError/SettingsProvider/redactSecrets）、dsh-client-ui-slots 导出（SlotCore 等）**完全一致**；官方拖拽宽度逻辑保留（`dsh.conversation.contentWidth` 3 处引用不变）；connection 的 `isLoopback` 表达式逐字一致（web-lan 补丁目标）；alpha.3 移除 SQLite Session 后端——112 未使用无影响。
+- 涉及路径：112 `/usr/local/lib/node_modules/@deepseek-ai/dsh`、`/root/dsh-web.log`（本目录无文件变更）
+- 备注：**⚠️ 升级后必须重启两次**（实测踩坑）：dsh 升级覆盖 connection 包 → 第一次重启 web-lan apply 把补丁写到磁盘但模块已加载（免认证仍 401）→ **第二次重启**模块才加载 patch 后文件（LAN 无 token 访问恢复 303+Set-Cookie、带 cookie 200）。**回归全过**：theme-center v0.5.6 宽度屏蔽保持（5 样式元素、官方 824px 拖拽值保留、手柄在）、better-sidebar/dshmarket/notify-sound/describe-image 正常、页面 console 0 错误
 ### 2026-09-01 theme-center v0.5.6 屏蔽聊天宽度（官方 alpha.1+ 拖拽调宽接管）+ 112 部署验证通过
 
 - 变更内容：官方 v0.1.2-alpha.1+ 已提供会话流宽度拖拽调整（localStorage 本机）。theme-center 聊天宽度（6 档预设，覆盖 `--dsh-chat-content-width`）与官方并存冲突（实测 theme-center 在 `[data-conversation-scroll]` 的声明压制官方拖拽）。用户决策：屏蔽 theme-center 聊天宽度，官方拖拽接管、不影响官方功能。删 `theme-center/lib/client.js` 宽度模块（WIDTH_PRESETS/widthCss/setWidth 等 8 处关联）、服务端同步 width 处理；`lib/index.js` schema 保留 width（死字段）；smoke 更新（宽度断言改 doesNotMatch、样式元素 6→5）。版本 0.5.5→0.5.6
@@ -70,11 +75,6 @@
 - 变更内容：用户反馈局域网访问"很多功能有问题"（模型 provider 加载失败、Agent 预设无法加载、不能添加工作区、连接异常，均报 /api/* HTTP 401）。根因：2.2 免认证是「index 直接放行但不种 cookie」，而 /api/* 请求经 rpc-host 的 browserAuth.isAuthenticated（cookie 认证）校验——局域网浏览器无 cookie → 全部 API 401。修复：authorizeIndex 对局域网来源的根路径请求**自动种 cookie**（等效 token 认证成功，复用 encodeCookie / sessionCookie），浏览器随后 API 请求带 cookie 通过认证；patchBrowserAuth 兼容旧版「直接放行」补丁升级（OLD_BYPASS_RE 先还原再替换）。版本 2.2→2.2.1。
 - 涉及路径：`web-lan/lib/index.js`、`web-lan/test/index.test.js`（+旧补丁升级测试 10 个）、`web-lan/package.json`、`AGENTS.md`
 - 备注：112 部署验证——无 cookie 访问 192.168.31.112:3080 返回 303+Set-Cookie；带 cookie 请求 llm/listProviders、agentPresets/list 均 ok:true（原 401）；浏览器验证：连接正常、Models provider（DeepSeek / 火山 / Custom）、Agent presets、添加工作区（目录选择器弹出）全部正常
-### 2026-08-31 web-lan 2.2：局域网免 token 认证（修改官方 browser-auth，私有 IP 直连；公网仍认证）
-
-- 变更内容：用户反馈其他电脑访问 112 仍报 "dsh web authentication required"（官方 alpha.2 每次启动随机 launch token，无固定/禁用配置；rc.2 时代无此认证）。web-lan 增加 patchBrowserAuthFile：修改 dsh-client-connection host 半区（lib/index.js），注入 isLanAuthority 判断（10.x / 192.168.x / 172.16-31.x / loopback）并替换 authorizeIndex 放行条件为「已认证 OR 局域网来源」——局域网设备免 token 直连，公网 Host 仍走官方 token 认证。补丁幂等 + 部署时先执行再重启。版本 2.1→2.2。
-- 涉及路径：`web-lan/lib/index.js`、`web-lan/test/index.test.js`（+patchBrowserAuth 测试 9 个）、`web-lan/package.json`、`web-lan/README.md`、`AGENTS.md`
-- 备注：112 部署验证——无 cookie 访问 192.168.31.112:3080 返回 200（原 401）、配置卡（主题 / 提示音 / 图像理解）仍渲染、公网 Host（example.com）仍 401；**安全权衡**：局域网私有 IP 免 token（局域网内任意设备可访问 dsh），公网仍需 token
 </details>
 
 ---

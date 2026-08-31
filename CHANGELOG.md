@@ -2,6 +2,12 @@
 
 > AGENTS.md「四、变更记录」超过 5 条后的归档存放处（按原格式、时间倒序）。最新记录始终在 AGENTS.md。
 
+### 2026-08-31 web-lan 2.2：局域网免 token 认证（修改官方 browser-auth，私有 IP 直连；公网仍认证）
+
+- 变更内容：用户反馈其他电脑访问 112 仍报 "dsh web authentication required"（官方 alpha.2 每次启动随机 launch token，无固定/禁用配置；rc.2 时代无此认证）。web-lan 增加 patchBrowserAuthFile：修改 dsh-client-connection host 半区（lib/index.js），注入 isLanAuthority 判断（10.x / 192.168.x / 172.16-31.x / loopback）并替换 authorizeIndex 放行条件为「已认证 OR 局域网来源」——局域网设备免 token 直连，公网 Host 仍走官方 token 认证。补丁幂等 + 部署时先执行再重启。版本 2.1→2.2。
+- 涉及路径：`web-lan/lib/index.js`、`web-lan/test/index.test.js`（+patchBrowserAuth 测试 9 个）、`web-lan/package.json`、`web-lan/README.md`、`AGENTS.md`
+- 备注：112 部署验证——无 cookie 访问 192.168.31.112:3080 返回 200（原 401）、配置卡（主题 / 提示音 / 图像理解）仍渲染、公网 Host（example.com）仍 401；**安全权衡**：局域网私有 IP 免 token（局域网内任意设备可访问 dsh），公网仍需 token
+
 ### 2026-08-31 web-lan 2.1 审核修复：移除冗余 randomUUID polyfill + 正则完整性校验
 
 - 变更内容：审核 web-lan v2.0 发现 randomUUID polyfill 冗余（官方前端一律用 crypto.getRandomValues 自实现 UUID——util-crypto 的 randomUUID / connection 的 randomUuid，lint 禁 crypto.randomUUID；三个自研插件 client 亦不用），按"去掉无用代码"移除 polyfill（injectPolyfill / MARKER / POLYFILL_SCRIPT / tapIndex，inject webServer→[]）；rewriteClientJs 正则（`/isLoopback:\s*[^,]+/g`）依赖表达式不含逗号（alpha.2 满足），在 patchClientJsFile 加替换完整性校验（残留非 true 的 isLoopback 表达式时告警），防未来 dsh 升级引入逗号导致静默破坏。测试 6 个（含不误伤 isLoopbackHostname / 幂等 / 多值断言）全 PASS。版本 2.0→2.1。
