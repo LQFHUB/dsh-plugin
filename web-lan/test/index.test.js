@@ -1,34 +1,12 @@
-// @npm-liqingfeng/dsh-web-lan 单元测试（node:test，零依赖）：polyfill 注入 / isLoopback 重写
+// @npm-liqingfeng/dsh-web-lan 单元测试（node:test，零依赖）：isLoopback 重写
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  MARKER,
-  POLYFILL_SCRIPT,
-  injectPolyfill,
   rewriteClientJs,
   CLIENT_JS_RE,
 } from '../lib/index.js'
 
-// ── 1) injectPolyfill ──────────────────────────────────────────────────────
-
-describe('injectPolyfill', () => {
-  it('把 marker 与 polyfill 脚本注入到 <head> 之后', () => {
-    const html = '<!doctype html>\n<html lang="zh-CN">\n<head>\n<meta charset="utf-8">\n</head>\n<body></body>\n</html>'
-    const out = injectPolyfill(html)
-    assert.ok(out.startsWith('<!doctype html>'))
-    assert.ok(out.includes('<head>' + MARKER + POLYFILL_SCRIPT))
-    assert.equal(out.indexOf(MARKER), out.indexOf('<head>') + 6)
-    assert.ok(out.includes('c.randomUUID=function'))
-    assert.ok(out.endsWith('</html>'))
-  })
-
-  it('无 <head> 时原样返回', () => {
-    const html = '<html><body>x</body></html>'
-    assert.equal(injectPolyfill(html), html)
-  })
-})
-
-// ── 2) rewriteClientJs（isLoopback 重写）──────────────────────────────────
+// ── isLoopback 重写（rewriteClientJs）──────────────────────────────────────
 
 describe('rewriteClientJs', () => {
   it('把 isLoopback 表达式重写为 true（真实 alpha.2 client.js 格式）', () => {
@@ -37,6 +15,8 @@ describe('rewriteClientJs', () => {
     assert.ok(out.includes('isLoopback: true'))
     assert.ok(!out.includes('isLoopbackHostname'))
     assert.ok(!out.includes('transport?.ownsHost'))
+    // 末尾对象属性分隔逗号必须保留（对象语法）
+    assert.ok(out.includes('isLoopback: true,'))
   })
 
   it('无匹配时原样返回', () => {
@@ -51,6 +31,20 @@ describe('rewriteClientJs', () => {
   it('幂等：对已重写内容二次调用不再改变', () => {
     const once = rewriteClientJs('isLoopback: foo === bar, x: 1')
     assert.equal(rewriteClientJs(once), once)
-    assert.equal(CLIENT_JS_RE.test('isLoopback: true'), true)
+  })
+
+  it('不误伤 isLoopbackHostname 函数名（无冒号）', () => {
+    const src = 'function isLoopbackHostname(hostname) { return false } isLoopback: foo,'
+    const out = rewriteClientJs(src)
+    assert.ok(out.includes('function isLoopbackHostname'))
+    assert.ok(out.includes('isLoopback: true,'))
+  })
+
+  it('多值场景：CLIENT_JS_RE 每次 replace 后不残留 lastIndex（可复用）', () => {
+    CLIENT_JS_RE.lastIndex = 0
+    const src = 'a: 1, isLoopback: x, b: 2, isLoopback: y'
+    const out = src.replace(CLIENT_JS_RE, 'isLoopback: true')
+    assert.equal((out.match(/isLoopback: true/g) || []).length, 2)
+    CLIENT_JS_RE.lastIndex = 0
   })
 })

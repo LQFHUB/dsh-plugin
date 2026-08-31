@@ -2,6 +2,12 @@
 
 > AGENTS.md「四、变更记录」超过 5 条后的归档存放处（按原格式、时间倒序）。最新记录始终在 AGENTS.md。
 
+### 2026-08-29 notify-sound 迁移 dsh-settings v0.1.2-alpha.2 API（installSettingsSection/settingsNamespace 移除 → SettingsProvider.installSection）
+
+- 变更内容：官方 dsh v0.1.2-alpha.2 的 `@deepseek-ai/dsh-settings` 移除了顶层导出 `settingsNamespace()` 与 `installSettingsSection()`，改为 SettingsProvider 实例方法 `installSection(owner, ns, schema, entry, hooks)`。迁移 notify-sound 宿主半区：① 删除 `import { installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'`（该文件不再用 dsh-settings 任何导出，整行删）；② `settings.replace(settingsNamespace(SETTINGS_NAMESPACE), ...)` → `settings.replace(SETTINGS_NAMESPACE, ...)`；③ `installSettingsSection(ctx, ...)` → 包进 `ctx.inject(['settings'], sctx => sctx.settings.installSection(ctx, SETTINGS_NAMESPACE, Config, config, hooks))`（原无 try/catch，直接执行语义保留）；同步更新 test-host.mjs 假件（fake settings 用 `installSection` 替代旧 `register`）、README.md 配置存储说明。验证：node --check 两文件通过、test-host/test-client 全 PASS、grep 无残留
+- 涉及路径：`notify-sound/lib/index.js`、`notify-sound/tests/test-host.mjs`、`notify-sound/README.md`、`AGENTS.md`
+- 备注：apply 内 registerSettingsRoute 未受影响；test-host 假件现用 installSection 记录命名空间注册（断言不变）
+
 ### 2026-08-29 theme-center v0.5.5：聊天区精简压制增强（摘要/来源补字号压制 + 全部标题淡化 + 更紧凑），用户反馈 100% 仍不够
 
 - 变更内容：用户反馈聊天区精简压制调到 100% 仍不够。实测 100%：工具卡摘要/上下文来源**字号未压**（仍 14px/24px）、工具卡/上下文标题未淡化（opacity 1）。`focusCss` 增强：摘要/来源改用独立 `SUMMARY` 模板（14→11px/行高 24→16px/透明度→0.4，此前只压透明度）、`TITLE` 模板加淡化（→0.55）并更紧凑（14→11.5px/16px）、图标→10px、Cordis 行→18px；0% 仍与官方完全一致（插值不变量）。版本 0.5.4→0.5.5

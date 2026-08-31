@@ -1,7 +1,7 @@
 {
   "name": "@npm-liqingfeng/dsh-web-lan",
-  "version": "2.0.0",
-  "description": "dsh Web 局域网直连支持（精简版，适配 dsh v0.1.2-alpha.2）：randomUUID polyfill + isLoopback 重写（局域网设备获得完整配置能力）；特权 API 放行已由官方原生 trustedHosts 覆盖",
+  "version": "2.1.0",
+  "description": "dsh Web 局域网直连支持（精简版，适配 dsh v0.1.2-alpha.2）：isLoopback 重写（局域网设备获得完整配置能力）；特权 API 放行由官方原生 trustedHosts 覆盖，randomUUID 官方前端已自实现",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
