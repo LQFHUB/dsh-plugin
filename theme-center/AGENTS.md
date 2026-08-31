@@ -65,7 +65,7 @@
 - **双层结构：服务器为真源，localStorage 为首屏缓存**（见 4.9）。服务器配置在 profile settings 用户层（settings.yaml 的 `theme-center:` 段）；浏览器 localStorage 键仅作首屏缓存与降级兜底。
 - 主题：localStorage 键 `dsh-theme-center:active:v1`（值 = 主题 id 或 `official`）；非法/缺失回退 `official`。
 - 遮罩：`dsh-theme-center:scrim:v1`（0-100）；值为 0 时**移除** `--dsw-skin-scrim` 变量（与皮肤默认一致）。
-- 聊天宽度：`dsh-theme-center:width:v1`（6 档预设之一，默认 896）；非法/缺失回退默认档。
+- ~~聊天宽度~~：`dsh-theme-center:width:v1`（6 档预设之一，默认 896）——**v0.5.6 已屏蔽**（官方 alpha.1+ 提供拖拽调宽，插件宽度覆盖会压制官方拖拽；客户端不再读写，服务器 schema 字段保留为死字段）。
 - 聊天区精简：`dsh-theme-center:focus:v1`（0-100，**默认 80**）；**缺失必须回退 80 而非 0**（`Number(null)=0` 陷阱，smoke 测试曾捕获）；值为 0 时**移除** `body[data-tc-focus]` 门控属性（整组压制规则失效 = 官方默认展示）。
 - 存储不可用：静默退化为内存态，不抛出。
 - 启动时（apply）先按缓存立即恢复已保存状态（不阻塞 GUI），服务器视图到达后以服务器为真源收敛。
@@ -79,7 +79,7 @@
 - **插值不变量**：所有规则以 `--tc-focus`（0-1）+ `calc()` 线性插值，`0` 时各属性计算值与官方默认**完全一致**；非插值规则（错误卡标题 ellipsis）由 `body[data-tc-focus]` 门控，pct=0 时整组失效。
 - **只改字号/行高/透明度/尺寸，不写任何颜色**——皮肤令牌不动即天然适配全部皮肤与亮/暗；选择器一律作用域限定 `body[data-dsh-theme-center][data-tc-focus]`，不污染官方 UI 与其他插件。
 - **100% 压制目标值（v0.5.5 增强，2026-08-29）**：标题 `14→11.5px / 行高 24→16px / 透明度 1→0.55`（`TITLE` 模板）；摘要与来源 `14→11px / 24→16px / 1→0.4`（`SUMMARY` 模板，**v0.5.5 起摘要/来源也压字号**——此前 tool-call 摘要、context 来源仅压透明度未压字号，用户反馈 100% 仍不够）；图标 `14→10px`；Cordis 行 `32→18px`；三处标题均淡化（此前 tool/context 标题 opacity=1 未淡）。0% 时仍与官方完全一致。
-- 宽度规则作用域限定 `body[data-dsh-theme-center]`，覆盖 `--dsh-chat-content-width` / `--dsh-composer-card-max-width` 并释放 userStack 上限。
+- ~~宽度规则~~：~~作用域限定 `body[data-dsh-theme-center]`，覆盖 `--dsh-chat-content-width` / `--dsh-composer-card-max-width` 并释放 userStack 上限~~（**v0.5.6 已移除**——官方 alpha.1+ 拖拽调宽接管，插件宽度声明会压制官方拖拽）。
 - 三个样式元素（card/width/focus）均挂 `data-plugin="dsh-theme-center"` + 各自 `data-pluginCss`，disposer 全量收回（含门控属性）。
 
 ### 4.7 表格列宽模块（必须）
@@ -124,7 +124,7 @@
    - 亮暗预览、背景遮罩滑杆（含持久化）；
    - 24 款皮肤全量冒烟（逐款应用核对 body 属性）；
    - DOM 皮肤抽查（xp 任务栏/开始按钮、miku 标题栏）、多皮肤连续切换标题链；
-   - **聊天宽度**：外观 Tab 选档 → 对话列/输入框变宽 + localStorage 持久化 + 刷新恢复；标题栏无宽度按钮；
+   - ~~**聊天宽度**：外观 Tab 选档 → 对话列/输入框变宽 + localStorage 持久化 + 刷新恢复；标题栏无宽度按钮~~（**v0.5.6 已屏蔽**，改验：设置卡无「聊天宽度」节 + 官方拖拽手柄可拖（消息列宽随拖拽变化 + localStorage `dsh.conversation.contentWidth` 写入））；
    - **聊天区精简**：0% / 70% / 100% 三档计算样式断言（Think 标题字号与摘要透明度、工具卡行高、Context 卡来源透明度）；0% 与卸载态完全一致；`body[data-tc-focus]` 门控属性存在/移除成对；
    - **表格列宽**：助手回答内表格 `width=fit-content`（收缩到内容宽度、内容少则表格窄无空白）、`td/th min-width:0 + max-width=none`（列宽由内容决定，>320px 列正常展开）、内容多时 clamp 到容器宽度不溢出；用户消息表格同样生效；
    - **外观扩展·字号**：滑块 100%/125%/90% 三档计算样式断言（markdown 容器与 p/表格/代码 = 16px×N、28px×N，容差 0.1px）；**标题 h1-h6 同步缩放**（探针断言 h1 24→30px、h2 22→27.5px、h3 20→25px、h4-6 16→20px @125%，h2 行高 32→40px）；**输入框内容同步缩放**（探针断言 125% → 20px/30px、90% → 14.4px/21.6px、100% 还原 16px/24px）；**Think 行/工具卡/上下文卡字号不变**；`data-tc-scale` 门控存在/移除成对；刷新恢复；
@@ -140,6 +140,12 @@
 
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
+
+### 2026-09-01 theme-center v0.5.6：屏蔽聊天宽度模块（官方 alpha.1+ 已提供拖拽调宽，避免变量覆盖冲突）
+
+- 变更内容：官方 v0.1.2-alpha.1+ 已提供会话流宽度**拖拽调整**（localStorage 本机持久化）。theme-center 聊天宽度（6 档预设 896-1600px，覆盖 `--dsh-chat-content-width`）与官方功能**并存冲突**（实测 theme-center 在 `[data-conversation-scroll]` 的声明特异性更高，压制官方拖拽——拖拽改 root 层 `--dsh-chat-user-width` 对消息列宽无效）。用户决策：屏蔽 theme-center 聊天宽度，**官方拖拽接管，不影响官方功能**。修改 `lib/client.js`：删除聊天宽度模块（WIDTH_PRESETS/WIDTH_KEY/widthCss/readSavedWidth/setWidth/subscribeWidth/getWidthSnapshot/widthStyleEl）、外观 Tab「聊天宽度」节、服务端同步 width 处理（serverDefaults/sanitize/localStateToWrites/applyRemoteState）、apply 挂载 width 样式元素；`lib/index.js` schema **保留** width 字段（避免旧配置校验问题，客户端不再读写=死字段）。smoke 更新（宽度断言改 doesNotMatch、样式元素 6→5、版本 0.5.6）。版本 0.5.5→0.5.6
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/tests/smoke.mjs`、`theme-center/package.json`（0.5.6）、`theme-center/AGENTS.md`（4.4/4.6/§6 + 变更记录）
+- 备注：**112 部署验证通过**——屏蔽后 scroll 上 `--dsh-chat-content-width` 回落官方 `clamp(680px, calc(1000px*.64), 920px)`、消息列宽 680px（官方默认）、theme-center 样式元素 5 个（无 width）、设置卡无「聊天宽度」节、console 0 错误；**官方拖拽实测可用**：拖拽右手柄 680→824px、localStorage `dsh.conversation.contentWidth=824` 写入；部署方式：npm pack tarball → 112 `package.json` specifier 改 `file:/root/npm-liqingfeng-dsh-theme-center-0.5.6.tgz` → pnpm install → 重启；回滚：specifier 恢复 `^0.5.5` + pnpm install + 重启
 
 ### 2026-08-29 theme-center v0.5.5：聊天区精简压制增强——摘要/来源补字号压制 + 全部标题淡化 + 更紧凑（用户反馈 100% 仍不够）
 

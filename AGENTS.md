@@ -50,6 +50,11 @@
 - 变更内容：变更记录超 5 条，将最旧「2026-08-31 112 升级 dsh v0.1.2-alpha.2 + 移除 web-lan/navbar + 官方局域网访问」归档至 `CHANGELOG.md`（按原格式、时间倒序存放）；归档动作不计数
 - 涉及路径：`AGENTS.md`、`CHANGELOG.md`
 - 备注：AGENTS.md 保留最新 5 条历史记录
+### 2026-09-01 theme-center v0.5.6 屏蔽聊天宽度（官方 alpha.1+ 拖拽调宽接管）+ 112 部署验证通过
+
+- 变更内容：官方 v0.1.2-alpha.1+ 已提供会话流宽度拖拽调整（localStorage 本机）。theme-center 聊天宽度（6 档预设，覆盖 `--dsh-chat-content-width`）与官方并存冲突（实测 theme-center 在 `[data-conversation-scroll]` 的声明压制官方拖拽）。用户决策：屏蔽 theme-center 聊天宽度，官方拖拽接管、不影响官方功能。删 `theme-center/lib/client.js` 宽度模块（WIDTH_PRESETS/widthCss/setWidth 等 8 处关联）、服务端同步 width 处理；`lib/index.js` schema 保留 width（死字段）；smoke 更新（宽度断言改 doesNotMatch、样式元素 6→5）。版本 0.5.5→0.5.6
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/tests/smoke.mjs`、`theme-center/package.json`（0.5.6）、`theme-center/AGENTS.md`（4.4/4.6/§6 + 变更记录）、`AGENTS.md`
+- 备注：**112 部署验证通过**（npm pack tarball + file: 引用 + pnpm install + 重启）——屏蔽后 scroll 上 `--dsh-chat-content-width` 回落官方 `clamp(680px,…)`、消息列宽 680px、样式元素 5 个、设置卡无「聊天宽度」节、console 0 错误；**官方拖拽实测可用**：680→824px、localStorage `dsh.conversation.contentWidth=824` 写入。⚠️ 112 上 theme-center/web-lan 现均为 file: 本地 tarball 引用（`/root/npm-liqingfeng-dsh-theme-center-0.5.6.tgz`、`/root/dsh-web-lan-2.2.0.tgz`），**勿删**；回滚：specifier 恢复 `^0.5.5` + pnpm install + 重启
 ### 2026-09-01 112 安装 knowledge-base skill（复制自 111，端到端验证通过）
 
 - 变更内容：参考 111 的 `/root/.dsh/skills/knowledge-base/SKILL.md` 在 112 安装知识库 skill：`mkdir -p /root/.dsh/skills/knowledge-base` + scp 复制（md5 `dc0063e4…` 与 111 一致）。112 的 `/mnt/ug/share` 已挂载同一 NFS（192.168.31.200:/volume1/share，rw），知识库数据路径 `/mnt/ug/share/Obsidian/note1/OneNote/AI/PI/knowledge-base/` 直接可达，无需额外挂载。dsh-skill-filesystem 从 `$DSH_HOME/skills` 扫描（111/112 同机制）。重启 dsh-web 后在 112 新建会话让 agent 列技能，确认可见 `knowledge-base`（仅此一个，ui-ux-pro-max 未要求装）。
@@ -70,12 +75,6 @@
 - 变更内容：用户反馈其他电脑访问 112 仍报 "dsh web authentication required"（官方 alpha.2 每次启动随机 launch token，无固定/禁用配置；rc.2 时代无此认证）。web-lan 增加 patchBrowserAuthFile：修改 dsh-client-connection host 半区（lib/index.js），注入 isLanAuthority 判断（10.x / 192.168.x / 172.16-31.x / loopback）并替换 authorizeIndex 放行条件为「已认证 OR 局域网来源」——局域网设备免 token 直连，公网 Host 仍走官方 token 认证。补丁幂等 + 部署时先执行再重启。版本 2.1→2.2。
 - 涉及路径：`web-lan/lib/index.js`、`web-lan/test/index.test.js`（+patchBrowserAuth 测试 9 个）、`web-lan/package.json`、`web-lan/README.md`、`AGENTS.md`
 - 备注：112 部署验证——无 cookie 访问 192.168.31.112:3080 返回 200（原 401）、配置卡（主题 / 提示音 / 图像理解）仍渲染、公网 Host（example.com）仍 401；**安全权衡**：局域网私有 IP 免 token（局域网内任意设备可访问 dsh），公网仍需 token
-
-### 2026-08-31 web-lan 2.1 审核修复：移除冗余 randomUUID polyfill + 正则完整性校验
-
-- 变更内容：审核 web-lan v2.0 发现 randomUUID polyfill 冗余（官方前端一律用 crypto.getRandomValues 自实现 UUID——util-crypto 的 randomUUID / connection 的 randomUuid，lint 禁 crypto.randomUUID；三个自研插件 client 亦不用），按"去掉无用代码"移除 polyfill（injectPolyfill / MARKER / POLYFILL_SCRIPT / tapIndex，inject webServer→[]）；rewriteClientJs 正则（`/isLoopback:\s*[^,]+/g`）依赖表达式不含逗号（alpha.2 满足），在 patchClientJsFile 加替换完整性校验（残留非 true 的 isLoopback 表达式时告警），防未来 dsh 升级引入逗号导致静默破坏。测试 6 个（含不误伤 isLoopbackHostname / 幂等 / 多值断言）全 PASS。版本 2.0→2.1。
-- 涉及路径：`web-lan/lib/index.js`、`web-lan/test/index.test.js`、`web-lan/package.json`、`web-lan/README.md`、`AGENTS.md`
-- 备注：112 部署 2.1 验证通过——console 0 错误（无 randomUUID 问题）、配置卡（主题 / 提示音 / 图像理解）仍正常渲染、index.html 无 polyfill 标记；**已知项**：卸载 web-lan 后 client.js 保持 isLoopback:true（README 已给还原方法），部署需重启生效
 </details>
 
 ---

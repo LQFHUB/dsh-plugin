@@ -125,52 +125,6 @@ window.__ModuleLoader__.load({
 		}
 		//#endregion
 
-		//#region 聊天宽度
-		/** 宽度预设：WIDTH_PRESETS[0] 即默认宽度（896px）。 */
-		const WIDTH_PRESETS = [896, 1024, 1152, 1280, 1440, 1600];
-		const WIDTH_KEY = "dsh-theme-center:width:v1";
-		/** 宽度样式元素（apply 时挂载；null 表示未挂载）。 */
-		let widthStyleEl = null;
-
-		/** 宽度规则：加宽对话列与派生输入框、释放用户气泡上限（作用域限定插件 body 属性）。 */
-		function widthCss(px) {
-			return (
-				"body[data-dsh-theme-center] [data-conversation-scroll]{" +
-				"--dsh-chat-content-width:" + px + "px;" +
-				"--dsh-composer-card-max-width:calc(var(--dsh-chat-content-width) + 32px)" +
-				"}" +
-				'body[data-dsh-theme-center] [data-conversation-scroll] [class*="userStack"]{max-width:100% !important}'
-			);
-		}
-
-		/** 读持久化宽度；非法/缺失回退默认档。 */
-		function readSavedWidth() {
-			const value = Number(readStored(WIDTH_KEY));
-			return WIDTH_PRESETS.includes(value) ? value : WIDTH_PRESETS[0];
-		}
-
-		/** 宽度 store：外观面板控件读写同一状态并持久化（本地缓存 + 服务器）。 */
-		let currentWidth = readSavedWidth();
-		const widthListeners = new Set();
-		function setWidth(px) {
-			if (!WIDTH_PRESETS.includes(px)) return;
-			currentWidth = px;
-			writeStored(WIDTH_KEY, String(px));
-			if (widthStyleEl !== null) widthStyleEl.textContent = widthCss(px);
-			for (const listener of [...widthListeners]) listener();
-			scheduleServerWrite("width", px);
-		}
-		function subscribeWidth(listener) {
-			widthListeners.add(listener);
-			return () => {
-				widthListeners.delete(listener);
-			};
-		}
-		function getWidthSnapshot() {
-			return currentWidth;
-		}
-		//#endregion
-
 		//#region 聊天区精简
 		const FOCUS_KEY = "dsh-theme-center:focus:v1";
 		/** 默认压制百分比（0 = 默认展示，100 = 最大压制）。 */
@@ -871,7 +825,6 @@ window.__ModuleLoader__.load({
 			const [open, setOpen] = react.useState(false);
 			const [tab, setTab] = react.useState("theme");
 			const engineState = react.useSyncExternalStore(engine.subscribe, engine.getSnapshot);
-			const widthState = react.useSyncExternalStore(subscribeWidth, getWidthSnapshot);
 			const focusState = react.useSyncExternalStore(subscribeFocus, getFocusSnapshot);
 			const appearanceState = react.useSyncExternalStore(subscribeAppearance, getAppearanceSnapshot);
 			const syncSnap = react.useSyncExternalStore(subscribeSyncScope, getSyncScopeSnapshot);
@@ -993,16 +946,8 @@ window.__ModuleLoader__.load({
 				}, "外观"),
 			]);
 
-			// 「外观」面板：聊天宽度预设 + 聊天区精简百分比滑杆
+			// 「外观」面板：聊天区精简百分比滑杆 + 字号/字体/隐藏
 			const appearanceChildren = [
-				react.createElement("div", { className: "tc-secTitle", key: "wTitle" }, "聊天宽度"),
-				react.createElement("div", { className: "tc-widthRow", key: "wRow" },
-					WIDTH_PRESETS.map((px) => react.createElement("button", {
-						type: "button",
-						className: "tc-pill" + (widthState === px ? " tc-pillOn" : ""),
-						key: px,
-						onClick: () => setWidth(px),
-					}, px + "px"))),
 				react.createElement("div", { className: "tc-secTitle", key: "fTitle" }, "聊天区精简"),
 				react.createElement("div", { className: "tc-scrimRow", key: "fRow" }, [
 					react.createElement("label", { className: "tc-scrimLabel", htmlFor: "tc-focus", key: "l" }, "压制效果 " + focusState + "%"),
@@ -1120,7 +1065,6 @@ window.__ModuleLoader__.load({
 			return {
 				theme: "official",
 				scrim: 0,
-				width: WIDTH_PRESETS[0],
 				focus: FOCUS_DEFAULT,
 				textScale: TEXT_SCALE_DEFAULT,
 				font: "default",
@@ -1144,7 +1088,6 @@ window.__ModuleLoader__.load({
 				return Number.isFinite(n) && n >= min && n <= max ? n : fb;
 			};
 			out.scrim = num(value.scrim, 0, 100, d.scrim);
-			out.width = WIDTH_PRESETS.includes(Number(value.width)) ? Number(value.width) : d.width;
 			out.focus = num(value.focus, 0, 100, d.focus);
 			out.textScale = num(value.textScale, TEXT_SCALE_MIN, TEXT_SCALE_MAX, d.textScale);
 			if (typeof value.font === "string" && FONT_BY_ID.has(value.font)) out.font = value.font;
@@ -1162,7 +1105,6 @@ window.__ModuleLoader__.load({
 			return [
 				{ field: "theme", op: "set", value: state.persisted },
 				{ field: "scrim", op: "set", value: state.scrim },
-				{ field: "width", op: "set", value: currentWidth },
 				{ field: "focus", op: "set", value: currentFocus },
 				{ field: "textScale", op: "set", value: currentTextScale },
 				{ field: "font", op: "set", value: currentFont },
@@ -1309,7 +1251,6 @@ window.__ModuleLoader__.load({
 				if (value.theme !== state.persisted) requestTheme(value.theme, false, true);
 				const scrim = Math.max(0, Math.min(100, Math.round(value.scrim)));
 				if (scrim !== state.scrim) applyScrim(scrim);
-				if (WIDTH_PRESETS.includes(value.width) && value.width !== currentWidth) setWidth(value.width);
 				if (value.focus !== currentFocus) setFocus(value.focus);
 				if (value.textScale !== currentTextScale) setTextScale(value.textScale);
 				if (value.font !== currentFont) setFont(value.font);
@@ -1412,20 +1353,6 @@ window.__ModuleLoader__.load({
 					styleEl.remove();
 				};
 			}, "theme-center: card styles");
-
-			// 聊天宽度样式：立即应用保存的宽度；随插件卸载收回
-			ctx.effect(() => {
-				const styleEl = document.createElement("style");
-				styleEl.dataset.plugin = "dsh-theme-center";
-				styleEl.dataset.pluginCss = "dsh-theme-center/width";
-				widthStyleEl = styleEl;
-				document.head.appendChild(styleEl);
-				setWidth(currentWidth);
-				return () => {
-					styleEl.remove();
-					widthStyleEl = null;
-				};
-			}, "theme-center: width styles");
 
 			// 聊天区精简样式：立即应用保存的压制百分比；门控属性与样式随卸载收回
 			ctx.effect(() => {

@@ -21,7 +21,7 @@ const read = (rel) => readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8'
 
 // 1. 包清单
 assert.equal(pkg.name, '@npm-liqingfeng/dsh-theme-center', '包名应为 @npm-liqingfeng/dsh-theme-center')
-assert.equal(pkg.version, '0.5.5', '版本应为 0.5.5（聊天区精简压制增强：摘要/来源补字号压制 + 标题淡化 + 更紧凑）')
+assert.equal(pkg.version, '0.5.6', '版本应为 0.5.6（聊天宽度屏蔽：官方 alpha.1+ 已提供拖拽调宽，避免变量覆盖冲突）')
 assert.equal(pkg.exports['.'], './lib/index.js', 'exports["."] 应指向 lib/index.js')
 assert.equal(pkg.exports['./client'], './lib/client.js', 'exports["./client"] 应指向 lib/client.js')
 assert.equal(pkg.dsh.bundle.patch, './cordis.patch.yml', 'bundle patch 应指向 cordis.patch.yml')
@@ -107,10 +107,10 @@ for (const t of LIGHT_SIDE) {
   assert.match(read('lib/skins/' + t + '.js'), /:not\(\[data-ds-dark-theme\]\) \{ --dsw-specific-sidebar-fill/, t + ' 亮色态侧边栏应浅色化')
 }
 
-// 5. 一体化模块存在性（宽度 / 精简 / 双 Tab）
-assert.match(clientSrc, /const WIDTH_PRESETS = \[896, 1024, 1152, 1280, 1440, 1600\]/, '应有 6 档宽度预设')
-assert.match(clientSrc, /dsh-theme-center:width:v1/, '应有宽度持久化键')
-assert.match(clientSrc, /--dsh-chat-content-width/, '宽度规则应覆盖内容区宽度变量')
+// 5. 一体化模块存在性（精简 / 双 Tab；聊天宽度 v0.5.6 起屏蔽——官方 alpha.1+ 已提供拖拽调宽，避免变量覆盖冲突）
+assert.doesNotMatch(clientSrc, /const WIDTH_PRESETS = \[896, 1024, 1152, 1280, 1440, 1600\]/, '聊天宽度预设已屏蔽（官方拖拽接管）')
+assert.doesNotMatch(clientSrc, /dsh-theme-center:width:v1/, '宽度持久化键已移除')
+assert.doesNotMatch(clientSrc, /--dsh-chat-content-width/, '宽度规则不再覆盖内容区宽度变量（官方拖拽生效）')
 assert.match(clientSrc, /FOCUS_DEFAULT = 80/, '压制默认应为 80%')
 assert.match(clientSrc, /dsh-theme-center:focus:v1/, '应有压制持久化键')
 assert.match(clientSrc, /--tc-focus/, '压制 CSS 应使用 --tc-focus 插值变量')
@@ -126,7 +126,7 @@ assert.match(clientSrc, /\.tc-tabs/, '卡片应有 Tab 条样式')
 assert.match(clientSrc, /\.tc-secTitle/, '卡片应有区块标题样式')
 assert.doesNotMatch(clientSrc, /conversation\.session\.header\.utilities/, '不应再注册标题栏宽度按钮')
 assert.match(clientSrc, /dataset\.pluginCss = "dsh-theme-center\/card"/, '应有 card 样式元素')
-assert.match(clientSrc, /dataset\.pluginCss = "dsh-theme-center\/width"/, '应有 width 样式元素')
+assert.doesNotMatch(clientSrc, /dataset\.pluginCss = "dsh-theme-center\/width"/, 'width 样式元素已移除')
 assert.match(clientSrc, /dataset\.pluginCss = "dsh-theme-center\/focus"/, '应有 focus 样式元素')
 assert.match(clientSrc, /dataset\.pluginCss = "dsh-theme-center\/table"/, '应有 table 样式元素')
 assert.match(clientSrc, /dataset\.pluginCss = "dsh-theme-center\/appearance"/, '应有 appearance 样式元素')
@@ -260,10 +260,7 @@ moduleExports.apply(fakeCtx)
 // 设置断言
 assert.equal(fakeDoc.body.dataset.dshThemeCenter, '', '应设置 body[data-dsh-theme-center] 作用域')
 assert.equal(fakeDoc.body.dataset.tcFocus, '', '压制默认 80% 应挂 body[data-tc-focus] 门控')
-assert.equal(created.filter((el) => el.tagName === 'STYLE').length, 6, '应注入 6 个样式元素（card/width/focus/table/appearance/glass）')
-const widthStyle = created.find((el) => el.dataset.pluginCss === 'dsh-theme-center/width')
-assert.ok(widthStyle, '应有 width 样式元素')
-assert.match(widthStyle.textContent, /--dsh-chat-content-width:896px/, '默认宽度应落地 896px')
+assert.equal(created.filter((el) => el.tagName === 'STYLE').length, 5, '应注入 5 个样式元素（card/focus/table/appearance/glass，width 已屏蔽）')
 const focusStyle = created.find((el) => el.dataset.pluginCss === 'dsh-theme-center/focus')
 assert.ok(focusStyle, '应有 focus 样式元素')
 assert.match(focusStyle.textContent, /--tc-focus:0\.8/, '默认压制 80% 应落地 --tc-focus:0.8')

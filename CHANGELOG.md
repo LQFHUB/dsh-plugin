@@ -2,6 +2,12 @@
 
 > AGENTS.md「四、变更记录」超过 5 条后的归档存放处（按原格式、时间倒序）。最新记录始终在 AGENTS.md。
 
+### 2026-08-31 web-lan 2.1 审核修复：移除冗余 randomUUID polyfill + 正则完整性校验
+
+- 变更内容：审核 web-lan v2.0 发现 randomUUID polyfill 冗余（官方前端一律用 crypto.getRandomValues 自实现 UUID——util-crypto 的 randomUUID / connection 的 randomUuid，lint 禁 crypto.randomUUID；三个自研插件 client 亦不用），按"去掉无用代码"移除 polyfill（injectPolyfill / MARKER / POLYFILL_SCRIPT / tapIndex，inject webServer→[]）；rewriteClientJs 正则（`/isLoopback:\s*[^,]+/g`）依赖表达式不含逗号（alpha.2 满足），在 patchClientJsFile 加替换完整性校验（残留非 true 的 isLoopback 表达式时告警），防未来 dsh 升级引入逗号导致静默破坏。测试 6 个（含不误伤 isLoopbackHostname / 幂等 / 多值断言）全 PASS。版本 2.0→2.1。
+- 涉及路径：`web-lan/lib/index.js`、`web-lan/test/index.test.js`、`web-lan/package.json`、`web-lan/README.md`、`AGENTS.md`
+- 备注：112 部署 2.1 验证通过——console 0 错误（无 randomUUID 问题）、配置卡（主题 / 提示音 / 图像理解）仍正常渲染、index.html 无 polyfill 标记；**已知项**：卸载 web-lan 后 client.js 保持 isLoopback:true（README 已给还原方法），部署需重启生效
+
 ### 2026-08-31 web-lan v2.0 精简重构：适配 alpha.2 官方原生局域网能力（去掉 apiProxy relay，isLoopback 重写改文件）
 
 - 变更内容：官方 alpha.2 已原生覆盖局域网访问的绝大部分（webserver 0.0.0.0 + trustedHosts 放行特权 API + token 认证），且 `dsh-host-apiproxy` 在 alpha 系列已移除。重构 web-lan v1.0→v2.0：**去掉** apiProxy 特权 API relay（15 方法转发、makeRelay、toFetchHandler import、inject apiProxy——该能力官方原生覆盖且旧依赖已不存在）；**保留** randomUUID polyfill；**改造** isLoopback 重写为直接修改安装的 dsh-client-connection 包 client.js（官方 client-modules 的 serveBundle 从磁盘文件构建响应，改文件即改响应；apply 幂等执行，dsh 升级覆盖后重启自动恢复）。验证：node --test 6/6 PASS；112 部署 + 重启后局域网（非 loopback）访问 Settings→Plugins，主题 / 提示音 / 图像理解等配置卡正常渲染（isLoopback 重写生效、settings describe 走 host 模式）。
