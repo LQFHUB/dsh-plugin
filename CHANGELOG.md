@@ -2,6 +2,12 @@
 
 > AGENTS.md「四、变更记录」超过 5 条后的归档存放处（按原格式、时间倒序）。最新记录始终在 AGENTS.md。
 
+### 2026-08-31 web-lan 2.2.1：修复局域网 API 401（免认证改为自动种 cookie）
+
+- 变更内容：用户反馈局域网访问"很多功能有问题"（模型 provider 加载失败、Agent 预设无法加载、不能添加工作区、连接异常，均报 /api/* HTTP 401）。根因：2.2 免认证是「index 直接放行但不种 cookie」，而 /api/* 请求经 rpc-host 的 browserAuth.isAuthenticated（cookie 认证）校验——局域网浏览器无 cookie → 全部 API 401。修复：authorizeIndex 对局域网来源的根路径请求**自动种 cookie**（等效 token 认证成功，复用 encodeCookie / sessionCookie），浏览器随后 API 请求带 cookie 通过认证；patchBrowserAuth 兼容旧版「直接放行」补丁升级（OLD_BYPASS_RE 先还原再替换）。版本 2.2→2.2.1。
+- 涉及路径：`web-lan/lib/index.js`、`web-lan/test/index.test.js`（+旧补丁升级测试 10 个）、`web-lan/package.json`、`AGENTS.md`
+- 备注：112 部署验证——无 cookie 访问 192.168.31.112:3080 返回 303+Set-Cookie；带 cookie 请求 llm/listProviders、agentPresets/list 均 ok:true（原 401）；浏览器验证：连接正常、Models provider（DeepSeek / 火山 / Custom）、Agent presets、添加工作区（目录选择器弹出）全部正常
+
 ### 2026-08-31 web-lan 2.2：局域网免 token 认证（修改官方 browser-auth，私有 IP 直连；公网仍认证）
 
 - 变更内容：用户反馈其他电脑访问 112 仍报 "dsh web authentication required"（官方 alpha.2 每次启动随机 launch token，无固定/禁用配置；rc.2 时代无此认证）。web-lan 增加 patchBrowserAuthFile：修改 dsh-client-connection host 半区（lib/index.js），注入 isLanAuthority 判断（10.x / 192.168.x / 172.16-31.x / loopback）并替换 authorizeIndex 放行条件为「已认证 OR 局域网来源」——局域网设备免 token 直连，公网 Host 仍走官方 token 认证。补丁幂等 + 部署时先执行再重启。版本 2.1→2.2。
