@@ -44,7 +44,17 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 5 条，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 6 条：5 条历史 + 1 条归档动作，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+### 2026-09-01 归档 1 条旧记录至 CHANGELOG.md
+
+- 变更内容：变更记录超 5 条，将最旧「2026-08-31 112 升级 dsh v0.1.2-alpha.2 + 移除 web-lan/navbar + 官方局域网访问」归档至 `CHANGELOG.md`（按原格式、时间倒序存放）；归档动作不计数
+- 涉及路径：`AGENTS.md`、`CHANGELOG.md`
+- 备注：AGENTS.md 保留最新 5 条历史记录
+### 2026-09-01 112 激活 dsh-better-sidebar 0.18.0-alpha.0 + dshmarket 1.38.1（适配 alpha.2）+ web-lan 改本地 tarball 依赖
+
+- 变更内容：alpha.2 移除 settingsNamespace/installSettingsSection 后停用的两个外部插件，升级到上游 8/30 发布的适配版（dsh-better-sidebar 0.18.0-alpha.0、dshmarket 1.38.1）并加回 `dsh.profile.bundles` 激活。**顺带修复依赖断裂**：`@npm-liqingfeng/dsh-web-lan` 2.x 从未发布 npm（官方源仅 1.0.0），package.json 的 `^2.0.0` 使 pnpm 依赖解析失败——把 112 node_modules 现成包（功能=2.2.1）打包为 `/root/dsh-web-lan-2.2.0.tgz`，specifier 改 `file:` 引用。
+- 涉及路径：112 `/root/.dsh/profiles/web/{package.json,pnpm-lock.yaml,node_modules}`、`/root/dsh-web-lan-2.2.0.tgz`、`/root/dsh-web.log`（本目录无文件变更）
+- 备注：重启后验证——better-sidebar 右侧工作台（Files 面板/文件树）正常、Settings 出现「Side card」卡；dshmarket「Plugin Market」卡正常（v1.38.1、插件列表 115 页分页、Installed(6)）；页面 0 console 错误；其余插件正常。⚠️ web-lan 未发布 npm 是隐患（111 部署同样会撞 pnpm 解析失败），建议后续将 web-lan 2.2.1 发布 npm；112 已备份 `package.json.bak-20260901_010351-before-sidebar-market-upgrade`
 ### 2026-08-31 web-lan 2.2.1：修复局域网 API 401（免认证改为自动种 cookie）
 
 - 变更内容：用户反馈局域网访问"很多功能有问题"（模型 provider 加载失败、Agent 预设无法加载、不能添加工作区、连接异常，均报 /api/* HTTP 401）。根因：2.2 免认证是「index 直接放行但不种 cookie」，而 /api/* 请求经 rpc-host 的 browserAuth.isAuthenticated（cookie 认证）校验——局域网浏览器无 cookie → 全部 API 401。修复：authorizeIndex 对局域网来源的根路径请求**自动种 cookie**（等效 token 认证成功，复用 encodeCookie / sessionCookie），浏览器随后 API 请求带 cookie 通过认证；patchBrowserAuth 兼容旧版「直接放行」补丁升级（OLD_BYPASS_RE 先还原再替换）。版本 2.2→2.2.1。
@@ -68,14 +78,6 @@
 - 变更内容：官方 alpha.2 已原生覆盖局域网访问的绝大部分（webserver 0.0.0.0 + trustedHosts 放行特权 API + token 认证），且 `dsh-host-apiproxy` 在 alpha 系列已移除。重构 web-lan v1.0→v2.0：**去掉** apiProxy 特权 API relay（15 方法转发、makeRelay、toFetchHandler import、inject apiProxy——该能力官方原生覆盖且旧依赖已不存在）；**保留** randomUUID polyfill；**改造** isLoopback 重写为直接修改安装的 dsh-client-connection 包 client.js（官方 client-modules 的 serveBundle 从磁盘文件构建响应，改文件即改响应；apply 幂等执行，dsh 升级覆盖后重启自动恢复）。验证：node --test 6/6 PASS；112 部署 + 重启后局域网（非 loopback）访问 Settings→Plugins，主题 / 提示音 / 图像理解等配置卡正常渲染（isLoopback 重写生效、settings describe 走 host 模式）。
 - 涉及路径：`web-lan/lib/index.js`、`web-lan/test/index.test.js`、`web-lan/package.json`、`web-lan/README.md`、`AGENTS.md`
 - 备注：112 已部署 v2.0 验证通过（部署时先执行 patchClientJsFile 再重启一次到位）；外部插件 better-sidebar/dshmarket 仍临时停用（alpha.2 不兼容）
-
-
-
-### 2026-08-31 112 升级 dsh v0.1.2-alpha.2 + 移除 web-lan/navbar + 官方局域网访问
-
-- 变更内容：按用户目标在 112（验证机）升级 dsh 0.1.1-rc.2 → 0.1.2-alpha.2（npm install -g @deepseek-ai/dsh@alpha，npmmirror 已同步）。**移除 dsh-web-lan 与 navbar 插件**（package.json dependencies + dsh.profile.bundles + node_modules 目录）。局域网访问改用**官方原生机制**：cordis.patch.yml 配置 webserver host:0.0.0.0 + 官方 runtime 自动推导 LAN IP 信任（替代 web-lan 的 apiProxy relay，特权 API 不再 403）；认证走官方 token（每次启动随机 launch token + 30 天签名 cookie，首次 `?token=` 访问后免 token）。外部插件 dsh-better-sidebar/dshmarket 因用被移除的 settingsNamespace/installSettingsSection 加载失败，已临时移出 bundles（node_modules 保留待上游适配）。
-- 涉及路径：112 `/usr/local/lib/node_modules/@deepseek-ai/dsh`、`/root/.dsh/profiles/web/{package.json,cordis.patch.yml,node_modules}`、`/root/dsh-web.log`
-- 备注：服务 active + 0.0.0.0:3080 监听；局域网从 111 访问页面/会话/工具正常；自研插件 + global-rules 在 Global plugins 全部 Enabled+Running；**局域网下插件配置卡不渲染属官方 isLoopback 设计**（非本机 settings describe 走 memory/unavailable），web-lan 的 isLoopback 重写即绕此限制
 </details>
 
 ---

@@ -2,6 +2,12 @@
 
 > AGENTS.md「四、变更记录」超过 5 条后的归档存放处（按原格式、时间倒序）。最新记录始终在 AGENTS.md。
 
+### 2026-08-31 112 升级 dsh v0.1.2-alpha.2 + 移除 web-lan/navbar + 官方局域网访问
+
+- 变更内容：按用户目标在 112（验证机）升级 dsh 0.1.1-rc.2 → 0.1.2-alpha.2（npm install -g @deepseek-ai/dsh@alpha，npmmirror 已同步）。**移除 dsh-web-lan 与 navbar 插件**（package.json dependencies + dsh.profile.bundles + node_modules 目录）。局域网访问改用**官方原生机制**：cordis.patch.yml 配置 webserver host:0.0.0.0 + 官方 runtime 自动推导 LAN IP 信任（替代 web-lan 的 apiProxy relay，特权 API 不再 403）；认证走官方 token（每次启动随机 launch token + 30 天签名 cookie，首次 `?token=` 访问后免 token）。外部插件 dsh-better-sidebar/dshmarket 因用被移除的 settingsNamespace/installSettingsSection 加载失败，已临时移出 bundles（node_modules 保留待上游适配）。
+- 涉及路径：112 `/usr/local/lib/node_modules/@deepseek-ai/dsh`、`/root/.dsh/profiles/web/{package.json,cordis.patch.yml,node_modules}`、`/root/dsh-web.log`
+- 备注：服务 active + 0.0.0.0:3080 监听；局域网从 111 访问页面/会话/工具正常；自研插件 + global-rules 在 Global plugins 全部 Enabled+Running；**局域网下插件配置卡不渲染属官方 isLoopback 设计**（非本机 settings describe 走 memory/unavailable），web-lan 的 isLoopback 重写即绕此限制
+
 ### 2026-08-31 theme-center 迁移 alpha.2（settings API + data-actions-reveal）
 
 - 变更内容：alpha.2 移除 dsh-settings 顶层导出 settingsNamespace/installSettingsSection（改 SettingsProvider.installSection），且官方 DOM 锚点 data-time-hover-root 改名 data-actions-reveal。迁移 theme-center：① lib/index.js 删除 import、`settings.replace(settingsNamespace(...))` → `settings.replace(SETTINGS_NAMESPACE,...)`、installSettingsSection → `ctx.inject(['settings'])` 内 `sctx.settings.installSection(...)`（保留 try/catch 语义）；② lib/client.js 两处 `[data-time-hover-root]` 选择器改双名兼容（`[data-actions-reveal], [data-time-hover-root]`，userKindsSel 逗号连接）。验证：node --check 两文件 + smoke.mjs PASS + grep 无残留。
