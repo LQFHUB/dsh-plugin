@@ -45,6 +45,11 @@
 
 <details>
 <summary>📜 变更记录（共 6 条：5 条历史 + 1 条归档动作，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+### 2026-09-01 dsh-describe-image / dsh-notify-sound v0.1.2 发布 npm（迁移 alpha.2 API 版）
+
+- 变更内容：**发现 npm 上的 0.1.1 是 8/17 旧代码**（顶层静态 `import { installSettingsSection, settingsNamespace }`，alpha.3 下直接 SyntaxError 加载失败）——本地 8/31 迁移到 `SettingsProvider.installSection` 但未重新发布、版本号未升，此前误判"已发布"。修正：升 **0.1.2** 重新发布（npmjs latest=0.1.2，tarball 校验旧 API=0 / installSection=1）；notify-sound 测试全 PASS；describe-image vitest 45 失败均为测试 mock 基建问题（`CallId is not a function`），**无 lib 逻辑断言失败**（lib 已在 111/112 alpha.3 实测运行正常）。
+- 涉及路径：`describe-image/{package.json,lib}`、`notify-sound/{package.json,lib}`；知识库升级指南（第 5/6 点：版本号 + 「判断 npm 是否已发布不能只比版本号」教训）
+- 备注：npmjs latest 均为 0.1.2（npmmirror 同步有延迟）；111/112 部署用的旧 0.1.1 代码（rsync/tarball 迁移版）不受影响；以后**本地改代码必须升版本号再发布**
 ### 2026-09-01 theme-center v0.5.6 发布 npm（`@npm-liqingfeng/dsh-theme-center@0.5.6`）
 
 - 变更内容：v0.5.6（屏蔽聊天宽度版）发布 npm。**踩坑：npm 账号开 2FA，普通 token 发布 403，需 publish 权限 + bypass 2FA 的 granular token**（前两个 token 无效，第三个有效）；本机默认 registry 为 npmmirror，发布显式 `--registry=https://registry.npmjs.org/`；NPM_TOKEN 已记入知识库 autu.md。describe-image/notify-sound 的 0.1.1 早已是 npm latest（本次核对确认无需再发）。
