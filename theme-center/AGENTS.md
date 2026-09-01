@@ -141,6 +141,12 @@
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
 
+### 2026-09-01 theme-center v0.5.6 发布 npm（`@npm-liqingfeng/dsh-theme-center@0.5.6`，latest）
+
+- 变更内容：将 v0.5.6（屏蔽聊天宽度版）发布到 npm。**踩坑：npm 账号开了 2FA，普通 token 发布 403**（`Two-factor authentication or granular access token with bypass 2fa enabled is required`）——需 **publish 权限 + bypass 2FA 的 granular token**（前两个 token 均无 bypass 2FA，第三个 `npm_ITyZ8H…` 有效）；本机 `~/.npmrc` 默认 registry 为 npmmirror，发布显式 `--registry=https://registry.npmjs.org/`。
+- 涉及路径：npm 包 `@npm-liqingfeng/dsh-theme-center@0.5.6`（30 文件）；知识库 `autu.md`（NPM_TOKEN 记录）；`~/.npmrc`
+- 备注：npmjs latest=0.5.6（2026-09-01T06:10Z），npmmirror 镜像同步有延迟；**112 的 file: tarball 引用可保留**（不强制改回 npm）；token 已记入知识库 autu.md（勿在对话/代码中重复展示）
+
 ### 2026-09-01 theme-center v0.5.6：屏蔽聊天宽度模块（官方 alpha.1+ 已提供拖拽调宽，避免变量覆盖冲突）
 
 - 变更内容：官方 v0.1.2-alpha.1+ 已提供会话流宽度**拖拽调整**（localStorage 本机持久化）。theme-center 聊天宽度（6 档预设 896-1600px，覆盖 `--dsh-chat-content-width`）与官方功能**并存冲突**（实测 theme-center 在 `[data-conversation-scroll]` 的声明特异性更高，压制官方拖拽——拖拽改 root 层 `--dsh-chat-user-width` 对消息列宽无效）。用户决策：屏蔽 theme-center 聊天宽度，**官方拖拽接管，不影响官方功能**。修改 `lib/client.js`：删除聊天宽度模块（WIDTH_PRESETS/WIDTH_KEY/widthCss/readSavedWidth/setWidth/subscribeWidth/getWidthSnapshot/widthStyleEl）、外观 Tab「聊天宽度」节、服务端同步 width 处理（serverDefaults/sanitize/localStateToWrites/applyRemoteState）、apply 挂载 width 样式元素；`lib/index.js` schema **保留** width 字段（避免旧配置校验问题，客户端不再读写=死字段）。smoke 更新（宽度断言改 doesNotMatch、样式元素 6→5、版本 0.5.6）。版本 0.5.5→0.5.6

@@ -2,6 +2,12 @@
 
 > AGENTS.md「四、变更记录」超过 5 条后的归档存放处（按原格式、时间倒序）。最新记录始终在 AGENTS.md。
 
+### 2026-09-01 112 激活 dsh-better-sidebar 0.18.0-alpha.0 + dshmarket 1.38.1（适配 alpha.2）+ web-lan 改本地 tarball 依赖
+
+- 变更内容：alpha.2 移除 settingsNamespace/installSettingsSection 后停用的两个外部插件，升级到上游 8/30 发布的适配版（dsh-better-sidebar 0.18.0-alpha.0、dshmarket 1.38.1）并加回 `dsh.profile.bundles` 激活。**顺带修复依赖断裂**：`@npm-liqingfeng/dsh-web-lan` 2.x 从未发布 npm（官方源仅 1.0.0），package.json 的 `^2.0.0` 使 pnpm 依赖解析失败——把 112 node_modules 现成包（功能=2.2.1）打包为 `/root/dsh-web-lan-2.2.0.tgz`，specifier 改 `file:` 引用。
+- 涉及路径：112 `/root/.dsh/profiles/web/{package.json,pnpm-lock.yaml,node_modules}`、`/root/dsh-web-lan-2.2.0.tgz`、`/root/dsh-web.log`（本目录无文件变更）
+- 备注：重启后验证——better-sidebar 右侧工作台（Files 面板/文件树）正常、Settings 出现「Side card」卡；dshmarket「Plugin Market」卡正常（v1.38.1、插件列表 115 页分页、Installed(6)）；页面 0 console 错误；其余插件正常。⚠️ web-lan 未发布 npm 是隐患（111 部署同样会撞 pnpm 解析失败），建议后续将 web-lan 2.2.1 发布 npm；112 已备份 `package.json.bak-20260901_010351-before-sidebar-market-upgrade`
+
 ### 2026-08-31 web-lan 2.2.1：修复局域网 API 401（免认证改为自动种 cookie）
 
 - 变更内容：用户反馈局域网访问"很多功能有问题"（模型 provider 加载失败、Agent 预设无法加载、不能添加工作区、连接异常，均报 /api/* HTTP 401）。根因：2.2 免认证是「index 直接放行但不种 cookie」，而 /api/* 请求经 rpc-host 的 browserAuth.isAuthenticated（cookie 认证）校验——局域网浏览器无 cookie → 全部 API 401。修复：authorizeIndex 对局域网来源的根路径请求**自动种 cookie**（等效 token 认证成功，复用 encodeCookie / sessionCookie），浏览器随后 API 请求带 cookie 通过认证；patchBrowserAuth 兼容旧版「直接放行」补丁升级（OLD_BYPASS_RE 先还原再替换）。版本 2.2→2.2.1。

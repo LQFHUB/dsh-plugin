@@ -45,6 +45,11 @@
 
 <details>
 <summary>📜 变更记录（共 6 条：5 条历史 + 1 条归档动作，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+### 2026-09-01 theme-center v0.5.6 发布 npm（`@npm-liqingfeng/dsh-theme-center@0.5.6`）
+
+- 变更内容：v0.5.6（屏蔽聊天宽度版）发布 npm。**踩坑：npm 账号开 2FA，普通 token 发布 403，需 publish 权限 + bypass 2FA 的 granular token**（前两个 token 无效，第三个有效）；本机默认 registry 为 npmmirror，发布显式 `--registry=https://registry.npmjs.org/`；NPM_TOKEN 已记入知识库 autu.md。describe-image/notify-sound 的 0.1.1 早已是 npm latest（本次核对确认无需再发）。
+- 涉及路径：npm 包 `@npm-liqingfeng/dsh-theme-center@0.5.6`；知识库 `autu.md`；`~/.npmrc`（本目录仅 `theme-center/AGENTS.md` 记录变更）
+- 备注：npmjs latest=0.5.6（npmmirror 镜像同步有延迟）；112 的 file: tarball 引用可保留不强制改回 npm
 ### 2026-09-01 111（正式机）升级 dsh 0.1.1-rc.2 → 0.1.2-alpha.3 + 插件全量升级（navbar 移除）
 
 - 变更内容：111 按知识库升级指南跨 4 大版本升级（rc.2 → alpha.3，一次遇全部历史破坏性变更）。**关键踩坑：external link 插件在 alpha.3 无法解析宿主模块**——theme-center/notify-sound/describe-image 报 `Cannot find package '@deepseek-ai/schemastery'`（alpha.3 启动自动生成 `profiles/node_modules` 共享宿主模块，但 external 目录向上解析不经过它，导致 crash loop）。**解决**：`/root/.dsh/external/node_modules` → symlink 指向 `/root/.dsh/profiles/node_modules`，插件向上解析命中（4 个 external 插件静态加载测试通过）。升级内容：dsh `npm install -g @deepseek-ai/dsh@0.1.2-alpha.3`；external rsync 升级 theme-center 0.5.5→0.5.6、web-lan 1.0.0→2.2.1（scope `@user/`→`@npm-liqingfeng/`，package.json 依赖名+bundles 同步改）、describe-image 0.1.0→0.1.1、notify-sound 0.1.0→0.1.1；better-sidebar 0.17.1→0.18.0-alpha.0、dshmarket 1.36.0→1.38.1（pnpm install）；**navbar 移除**（external 目录 + 依赖 + bundles）。
@@ -70,11 +75,6 @@
 - 变更内容：参考 111 的 `/root/.dsh/skills/knowledge-base/SKILL.md` 在 112 安装知识库 skill：`mkdir -p /root/.dsh/skills/knowledge-base` + scp 复制（md5 `dc0063e4…` 与 111 一致）。112 的 `/mnt/ug/share` 已挂载同一 NFS（192.168.31.200:/volume1/share，rw），知识库数据路径 `/mnt/ug/share/Obsidian/note1/OneNote/AI/PI/knowledge-base/` 直接可达，无需额外挂载。dsh-skill-filesystem 从 `$DSH_HOME/skills` 扫描（111/112 同机制）。重启 dsh-web 后在 112 新建会话让 agent 列技能，确认可见 `knowledge-base`（仅此一个，ui-ux-pro-max 未要求装）。
 - 涉及路径：112 `/root/.dsh/skills/knowledge-base/SKILL.md`（本目录无文件变更）
 - 备注：SKILL.md 权限 600（root 可读）；顺带归档「2026-08-31 web-lan v2.0」至 CHANGELOG.md（历史记录保持 5 条）
-### 2026-09-01 112 激活 dsh-better-sidebar 0.18.0-alpha.0 + dshmarket 1.38.1（适配 alpha.2）+ web-lan 改本地 tarball 依赖
-
-- 变更内容：alpha.2 移除 settingsNamespace/installSettingsSection 后停用的两个外部插件，升级到上游 8/30 发布的适配版（dsh-better-sidebar 0.18.0-alpha.0、dshmarket 1.38.1）并加回 `dsh.profile.bundles` 激活。**顺带修复依赖断裂**：`@npm-liqingfeng/dsh-web-lan` 2.x 从未发布 npm（官方源仅 1.0.0），package.json 的 `^2.0.0` 使 pnpm 依赖解析失败——把 112 node_modules 现成包（功能=2.2.1）打包为 `/root/dsh-web-lan-2.2.0.tgz`，specifier 改 `file:` 引用。
-- 涉及路径：112 `/root/.dsh/profiles/web/{package.json,pnpm-lock.yaml,node_modules}`、`/root/dsh-web-lan-2.2.0.tgz`、`/root/dsh-web.log`（本目录无文件变更）
-- 备注：重启后验证——better-sidebar 右侧工作台（Files 面板/文件树）正常、Settings 出现「Side card」卡；dshmarket「Plugin Market」卡正常（v1.38.1、插件列表 115 页分页、Installed(6)）；页面 0 console 错误；其余插件正常。⚠️ web-lan 未发布 npm 是隐患（111 部署同样会撞 pnpm 解析失败），建议后续将 web-lan 2.2.1 发布 npm；112 已备份 `package.json.bak-20260901_010351-before-sidebar-market-upgrade`
 </details>
 
 ---
