@@ -131,12 +131,20 @@ function makeEnv(serverUser, seededOpen) {
 
   let sessionsSnap = { ids: ['s1'], byId: { s1: { id: 's1', running: false } }, current: 's1', jobsBySession: {} }
   let sessionsSub = null
+  let pendingSnap = new Map()
+  let pendingSub = null
   let slotReg = null
   const ctx = {
     sessions: {
       list: {
         getSnapshot: () => sessionsSnap,
         subscribe: (fn) => { sessionsSub = fn; return () => {} },
+      },
+    },
+    uiSession: {
+      pendingInteractions: {
+        getSnapshot: () => pendingSnap,
+        subscribe: (fn) => { pendingSub = fn; return () => {} },
       },
     },
     get: (name) => (name === 'slots'
@@ -152,12 +160,18 @@ function makeEnv(serverUser, seededOpen) {
     sessionsSnap = next
     sessionsSub()
   }
+  /** 驱动 uiSession.pendingInteractions 快照（{ sessionId: {key, kind, sessionId} }）。 */
+  const drivePending = (map) => {
+    pendingSnap = new Map(Object.entries(map || {}))
+    pendingSub()
+  }
   const row = (extra) => Object.assign({ id: 's1', running: false }, extra)
 
   return {
     exportsObj,
     ctx,
     drive,
+    drivePending,
     row,
     server,
     created,
@@ -177,7 +191,8 @@ function makeEnv(serverUser, seededOpen) {
   const env = makeEnv(undefined, false)
   ok(typeof env.exportsObj.apply === 'function', 'client exports apply')
   ok(Array.isArray(env.exportsObj.inject) && env.exportsObj.inject.includes('sessions')
-    && env.exportsObj.inject.includes('slots'), 'client inject = slots + sessions')
+    && env.exportsObj.inject.includes('slots') && env.exportsObj.inject.includes('uiSession'),
+    'client inject = slots + sessions + uiSession')
   env.exportsObj.apply(env.ctx)
   const slotReg = env.getSlotReg()
   ok(slotReg && slotReg.name === 'settings.plugin.item', 'registered into settings.plugin.item slot')
@@ -222,7 +237,7 @@ function makeEnv(serverUser, seededOpen) {
   env.drive({ ids: ['s1'], byId: { s1: env.row({ running: true }) }, current: 's1', jobsBySession: {} })
   env.drive({ ids: ['s1'], byId: { s1: env.row({ running: false }) }, current: 's1', jobsBySession: {} })
   ok(env.getOscCount() === 0, 'enabled=false silences completion')
-  env.drive({ ids: ['s1'], byId: { s1: env.row({ running: false, pendingInteraction: 'approval' }) }, current: 's1', jobsBySession: {} })
+  env.drivePending({ s1: { key: 'a1', kind: 'approval', sessionId: 's1' } })
   ok(env.getOscCount() === 0, 'enabled=false silences attention events too')
 }
 
@@ -231,15 +246,15 @@ function makeEnv(serverUser, seededOpen) {
   const env = makeEnv({}, false)
   env.exportsObj.apply(env.ctx)
   await tick()
-  env.drive({ ids: ['s1'], byId: { s1: env.row({ pendingInteraction: 'approval' }) }, current: 's1', jobsBySession: {} })
+  env.drivePending({ s1: { key: 'a1', kind: 'approval', sessionId: 's1' } })
   ok(env.getOscCount() > 0 && env.freqs[0] === FREQ.ding, 'approval plays generic attention sound (ding)')
   const n1 = env.getOscCount()
-  env.drive({ ids: ['s1'], byId: { s1: env.row({ pendingInteraction: 'approval' }) }, current: 's1', jobsBySession: {} })
-  ok(env.getOscCount() === n1, 'pendingInteraction unchanged does not repeat')
-  env.drive({ ids: ['s1'], byId: { s1: env.row({ pendingInteraction: 'question' }) }, current: 's1', jobsBySession: {} })
+  env.drivePending({ s1: { key: 'a1', kind: 'approval', sessionId: 's1' } })
+  ok(env.getOscCount() === n1, 'same pending key does not repeat')
+  env.drivePending({ s1: { key: 'q1', kind: 'question', sessionId: 's1' } })
   ok(env.getOscCount() > n1 && env.freqs[0] === FREQ.ding, 'question plays generic attention sound')
   const n2 = env.getOscCount()
-  env.drive({ ids: ['s1'], byId: { s1: env.row({ pendingInteraction: 'plan-review' }) }, current: 's1', jobsBySession: {} })
+  env.drivePending({ s1: { key: 'p1', kind: 'plan-review', sessionId: 's1' } })
   ok(env.getOscCount() > n2 && env.freqs[0] === FREQ.ding, 'plan-review plays generic attention sound')
 }
 
@@ -248,11 +263,14 @@ function makeEnv(serverUser, seededOpen) {
   const env = makeEnv({ quietCurrent: true, approvalSound: 'bell', failureSound: 'alert' }, false)
   env.exportsObj.apply(env.ctx)
   await tick()
-  env.drive({ ids: ['s1'], byId: { s1: env.row({ pendingInteraction: 'approval' }) }, current: 's1', jobsBySession: {} })
+  env.drivePending({ s1: { key: 'a1', kind: 'approval', sessionId: 's1' } })
   ok(env.getOscCount() > 0 && env.freqs[0] === FREQ.bell, 'approvalSound override plays bell')
   const n3 = env.getOscCount()
-  env.drive({ ids: ['s1'], byId: { s1: env.row({ pendingInteraction: 'plan-review' }) }, current: 's1', jobsBySession: {} })
-  ok(env.getOscCount() > n3, 'attention events play even for the open session (quietCurrent ignored)')
+  env.drivePending({ s1: { key: 'a2', kind: 'approval', sessionId: 's1' } })
+  ok(env.getOscCount() > n3, 'attention events play even for the open session (quietCurrent ignored); new pending key rings again')
+  const afterA2 = env.getOscCount()
+  env.drivePending({})
+  ok(env.getOscCount() === afterA2, 'pending cleared plays no extra sound')
 }
 
 /* ---------------- 7. 目标受阻：进入 blocked 响一次，停留不重复 ---------------- */
@@ -260,13 +278,19 @@ function makeEnv(serverUser, seededOpen) {
   const env = makeEnv({}, false)
   env.exportsObj.apply(env.ctx)
   await tick()
-  env.drive({ ids: ['s1'], byId: { s1: env.row({ projectionValues: { goal: { phase: 'active' } } }) }, current: 's1', jobsBySession: {} })
+  env.drive({ ids: ['s1'], byId: { s1: env.row({ projectionValues: { goal: { goal: { phase: 'active' } } } }) }, current: 's1', jobsBySession: {} })
   ok(env.getOscCount() === 0, 'goal active produces no sound')
+  // 旧错误路径（phase 直挂 goal 下）不应触发——官方结构为 goal.goal.phase
   env.drive({ ids: ['s1'], byId: { s1: env.row({ projectionValues: { goal: { phase: 'blocked' } } }) }, current: 's1', jobsBySession: {} })
+  ok(env.getOscCount() === 0, 'goal phase at wrong path (goal.phase) does not fire')
+  env.drive({ ids: ['s1'], byId: { s1: env.row({ projectionValues: { goal: { goal: { phase: 'blocked' } } } }) }, current: 's1', jobsBySession: {} })
   ok(env.getOscCount() > 0 && env.freqs[0] === FREQ.bell, 'goal blocked transition plays goalBlockedSound (bell)')
   const after = env.getOscCount()
-  env.drive({ ids: ['s1'], byId: { s1: env.row({ projectionValues: { goal: { phase: 'blocked' } } }) }, current: 's1', jobsBySession: {} })
+  env.drive({ ids: ['s1'], byId: { s1: env.row({ projectionValues: { goal: { goal: { phase: 'blocked' } } } }) }, current: 's1', jobsBySession: {} })
   ok(env.getOscCount() === after, 'goal staying blocked does not repeat')
+  // goal 为 null（无 goal）不应抛错
+  env.drive({ ids: ['s1'], byId: { s1: env.row({ projectionValues: { goal: null } }) }, current: 's1', jobsBySession: {} })
+  ok(env.getOscCount() === after, 'goal null tolerated without error or sound')
 }
 
 /* ---------------- 8. 后台任务：完成 → 完成音；失败 → 失败音 ---------------- */

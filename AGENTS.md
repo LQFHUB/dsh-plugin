@@ -45,7 +45,12 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 6 条：5 条历史 + 1 条归档动作，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 7 条：6 条历史 + 1 条归档动作，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+### 2026-09-06 notify-sound v0.1.3 修复「提问/审批/计划评审/目标受阻」提示音不响
+
+- 变更内容：**根因**：浏览器端 `startWatcher` 从 `sessions.list` 快照读 `row.pendingInteraction`，但官方 `SessionSummary` 无此字段（权威数据源是 `ctx.uiSession.pendingInteractions`，kind ∈ approval/question/plan-review），故注意铃声从未触发；goal blocked 检测访问 `projectionValues.goal.phase` 也错两层（官方 `GoalProjection.goal.phase`），同样失效。**修复**：inject 增加 `uiSession`，新增订阅 `uiSession.pendingInteractions` 权威快照（按交互 key 判据：新出现/替换请求响铃、同 key 不重复、消失不响，白名单只处理三类）；goal 投影路径改为 `goal.goal.phase`（兼容 goal 为 null）。测试全 PASS（host 34 + client 47，新增 pending key 判据/清空/错误路径/goal null 用例）。版本 0.1.2 → 0.1.3
+- 涉及路径：`notify-sound/{lib/client.js,tests/test-client.mjs,README.md,package.json}`
+- 备注：待 112 部署验证 + 111 部署（用户确认）；发布 npm 需用户确认
 ### 2026-09-06 modsearch 自维护 fork（设置卡 LAN 信任修复）+ 111 部署文件就绪
 
 - 变更内容：用户安装 modsearch 5.10.1 后浏览器设置卡报 `request refused: this route answers same-origin loopback only`。根因：111 局域网 IP 访问（web 绑定 `0.0.0.0:3080`），而 modsearch 卡片路由 `/modsearch/config` 用独立 fence 只认 loopback Host（上游 main 同样未修）。按用户指示**拉上游源码自维护**：新增 `modsearch/` fork 文件夹，修复 `dsh/index.js`（① 卡片路由 scoped inject 由 `['webServer']` 改为 `['webServer','connection']`；② 新增 `isTrustedAuthorityHost()` 复刻官方 `client-connection` 的 trustedHosts 匹配；③ `isTrustedRequest(req, trustedHosts)` 接受官方 `connection.trustedHosts`——含从 all-interface bind 推导的 LAN IP，与 `/api` fence 对齐；`sec-fetch-site`/`origin` 同源检查保留）；同步更新 `src/dshPlugin.test.ts`（注入断言 + 新增 LAN 放行/拒止用例，**40/40 通过**）；`pnpm-workspace.yaml` 放行 esbuild（pnpm 11 构建必需）；写 `FORK.md`（差异/构建/部署/升级跟随）。111 部署文件就绪：rsync 到 `/root/.dsh/external/modsearch`（含构建好的 dist），web profile `package.json` modsearch 改 `link:/root/.dsh/external/modsearch` + `pnpm install`（package.json/lockfile 已备份）。

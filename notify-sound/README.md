@@ -59,10 +59,10 @@
 | --- | --- | --- |
 | 回合结束（回答完成） | session `running: true → false` | 完成铃声（受「当前会话不响」约束） |
 | 后台任务完成 / 终止 | job `running/stopping → completed/killed` | 完成铃声（受约束） |
-| 审批请求 | `pendingInteraction: approval` | 审批音 → 通用注意音 |
-| 用户提问 | `pendingInteraction: question` | 提问音 → 通用注意音 |
-| 计划评审 | `pendingInteraction: plan-review` | 评审音 → 通用注意音 |
-| 目标受阻 | goal 投影 `phase → blocked` | `goalBlockedSound`（只响一次） |
+| 审批请求 | `uiSession.pendingInteractions` 出现 `kind: approval` | 审批音 → 通用注意音 |
+| 用户提问 | `uiSession.pendingInteractions` 出现 `kind: question` | 提问音 → 通用注意音 |
+| 计划评审 | `uiSession.pendingInteractions` 出现 `kind: plan-review` | 评审音 → 通用注意音 |
+| 目标受阻 | goal 投影 `goal.goal.phase → blocked` | `goalBlockedSound`（只响一次） |
 | 后台任务失败 | job `→ failed` | `failureSound`（不受约束） |
 
 同源事件 600ms 内去抖，避免重复快照误响。
@@ -72,7 +72,7 @@
 - **配置存储**：宿主半区经 `ctx.inject(['settings'], sctx => sctx.settings.installSection(...))`（dsh-settings）注册 `notify-sound` 设置命名空间，配置落在 profile 设置的用户层（服务端落盘）。官方 apiproxy 的 settings 白名单不暴露第三方命名空间，故宿主另注册 **`/notify-sound/settings` 路由**（GET 视图 / POST 批量写，同源护栏 + revision 栅栏）作为读写接缝
 - **浏览器作用域**：`NotifyConfigScope` 实现 SettingsScope 契约直连该路由；启动拉取一次，写入即 POST 落盘，另每 30s + 聚焦/可见刷新——所有浏览器读同一份配置即天然同步
 - **音效引擎**：Web Audio 合成（Oscillator + Gain），`AudioContext` 惰性创建；首次播放受浏览器自动播放策略约束，页面任意交互（如点「试听」）后即解锁
-- **事件监听**：订阅 `sessions.list` 快照（`byId/ids/current/jobsBySession`），无轮询、无额外数据通道
+- **事件监听**：订阅 `sessions.list` 快照（`byId/ids/current/jobsBySession`）+ `uiSession.pendingInteractions` 权威快照（审批/提问/计划评审；`SessionSummary` 无该字段，不能从 list 行读），无轮询、无额外数据通道
 - **包结构**：标准 DSH 插件 bundle（`dsh.bundle.patch` + `dsh.client` web 平台），lib/ 随源码提交，link 安装直接可用
 
 ## 📦 安装 / Installation

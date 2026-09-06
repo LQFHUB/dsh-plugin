@@ -4,8 +4,9 @@
  * 以 window.__ModuleLoader__.load 注册的懒加载 CJS 工厂。浏览器侧职责：
  * 1. 监听 sessions.list 快照，检测「回合结束」与「后台任务结束」→ 完成铃声；
  * 2. 检测「需要人介入」的事件 → 注意铃声：
- *    - pendingInteraction 出现（approval 审批 / question 提问 / plan-review 计划评审）
- *    - 目标受阻（goal 投影进入 blocked）
+ *    - pendingInteraction 出现（approval 审批 / question 提问 / plan-review 计划评审，
+ *      经 uiSession.pendingInteractions 权威快照读取——SessionSummary 无此字段）
+ *    - 目标受阻（goal 投影进入 blocked，phase 位于 projection.goal.goal.phase）
  *    - 后台任务 failed（失败音）
  * 3. 播放内置 Web Audio 合成音（叮咚/风铃/铃铛/完成/成功/警示，无音频文件）；
  * 4. 在「设置 > 插件 > 插件配置」注册「提示音」卡片：总开关、当前会话静音、
@@ -48,6 +49,13 @@ window.__ModuleLoader__.load({
       'goal-blocked': 'goalBlockedSound',
       'failure': 'failureSound',
     }
+
+    /**
+     * 需要人介入的交互类型白名单（官方 uiSession.pendingInteractions 的
+     * kind 取值，与 ui-workspace 的 visiblePendingKind 一致）。未知 kind
+     * 一律忽略，避免未来无关交互误响。
+     */
+    var ATTENTION_KINDS = { approval: 1, question: 1, 'plan-review': 1 }
 
     /** 默认配置一套（与服务端 schema 默认值一致）。 */
     var CONFIG_DEFAULTS = {
@@ -323,15 +331,45 @@ window.__ModuleLoader__.load({
 
     function startWatcher(ctx, scope) {
       var sessionsList = ctx.sessions.list
+      // 待处理交互权威快照（官方 uiSession 服务；SessionSummary 上无该字段）
+      var pendingInteractions = ctx.uiSession ? ctx.uiSession.pendingInteractions : undefined
       var prevRunning = new Map()
       var prevJobStatus = new Map()
-      var prevPending = new Map()
       var prevGoalPhase = new Map()
+      var prevPendingKey = new Map()
 
       /** 注意类事件（审批/提问/计划评审/目标受阻/失败）始终响铃，不受 quietCurrent 限制。 */
       function attention(cfg, kind, sourceKey) {
         if (!cfg || cfg.enabled === false) return
         playSound(attentionSoundFor(cfg, kind), sourceKey)
+      }
+
+      /**
+       * 需要人介入（审批/提问/计划评审）：订阅 uiSession.pendingInteractions
+       * 快照（Map<sessionId, {key, kind, sessionId}>）。判据是交互 key：
+       * 新出现或替换请求（新 key）→ 响铃；同一 key 停留 → 不重复；消失 → 不响。
+       */
+      function checkPending() {
+        if (!pendingInteractions) return
+        var snap = pendingInteractions.getSnapshot()
+        if (!snap || typeof snap.forEach !== 'function') return
+        var cfg = configOf(scope.getSnapshot())
+        var active = new Set()
+        snap.forEach(function (interaction, id) {
+          if (!interaction || typeof interaction !== 'object') return
+          var kind = interaction.kind
+          if (!ATTENTION_KINDS[kind]) return
+          active.add(id)
+          var key = interaction.key
+          if (prevPendingKey.get(id) !== key) {
+            attention(cfg, kind, 'pending:' + id + ':' + key)
+            prevPendingKey.set(id, key)
+          }
+        })
+        // 清除已消失会话的足迹，避免 key 复用后被旧足迹吞掉
+        prevPendingKey.forEach(function (_key, id) {
+          if (!active.has(id)) prevPendingKey.delete(id)
+        })
       }
 
       function check() {
@@ -357,18 +395,12 @@ window.__ModuleLoader__.load({
           }
           prevRunning.set(id, row.running === true)
 
-          // 需要人介入：pendingInteraction 出现（approval / question / plan-review）
-          var pi = row.pendingInteraction
-          var prevPi = prevPending.get(id)
-          if (pi !== undefined && pi !== prevPi) {
-            attention(cfg, pi, 'pending:' + id + ':' + pi)
-          }
-          prevPending.set(id, pi)
-
-          // 目标受阻：goal 投影进入 blocked
+          // 目标受阻：goal 投影进入 blocked（GoalProjection = { goal: GoalSnapshot, … }，
+          // phase 在 goal.goal.phase；投影值可能为 null 表示无 goal）
           var pv = row.projectionValues
-          var goal = pv && typeof pv === 'object' ? pv.goal : undefined
-          var phase = goal && typeof goal === 'object' ? goal.phase : undefined
+          var goalProj = pv && typeof pv === 'object' ? pv.goal : undefined
+          var phase = goalProj && typeof goalProj === 'object' && goalProj.goal
+            ? goalProj.goal.phase : undefined
           var prevPhase = prevGoalPhase.get(id)
           if (phase === 'blocked' && prevPhase !== 'blocked') {
             attention(cfg, 'goal-blocked', 'goal:' + id)
@@ -402,7 +434,11 @@ window.__ModuleLoader__.load({
       }
 
       var offSessions = sessionsList.subscribe(check)
-      return function () { offSessions() }
+      var offPending = pendingInteractions ? pendingInteractions.subscribe(checkPending) : undefined
+      return function () {
+        offSessions()
+        if (offPending) offPending()
+      }
     }
 
     /* ---------------- 跨浏览器同步：定时 + 聚焦/可见刷新 ---------------- */
@@ -575,7 +611,7 @@ window.__ModuleLoader__.load({
     }
 
     /* ---------------- 插件主体 ---------------- */
-    var inject = ['slots', 'sessions']
+    var inject = ['slots', 'sessions', 'uiSession']
 
     function apply(ctx) {
       var scope = new NotifyConfigScope(SETTINGS_API_PATH)
