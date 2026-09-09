@@ -2,6 +2,27 @@
 
 > AGENTS.md「四、变更记录」超过 5 条后的归档存放处（按原格式、时间倒序）。最新记录始终在 AGENTS.md。
 
+### 2026-09-01 111（正式机）升级 dsh 0.1.1-rc.2 → 0.1.2-alpha.3 + 插件全量升级（navbar 移除）
+
+- 变更内容：111 按知识库升级指南跨 4 大版本升级（rc.2 → alpha.3，一次遇全部历史破坏性变更）。**关键踩坑：external link 插件在 alpha.3 无法解析宿主模块**——theme-center/notify-sound/describe-image 报 `Cannot find package '@deepseek-ai/schemastery'`（alpha.3 启动自动生成 `profiles/node_modules` 共享宿主模块，但 external 目录向上解析不经过它，导致 crash loop）。**解决**：`/root/.dsh/external/node_modules` → symlink 指向 `/root/.dsh/profiles/node_modules`，插件向上解析命中（4 个 external 插件静态加载测试通过）。升级内容：dsh `npm install -g @deepseek-ai/dsh@0.1.2-alpha.3`；external rsync 升级 theme-center 0.5.5→0.5.6、web-lan 1.0.0→2.2.1（scope `@user/`→`@npm-liqingfeng/`，package.json 依赖名+bundles 同步改）、describe-image 0.1.0→0.1.1、notify-sound 0.1.0→0.1.1；better-sidebar 0.17.1→0.18.0-alpha.0、dshmarket 1.36.0→1.38.1（pnpm install）；**navbar 移除**（external 目录 + 依赖 + bundles）。
+- 涉及路径：111 `/root/.dsh/external/`（4 插件升级 + navbar 删除 + node_modules symlink）、`/root/.dsh/profiles/web/package.json`（备份 `package.json.bak-20260901_015604-before-alpha3`）、`/usr/local/lib/node_modules/@deepseek-ai/dsh`（本目录无文件变更）
+- 备注：**回归全过**——服务 active/0 错误、插件 7 个（navbar 移除）、web-lan 免 token（无 token 303+Set-Cookie、带 cookie 200）、isLoopback 补丁落盘、mcp-client alpha.3（mcp-playwright patch 保留）、浏览器 console 0 错误、theme-center 宽度屏蔽保持（无「聊天宽度」节 + 官方 clamp 变量 + 23 款皮肤 + 双 Tab）、官方拖拽手柄在、better-sidebar 工作台、dshmarket v1.38.1（Installed 6）。⚠️ **`/root/.dsh/external/node_modules` symlink 勿删**（alpha.3 external 插件依赖它解析宿主模块）；web-lan scope 已变 `@npm-liqingfeng/`；重启两次后免认证生效（web-lan 补丁机制同 112）；rsync external 时用 `--exclude=node_modules/` 防把开发仓库 node_modules 带入
+### 2026-09-01 112 升级 dsh 0.1.2-alpha.2 → 0.1.2-alpha.3 + 回归验证（含 web-lan 双重启要点）
+
+- 变更内容：npm 最新 alpha.3（8/31）升级 112：`npm install -g @deepseek-ai/dsh@0.1.2-alpha.3`（524 依赖包更新）。**升级前 API 兼容性核对**（下载 alpha.2/alpha.3 逐项对比）：dsh-settings 导出（SettingsConflictError/SettingsProvider/redactSecrets）、dsh-client-ui-slots 导出（SlotCore 等）**完全一致**；官方拖拽宽度逻辑保留（`dsh.conversation.contentWidth` 3 处引用不变）；connection 的 `isLoopback` 表达式逐字一致（web-lan 补丁目标）；alpha.3 移除 SQLite Session 后端——112 未使用无影响。
+- 涉及路径：112 `/usr/local/lib/node_modules/@deepseek-ai/dsh`、`/root/dsh-web.log`（本目录无文件变更）
+- 备注：**⚠️ 升级后必须重启两次**（实测踩坑）：dsh 升级覆盖 connection 包 → 第一次重启 web-lan apply 把补丁写到磁盘但模块已加载（免认证仍 401）→ **第二次重启**模块才加载 patch 后文件（LAN 无 token 访问恢复 303+Set-Cookie、带 cookie 200）。**回归全过**：theme-center v0.5.6 宽度屏蔽保持（5 样式元素、官方 824px 拖拽值保留、手柄在）、better-sidebar/dshmarket/notify-sound/describe-image 正常、页面 console 0 错误
+### 2026-09-01 theme-center v0.5.6 屏蔽聊天宽度（官方 alpha.1+ 拖拽调宽接管）+ 112 部署验证通过
+
+- 变更内容：官方 v0.1.2-alpha.1+ 已提供会话流宽度拖拽调整（localStorage 本机）。theme-center 聊天宽度（6 档预设，覆盖 `--dsh-chat-content-width`）与官方并存冲突（实测 theme-center 在 `[data-conversation-scroll]` 的声明压制官方拖拽）。用户决策：屏蔽 theme-center 聊天宽度，官方拖拽接管、不影响官方功能。删 `theme-center/lib/client.js` 宽度模块（WIDTH_PRESETS/widthCss/setWidth 等 8 处关联）、服务端同步 width 处理；`lib/index.js` schema 保留 width（死字段）；smoke 更新（宽度断言改 doesNotMatch、样式元素 6→5）。版本 0.5.5→0.5.6
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/tests/smoke.mjs`、`theme-center/package.json`（0.5.6）、`theme-center/AGENTS.md`（4.4/4.6/§6 + 变更记录）、`AGENTS.md`
+- 备注：**112 部署验证通过**（npm pack tarball + file: 引用 + pnpm install + 重启）——屏蔽后 scroll 上 `--dsh-chat-content-width` 回落官方 `clamp(680px,…)`、消息列宽 680px、样式元素 5 个、设置卡无「聊天宽度」节、console 0 错误；**官方拖拽实测可用**：680→824px、localStorage `dsh.conversation.contentWidth=824` 写入。⚠️ 112 上 theme-center/web-lan 现均为 file: 本地 tarball 引用（`/root/npm-liqingfeng-dsh-theme-center-0.5.6.tgz`、`/root/dsh-web-lan-2.2.0.tgz`），**勿删**；回滚：specifier 恢复 `^0.5.5` + pnpm install + 重启
+### 2026-09-01 112 安装 knowledge-base skill（复制自 111，端到端验证通过）
+
+- 变更内容：参考 111 的 `/root/.dsh/skills/knowledge-base/SKILL.md` 在 112 安装知识库 skill：`mkdir -p /root/.dsh/skills/knowledge-base` + scp 复制（md5 `dc0063e4…` 与 111 一致）。112 的 `/mnt/ug/share` 已挂载同一 NFS（192.168.31.200:/volume1/share，rw），知识库数据路径 `/mnt/ug/share/Obsidian/note1/OneNote/AI/PI/knowledge-base/` 直接可达，无需额外挂载。dsh-skill-filesystem 从 `$DSH_HOME/skills` 扫描（111/112 同机制）。重启 dsh-web 后在 112 新建会话让 agent 列技能，确认可见 `knowledge-base`（仅此一个，ui-ux-pro-max 未要求装）。
+- 涉及路径：112 `/root/.dsh/skills/knowledge-base/SKILL.md`（本目录无文件变更）
+- 备注：SKILL.md 权限 600（root 可读）；顺带归档「2026-08-31 web-lan v2.0」至 CHANGELOG.md（历史记录保持 5 条）
+
 ### 2026-09-01 112 激活 dsh-better-sidebar 0.18.0-alpha.0 + dshmarket 1.38.1（适配 alpha.2）+ web-lan 改本地 tarball 依赖
 
 - 变更内容：alpha.2 移除 settingsNamespace/installSettingsSection 后停用的两个外部插件，升级到上游 8/30 发布的适配版（dsh-better-sidebar 0.18.0-alpha.0、dshmarket 1.38.1）并加回 `dsh.profile.bundles` 激活。**顺带修复依赖断裂**：`@npm-liqingfeng/dsh-web-lan` 2.x 从未发布 npm（官方源仅 1.0.0），package.json 的 `^2.0.0` 使 pnpm 依赖解析失败——把 112 node_modules 现成包（功能=2.2.1）打包为 `/root/dsh-web-lan-2.2.0.tgz`，specifier 改 `file:` 引用。
