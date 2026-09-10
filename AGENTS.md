@@ -45,7 +45,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 6 条：5 条历史 + 1 条归档动作，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 7 条：5 条历史 + 2 条归档动作，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-09-10 111 升级 dsh 0.1.5-rc.1 后 web-lan 补丁丢失修复（局域网「设置不可用 / 插件配置空白」）
+
+- 变更内容：111 升级 dsh 到 0.1.5-rc.1（23:04 全局重装覆盖 `dsh-client-connection` 包）后，局域网访问报「加载提供方目录失败: settings are unavailable in this browser」、插件配置 TAB 空白。**根因**：web-lan 的文件级补丁被升级覆盖丢失（`lib/client.js` 的 isLoopback 恢复官方表达式、`lib/index.js` 无 `isLanAuthority`），浏览器端 `ctx.remote.$host.isLoopback` 为 false → 官方 `dsh-client-ui-settings` 的 `SettingsDescribeMirror` 取 `persistence: "memory"`（`lib/client.js:1345`）→ `mirrored.view === void 0` → 报错（`ui-settings-models/lib/client.js:1006`），非 loopback 页面所有设置面（模型/插件配置）一并失效。**修复**：① 热补丁 `dsh-client-connection/lib/client.js`（`isLoopback: true`）——0.1.5-rc.1 的 `dsh-client-hmr` 默认挂载并对全部 client bundle 做 500ms stat 轮询，改文件即热重组，**无需重启即生效**；② 预补 host 半区 `lib/index.js`（局域网来源自动种 cookie 免 token）；③ 从本仓库复制 `web-lan/`（v2.3.0）到 `/root/.dsh/external/web-lan` 并 `dsh plugin --profile web add link:...` 装回 profile（`dsh.profile.bundles` 自动追加），以恢复 dsh 升级后的补丁自愈能力。
+- 涉及路径：111 `/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-connection/lib/{client.js,index.js}`（备份 `*.bak-pre-weblan-20260910_2333*`）、`/root/.dsh/external/web-lan`、`/root/.dsh/profiles/web/{package.json,pnpm-lock.yaml,cordis.patch.yml}`（备份 `*.bak-pre-weblan-reinstall-20260910_233408`）
+- 备注：**热补丁已实测通过**——局域网（192.168.31.111:3080，token URL）「设置→模型」渲染 4 个提供方、「插件配置」渲染 8 张卡，浏览器 console 0 错误 0 警告；`dsh --profile web --dump-config` 退出 0（仍单行 `webserver 0.0.0.0:3080` + 新增 web-lan 行，无重复冲突）；web-lan 单测 10/10 PASS；新表达式正则 `/isLoopback:\s*[^,]+/` 与 `authorizeIndex` 目标行均已空跑校验命中。⚠️ **待重启 111 `dsh-web.service` 使 host 免 token 补丁生效**（该补丁为启动时加载，已在磁盘预打，**只需重启一次**，无需历史「双重启」）；重启后验证无 token 访问 `http://192.168.31.111:3080/` 应 303+Set-Cookie。回滚：cp 回两处 `*.bak-pre-weblan-*` + `dsh plugin --profile web remove @npm-liqingfeng/dsh-web-lan` + 重启。
 
 ### 2026-09-10 112 升级 dsh 0.1.2-rc.1 → 0.1.5-alpha.2 + 插件重排（卸 describe-image/better-sidebar、装 modsearch/find-plugin/web-lan）+ theme-center 实测通过
 
@@ -53,9 +59,9 @@
 - 涉及路径：112 `/root/.dsh/profiles/web/{package.json,pnpm-lock.yaml,cordis.patch.yml}`（备份 `*.bak-pre-015alpha2-20260910_012420`）、`/root/dsh-sessions-bak-pre-015alpha2-20260910_012420.tgz`、`/root/.dsh/external/modsearch`、`/usr/local/lib/node_modules/@deepseek-ai/dsh`（本目录无文件变更）
 - 备注：**验证全过**——服务 active、**插件 7/7 Enabled**（theme-center/notify-sound/global-rules/dshmarket/modsearch/find-plugin/web-lan）、浏览器 console 0 错误 0 警告；**theme-center 实测**：`body[data-dsh-harbor]` 皮肤生效、23 款皮肤卡片渲染、试穿切换 `data-dsh-blue-fantasy` 生效、刷新回落已应用皮肤、`settings.plugin.item`/`settings.section` 槽可用；8 个 `data-tc-glass-*` 接缝命中，仅 `data-tc-glass-details` 因官方移除 Detail 面板失效（纯视觉）；**modsearch**：设置卡渲染 + LAN Host `/modsearch/config` 200 + CLI 引擎实搜通过；**web-lan**：`isLoopback: true` 与 browser-auth 补丁落盘、LAN 无 token 可访问。静态 API 比对：`settings.plugin.item` 槽契约逐字一致、`uiSession.pendingInteractions`/client `sessions`/`registerSearchProvider`/`connection.trustedHosts` 均未变、`ctx.agent`/`Inbox`/persona 插件未使用。⚠️ 日志中 better-sidebar/dshmarket「旧 API 导入失败」为**历史记录**（0.18.0-alpha.0 与 1.39.0 实测 0 命中；systemd 今日仅 2 次启动、NRestarts=0）；peer 范围 `^0.1.2-rc.1` 按 semver 预发布规则不匹配 0.1.5-alpha.2（安装告警，非运行失败）；**会话格式 V2→V3 升级后不可降级读取**；111 升级前需另行验证 modsearch。
 
-### 2026-09-10 归档 4 条旧记录至 CHANGELOG.md
+### 2026-09-10 归档 5 条旧记录至 CHANGELOG.md
 
-- 变更内容：变更记录超 5 条，将最旧的 4 条（111 升级 alpha.3、112 升级 alpha.3、theme-center 屏蔽聊天宽度、112 安装 knowledge-base skill）移至 `CHANGELOG.md`（按原格式、时间倒序）；归档动作不计数
+- 变更内容：变更记录超 5 条，将最旧的 4 条（111 升级 alpha.3、112 升级 alpha.3、theme-center 屏蔽聊天宽度、112 安装 knowledge-base skill）移至 `CHANGELOG.md`（按原格式、时间倒序）；后续追加 web-lan 补丁修复记录后再次超限，再将最旧的 1 条（theme-center v0.5.6 发布 npm）移入 `CHANGELOG.md`；归档动作不计数
 - 涉及路径：`AGENTS.md`、`CHANGELOG.md`
 - 备注：AGENTS.md 保留最新 5 条历史记录
 ### 2026-09-06 notify-sound v0.1.3 修复「提问/审批/计划评审/目标受阻」提示音不响
@@ -73,11 +79,6 @@
 - 变更内容：**发现 npm 上的 0.1.1 是 8/17 旧代码**（顶层静态 `import { installSettingsSection, settingsNamespace }`，alpha.3 下直接 SyntaxError 加载失败）——本地 8/31 迁移到 `SettingsProvider.installSection` 但未重新发布、版本号未升，此前误判"已发布"。修正：升 **0.1.2** 重新发布（npmjs latest=0.1.2，tarball 校验旧 API=0 / installSection=1）；notify-sound 测试全 PASS；describe-image vitest 45 失败均为测试 mock 基建问题（`CallId is not a function`），**无 lib 逻辑断言失败**（lib 已在 111/112 alpha.3 实测运行正常）。
 - 涉及路径：`describe-image/{package.json,lib}`、`notify-sound/{package.json,lib}`；知识库升级指南（第 5/6 点：版本号 + 「判断 npm 是否已发布不能只比版本号」教训）
 - 备注：npmjs latest 均为 0.1.2（npmmirror 同步有延迟）；111/112 部署用的旧 0.1.1 代码（rsync/tarball 迁移版）不受影响；以后**本地改代码必须升版本号再发布**
-### 2026-09-01 theme-center v0.5.6 发布 npm（`@npm-liqingfeng/dsh-theme-center@0.5.6`）
-
-- 变更内容：v0.5.6（屏蔽聊天宽度版）发布 npm。**踩坑：npm 账号开 2FA，普通 token 发布 403，需 publish 权限 + bypass 2FA 的 granular token**（前两个 token 无效，第三个有效）；本机默认 registry 为 npmmirror，发布显式 `--registry=https://registry.npmjs.org/`；NPM_TOKEN 已记入知识库 autu.md。describe-image/notify-sound 的 0.1.1 早已是 npm latest（本次核对确认无需再发）。
-- 涉及路径：npm 包 `@npm-liqingfeng/dsh-theme-center@0.5.6`；知识库 `autu.md`；`~/.npmrc`（本目录仅 `theme-center/AGENTS.md` 记录变更）
-- 备注：npmjs latest=0.5.6（npmmirror 镜像同步有延迟）；112 的 file: tarball 引用可保留不强制改回 npm
 </details>
 
 ---
