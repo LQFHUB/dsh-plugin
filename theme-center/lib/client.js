@@ -8,8 +8,11 @@ window.__ModuleLoader__.load({
 		/**
 		 * theme-center — 浏览器半区。
 		 *
-		 * 在「设置 > 插件配置」注册一张「主题」卡片（settings.plugin.item，
-		 * 参考官方 bash/agent-loop 插件卡片的外框与皮肤中心 skin-center 的
+		 * 注册一张「主题」卡片（两版 slot 同时注册：0.1.6+ 进 Plugins
+		 * 面板插件详情页的 plugins.bundle.config，按 owner props.view
+		 * 渲染 summary/page；≤0.1.5 进「设置 > 插件配置」TAB 的
+		 * settings.plugin.item，折叠卡形态。均参考官方 bash/agent-loop
+		 * 插件卡片的外框与皮肤中心 skin-center 的
 		 * 交互），内置 10 款皮肤（原样复用 zhu1090093659/dsh-web-ui 的
 		 * bundle，由宿主半区经 /api/theme-center/bundle/<id> 同源分发）：
 		 * 每款皮肤支持「试穿」（实时预览、不持久化）与「应用」（持久化到
@@ -822,6 +825,7 @@ window.__ModuleLoader__.load({
 		 * @param props - 注册注入的 theme 句柄（可选）。
 		 */
 		function ThemeCard(props) {
+			props = props || {};
 			const [open, setOpen] = react.useState(false);
 			const [tab, setTab] = react.useState("theme");
 			const engineState = react.useSyncExternalStore(engine.subscribe, engine.getSnapshot);
@@ -1019,6 +1023,31 @@ window.__ModuleLoader__.load({
 				react.createElement("p", { className: "tc-note", key: "glassNote" }, "开启后顶栏/侧边栏/输入框/统计行/聊天气泡呈磨砂玻璃卡片（半透明+边框+白顶高光+投影），关闭=官方原样"),
 			];
 
+			/** 双 Tab 主体（旧版展开态与新版 page 视图共用）。 */
+			const bodyNode = react.createElement("div", { className: "tc-body", key: "b" }, [
+				tabBar,
+				react.createElement("p", {
+					className: "tc-sync" + (syncSnap.status === "ready" ? " tc-syncOk" : syncSnap.status === "loading" ? "" : " tc-syncWarn"),
+					key: "sync",
+				}, syncSnap.status === "ready"
+					? "配置已同步到服务器，所有终端生效"
+					: syncSnap.status === "loading"
+						? "正在同步服务器配置…"
+						: "服务器配置不可用，仅本机生效"),
+			].concat(tab === "theme" ? bodyChildren : appearanceChildren));
+
+			// 新版（0.1.6+）Plugins 面板插件详情页：summary = 一行摘要，page = 双 Tab 表单
+			if (props.view === "summary") {
+				const currentTheme = engineState.persisted === "official"
+					? "官方默认"
+					: ((THEME_BY_ID.get(engineState.persisted) || {}).name || engineState.persisted);
+				return react.createElement("span", { className: "tc-desc" },
+					"当前：" + currentTheme + " · 字号 " + appearanceState.textScale + "% · 精简 " + focusState + "%");
+			}
+			if (props.view === "page") {
+				return react.createElement("div", { className: "tc-card tc-open" }, [bodyNode]);
+			}
+
 			return react.createElement("li", {
 				className: "tc-card" + (open ? " tc-open" : ""),
 			}, [
@@ -1032,19 +1061,7 @@ window.__ModuleLoader__.load({
 						setOpen(!open);
 					},
 				}, headerChildren),
-				open
-					? react.createElement("div", { className: "tc-body", key: "b" }, [
-						tabBar,
-						react.createElement("p", {
-							className: "tc-sync" + (syncSnap.status === "ready" ? " tc-syncOk" : syncSnap.status === "loading" ? "" : " tc-syncWarn"),
-							key: "sync",
-						}, syncSnap.status === "ready"
-							? "配置已同步到服务器，所有终端生效"
-							: syncSnap.status === "loading"
-								? "正在同步服务器配置…"
-								: "服务器配置不可用，仅本机生效"),
-					].concat(tab === "theme" ? bodyChildren : appearanceChildren))
-					: null,
+				open ? bodyNode : null,
 			]);
 		}
 		//#endregion
@@ -1448,7 +1465,9 @@ window.__ModuleLoader__.load({
 				};
 			}
 
-			// 「主题」卡片注册（官方槽位 settings.plugin.item）
+			// 「主题」卡片注册：两版 slot 同时注册，各自按 dsh 版本生效
+			// - ≤0.1.5：settings.plugin.item（「设置 > 插件配置」TAB，keyed by 设置命名空间）
+			// - 0.1.6+：plugins.bundle.config（Plugins 面板插件详情页，keyed by bundle 包名）
 			const slots = ctx.get("slots");
 			if (slots !== undefined) {
 				slots.inject("settings.plugin.item", () => slots.register({
@@ -1457,6 +1476,11 @@ window.__ModuleLoader__.load({
 					key: "theme-center",
 					order: 30,
 					label: "主题",
+					inject: () => ({ theme: themeHandle }),
+				}, ThemeCard));
+				slots.inject("plugins.bundle.config", () => slots.register({
+					name: "plugins.bundle.config",
+					key: "@npm-liqingfeng/dsh-theme-center",
 					inject: () => ({ theme: themeHandle }),
 				}, ThemeCard));
 			}

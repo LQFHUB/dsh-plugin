@@ -103,6 +103,12 @@
 - 试穿/亮暗预览为瞬态，不持久化、不写服务器；localStorage 键语义不变（仅降级为缓存）。
 - 持久化键与部署注意：111/112 各持一份 settings.yaml，**配置不跨机同步**（宿主独立）；`@deepseek-ai/{schemastery,dsh-settings}` 未发布 npm，部署目录需建 `node_modules/@deepseek-ai` symlink（同 notify-sound 流程）。
 
+### 4.10 设置卡片槽位（dsh 0.1.6+ 变更，必须）
+- dsh **0.1.6-alpha.2 起移除 `settings.plugin.item` 槽**（「设置 > 插件配置」TAB 一并移除），插件配置改到 **Plugins 面板 → 插件详情页**的 `plugins.bundle.config`（keyed slot，**key = bundle 包名**，官方只请求 `view: 'page'`）。
+- 本插件**两版 slot 同时注册**（同一 `ThemeCard` 组件引用）：`settings.plugin.item`（key = 设置命名空间 `theme-center`，≤0.1.5）+ `plugins.bundle.config`（key = `@npm-liqingfeng/dsh-theme-center`，0.1.6+）。对不存在的槽位 `slots.inject` 不触发，两条互不干扰。
+- 组件按 owner props 分派：`props.view === "summary"` → 一行摘要；`"page"` → 双 Tab 表单（`bodyNode` 与旧版展开态共用，无折叠头/无 `<li>` 外框）；**无 view**（≤0.1.5 owner props 为空）→ 原折叠卡片。组件内先 `props = props || {}` 兜底。
+- **任何新增卡片槽位或 view 分派改动都必须回归两版**（≤0.1.5 折叠态 / 0.1.6+ page 态）。
+
 ## 五、皮肤 / UI 契约（必须，沿用根 AGENTS.md 并强化）
 
 - **主题适配（必须）**：插件 UI 样式**必须使用官方皮肤令牌**（`--dsw-alias-*`：border-l2/bg-layer-3/label-primary 等），**不得硬编码颜色/背景/边框数值**——theme-center 切换 10 款皮肤 + 官方亮/暗时插件界面自动跟随。个别皮肤缺令牌时补**皮肤限定适配层**（选择器限定 `body[data-dsh-<skin>]` 的补丁，fallback 引用皮肤自身变量），**不得全局覆盖**。
@@ -140,6 +146,12 @@
 
 - 本目录下的**每一次变更**（新建/修改/删除文件、配置等）都必须追加记录；格式同根 `AGENTS.md`（时间倒序，最新在最上面）。
 - 记录条目数超过 30 条时归档到 `CHANGELOG.md`（保留最新 20 条）。
+
+### 2026-09-19 theme-center v0.5.7：适配 dsh 0.1.6-alpha.2 的 plugins.bundle.config 槽位与 view 契约
+
+- 变更内容：dsh **0.1.6-alpha.2** 移除了 `settings.plugin.item` 槽（「设置 > 插件配置」TAB 一并移除），插件配置改到 Plugins 面板插件详情页的 `plugins.bundle.config`（keyed slot，**key = bundle 包名**，owner props `{view:'summary'|'page'}`），导致 v0.5.6 在新版下**主题卡片完全不渲染**。改为**双版本兼容**：`apply` 同时注册两个 slot（同一 `ThemeCard` 组件引用），`ThemeCard` 按 `props.view` 分派——`summary` 渲染一行摘要（当前主题/字号/精简）、`page` 渲染双 Tab 表单（抽出 `bodyNode` 与旧版展开态共用）、无 view 保持原折叠卡片；组件内 `props = props || {}` 兜底。版本 0.5.6→0.5.7；smoke 新增 8 断言（双 slot 注册/两个 key/组件同引用/view 分派 + fakeCtx 提供 slots mock）
+- 涉及路径：`theme-center/lib/client.js`、`theme-center/package.json`（0.5.7）、`theme-center/tests/smoke.mjs`、`theme-center/README.md`、`theme-center/AGENTS.md`（新增 4.10 + §4 变更记录）
+- 备注：**112（dsh 0.1.6-alpha.2）实测通过**——插件详情页渲染 v0.5.7 双 Tab（主题 Tab：25 行皮肤 + 背景遮罩滑杆；外观 Tab：聊天区精简/字号/字体/隐藏显示/玻璃质感）、同步行「配置已同步到服务器，所有终端生效」、console 0 错误 0 警告；**主题引擎回归**：试穿深海蓝 → `body[data-dsh-skin-ocean]` + 皮肤样式注入 1 个 + 状态「试穿中」，退出试穿 → 属性与样式全清、零残留；部署方式：`dsh plugin --profile web add file:/root/npm-liqingfeng-dsh-theme-center-0.5.7.tgz`（file: tarball 自动进 `dsh.profile.bundles`）；回滚：`dsh plugin --profile web remove @npm-liqingfeng/dsh-theme-center` + 重启
 
 ### 2026-09-01 theme-center v0.5.6 发布 npm（`@npm-liqingfeng/dsh-theme-center@0.5.6`，latest）
 

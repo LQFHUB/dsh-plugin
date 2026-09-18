@@ -21,7 +21,7 @@ const read = (rel) => readFileSync(new URL(`../${rel}`, import.meta.url), 'utf8'
 
 // 1. 包清单
 assert.equal(pkg.name, '@npm-liqingfeng/dsh-theme-center', '包名应为 @npm-liqingfeng/dsh-theme-center')
-assert.equal(pkg.version, '0.5.6', '版本应为 0.5.6（聊天宽度屏蔽：官方 alpha.1+ 已提供拖拽调宽，避免变量覆盖冲突）')
+assert.equal(pkg.version, '0.5.7', '版本应为 0.5.7（兼容 dsh 0.1.6+ 的 plugins.bundle.config 槽位与 view 契约）')
 assert.equal(pkg.exports['.'], './lib/index.js', 'exports["."] 应指向 lib/index.js')
 assert.equal(pkg.exports['./client'], './lib/client.js', 'exports["./client"] 应指向 lib/client.js')
 assert.equal(pkg.dsh.bundle.patch, './cordis.patch.yml', 'bundle patch 应指向 cordis.patch.yml')
@@ -248,14 +248,33 @@ assert.equal(typeof moduleExports.apply, 'function', 'bundle 应导出 apply')
 // 注意：bundle 在 vm 沙箱执行，其数组原型与主 realm 不同，先展开再比较
 assert.deepEqual([...moduleExports.inject], ['slots'], 'bundle inject 应为 slots')
 
-// 执行 apply：收集 effects
+// 执行 apply：收集 effects；slots 服务给 mock 以断言双版本 slot 注册
 const effects = []
+const slotRegs = []
 const fakeCtx = {
   effect(cb) { effects.push(cb()) },
-  get() { return undefined },
+  get(name) {
+    if (name !== 'slots') return undefined
+    return {
+      inject(n, cb) { slotRegs.push({ name: n, registration: cb() }) },
+      register(opts, comp) { return { opts, comp } },
+    }
+  },
   on() { return () => {} },
 }
 moduleExports.apply(fakeCtx)
+
+// slot 双注册：≤0.1.5 的 settings.plugin.item + 0.1.6+ 的 plugins.bundle.config
+assert.equal(slotRegs.length, 2, '应同时注册两个 slot（settings.plugin.item + plugins.bundle.config）')
+const legacySlotReg = slotRegs.find((r) => r.name === 'settings.plugin.item')
+const bundleSlotReg = slotRegs.find((r) => r.name === 'plugins.bundle.config')
+assert.ok(legacySlotReg, '应注册 settings.plugin.item（≤0.1.5「设置 > 插件配置」）')
+assert.equal(legacySlotReg.registration.opts.key, 'theme-center', '旧版 slot 的 key 应为设置命名空间 theme-center')
+assert.ok(bundleSlotReg, '应注册 plugins.bundle.config（0.1.6+ 插件详情页）')
+assert.equal(bundleSlotReg.registration.opts.key, '@npm-liqingfeng/dsh-theme-center', '新版 slot 的 key 应为 bundle 包名')
+assert.equal(legacySlotReg.registration.comp, bundleSlotReg.registration.comp, '两个 slot 应共用同一卡片组件引用')
+assert.match(clientSource, /props\.view === "summary"/, '卡片应支持新版 summary 视图')
+assert.match(clientSource, /props\.view === "page"/, '卡片应支持新版 page 视图')
 
 // 设置断言
 assert.equal(fakeDoc.body.dataset.dshThemeCenter, '', '应设置 body[data-dsh-theme-center] 作用域')

@@ -5,12 +5,17 @@
  * 1. 监听 sessions.list 快照，检测「回合结束」与「后台任务结束」→ 完成铃声；
  * 2. 检测「需要人介入」的事件 → 注意铃声：
  *    - pendingInteraction 出现（approval 审批 / question 提问 / plan-review 计划评审，
- *      经 uiSession.pendingInteractions 权威快照读取——SessionSummary 无此字段）
+ *      经 uiSession 权威快照读取——SessionSummary 无此字段；0.1.6+ 为
+ *      sessionStatus（每项 status.pendingInteraction），0.1.5 及更早为
+ *      pendingInteractions，运行时择存在的那个）
  *    - 目标受阻（goal 投影进入 blocked，phase 位于 projection.goal.goal.phase）
  *    - 后台任务 failed（失败音）
  * 3. 播放内置 Web Audio 合成音（叮咚/风铃/铃铛/完成/成功/警示，无音频文件）；
- * 4. 在「设置 > 插件 > 插件配置」注册「提示音」卡片：总开关、当前会话静音、
- *    完成铃声、通用注意音 + 五类注意事件，每行下拉 + 试听。
+ * 4. 注册「提示音」卡片：总开关、当前会话静音、完成铃声、通用注意音 +
+ *    五类注意事件，每行下拉 + 试听。两版 slot 同时注册——0.1.6+ 进 Plugins
+ *    面板插件详情页（plugins.bundle.config，按 owner props.view 渲染
+ *    summary/page）；≤0.1.5 进「设置 > 插件 > 插件配置」TAB
+ *    （settings.plugin.item，可折叠卡片）。
  *
  * 配置持久化：宿主 /notify-sound/settings 路由（profile settings 用户层，
  * 服务端落盘）。官方 apiproxy 的 settings 白名单不暴露第三方命名空间，
@@ -29,6 +34,8 @@ window.__ModuleLoader__.load({
     var SETTINGS_API_PATH = '/notify-sound/settings'
     var SYNC_INTERVAL_MS = 30000
     var CARD_ID = 'notify-sound'
+    /** 0.1.6+ 插件详情页配置槽（plugins.bundle.config）以 bundle 包名为 key。 */
+    var BUNDLE_NAME = 'dsh-notify-sound'
 
     /** 内置音清单（下拉选项顺序）。none = 静音。 */
     var BUILTIN_SOUNDS = [
@@ -331,8 +338,14 @@ window.__ModuleLoader__.load({
 
     function startWatcher(ctx, scope) {
       var sessionsList = ctx.sessions.list
-      // 待处理交互权威快照（官方 uiSession 服务；SessionSummary 上无该字段）
+      // 待处理交互权威来源（官方 uiSession 服务；SessionSummary 上无该字段）。
+      // 0.1.6+ 为 sessionStatus: HostObservable<Map<SessionId, SessionStatus>>，
+      // 每项 status.pendingInteraction 才是交互；0.1.5 及更早为
+      // pendingInteractions: HostObservable<Map<SessionId, {key, kind, sessionId}>>。
+      // 两者取存在的那个（旧版新属性缺失、新版旧属性缺失，互不干扰）。
       var pendingInteractions = ctx.uiSession ? ctx.uiSession.pendingInteractions : undefined
+      var sessionStatus = ctx.uiSession ? ctx.uiSession.sessionStatus : undefined
+      var pendingSource = sessionStatus || pendingInteractions
       var prevRunning = new Map()
       var prevJobStatus = new Map()
       var prevGoalPhase = new Map()
@@ -345,27 +358,51 @@ window.__ModuleLoader__.load({
       }
 
       /**
-       * 需要人介入（审批/提问/计划评审）：订阅 uiSession.pendingInteractions
-       * 快照（Map<sessionId, {key, kind, sessionId}>）。判据是交互 key：
+       * 采集各会话当前待处理的交互，统一为 [sessionId, {key, kind, sessionId}]。
+       * 新版读 sessionStatus（每项 status.pendingInteraction），旧版读
+       * pendingInteractions（值本身即交互）。
+       */
+      function collectPending() {
+        var out = []
+        if (sessionStatus) {
+          var statusSnap = sessionStatus.getSnapshot()
+          if (statusSnap && typeof statusSnap.forEach === 'function') {
+            statusSnap.forEach(function (status, id) {
+              var interaction = status && status.pendingInteraction
+              if (interaction) out.push([id, interaction])
+            })
+          }
+          return out
+        }
+        var snap = pendingInteractions ? pendingInteractions.getSnapshot() : undefined
+        if (snap && typeof snap.forEach === 'function') {
+          snap.forEach(function (interaction, id) { out.push([id, interaction]) })
+        }
+        return out
+      }
+
+      /**
+       * 需要人介入（审批/提问/计划评审）：订阅上面的交互快照。判据是交互 key：
        * 新出现或替换请求（新 key）→ 响铃；同一 key 停留 → 不重复；消失 → 不响。
        */
       function checkPending() {
-        if (!pendingInteractions) return
-        var snap = pendingInteractions.getSnapshot()
-        if (!snap || typeof snap.forEach !== 'function') return
+        if (!pendingSource) return
         var cfg = configOf(scope.getSnapshot())
         var active = new Set()
-        snap.forEach(function (interaction, id) {
-          if (!interaction || typeof interaction !== 'object') return
+        var items = collectPending()
+        for (var i = 0; i < items.length; i++) {
+          var id = items[i][0]
+          var interaction = items[i][1]
+          if (!interaction || typeof interaction !== 'object') continue
           var kind = interaction.kind
-          if (!ATTENTION_KINDS[kind]) return
+          if (!ATTENTION_KINDS[kind]) continue
           active.add(id)
           var key = interaction.key
           if (prevPendingKey.get(id) !== key) {
             attention(cfg, kind, 'pending:' + id + ':' + key)
             prevPendingKey.set(id, key)
           }
-        })
+        }
         // 清除已消失会话的足迹，避免 key 复用后被旧足迹吞掉
         prevPendingKey.forEach(function (_key, id) {
           if (!active.has(id)) prevPendingKey.delete(id)
@@ -434,7 +471,7 @@ window.__ModuleLoader__.load({
       }
 
       var offSessions = sessionsList.subscribe(check)
-      var offPending = pendingInteractions ? pendingInteractions.subscribe(checkPending) : undefined
+      var offPending = pendingSource ? pendingSource.subscribe(checkPending) : undefined
       return function () {
         offSessions()
         if (offPending) offPending()
@@ -519,15 +556,17 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function makeCard(scope) {
-      function Card(props) {
-        var pair = React.useState(false)
-        var open = pair[0]
-        var setOpen = pair[1]
-        var snap = useSnapshot(scope)
-        var cfg = configOf(snap)
-        var available = snap.status === 'ready'
+    /** 声音键 → 展示标签（未知键回退为键名，空值视为静音）。 */
+    function soundLabel(key) {
+      for (var i = 0; i < BUILTIN_SOUNDS.length; i++) {
+        if (BUILTIN_SOUNDS[i].key === key) return BUILTIN_SOUNDS[i].label
+      }
+      return key || '静音'
+    }
 
+    function makeCard(scope) {
+      /** 表单主体（完成 / 注意两组）：旧版折叠卡片与新版 page 视图共用。 */
+      function renderFields(snap, cfg, available) {
         function setField(field, value) {
           var p = scope.set(field, value)
           if (p && p.catch) p.catch(function () {})
@@ -541,15 +580,6 @@ window.__ModuleLoader__.load({
           if (value === '') clearField(field)
           else setField(field, value)
         }
-
-        var headerChildren = [
-          React.createElement('span', { className: 'ns-headText', key: 't' }, [
-            React.createElement('span', { className: 'ns-name', key: 'n' }, '提示音'),
-            React.createElement('span', { className: 'ns-desc', key: 'd' },
-              '会话完成 / 需要人介入（审批、提问、计划评审、目标受阻、任务失败）时播放内置提示音，配置在所有浏览器同步'),
-          ]),
-          React.createElement('span', { className: 'ns-chevron', key: 'c' }, React.createElement(Chevron, null)),
-        ]
 
         var bodyChildren = []
         if (!available) {
@@ -592,6 +622,49 @@ window.__ModuleLoader__.load({
               '配置保存在服务端设置中，所有浏览器 / 设备同步生效；「跟随通用注意音」表示该事件复用通用注意音。')
           )
         }
+        return bodyChildren
+      }
+
+      /** 新版（0.1.6+）插件详情页 summary 视图：一行状态摘要。 */
+      function Summary() {
+        var snap = useSnapshot(scope)
+        var cfg = configOf(snap)
+        var text
+        if (snap.status !== 'ready') {
+          text = snap.status === 'loading' ? '正在加载配置…' : '无法读取服务端配置（settings 服务不可用）'
+        } else if (cfg.enabled === false) {
+          text = '已关闭'
+        } else {
+          text = '已启用 · 完成音「' + soundLabel(cfg.defaultSound) + '」· 注意音「' + soundLabel(cfg.attentionSound) + '」'
+        }
+        return React.createElement('span', { className: 'ns-desc' }, text)
+      }
+
+      /** 新版 page 视图：表单本体（详情页自带标题，无需折叠头与外框标题）。 */
+      function Panel() {
+        var snap = useSnapshot(scope)
+        var cfg = configOf(snap)
+        return React.createElement('div', { className: 'ns-card ns-open' },
+          React.createElement('div', { className: 'ns-body' }, renderFields(snap, cfg, snap.status === 'ready')))
+      }
+
+      /** 旧版（≤0.1.5）「设置 > 插件配置」TAB：可折叠卡片（owner props 为空）。 */
+      function LegacyCard() {
+        var pair = React.useState(false)
+        var open = pair[0]
+        var setOpen = pair[1]
+        var snap = useSnapshot(scope)
+        var cfg = configOf(snap)
+        var available = snap.status === 'ready'
+
+        var headerChildren = [
+          React.createElement('span', { className: 'ns-headText', key: 't' }, [
+            React.createElement('span', { className: 'ns-name', key: 'n' }, '提示音'),
+            React.createElement('span', { className: 'ns-desc', key: 'd' },
+              '会话完成 / 需要人介入（审批、提问、计划评审、目标受阻、任务失败）时播放内置提示音，配置在所有浏览器同步'),
+          ]),
+          React.createElement('span', { className: 'ns-chevron', key: 'c' }, React.createElement(Chevron, null)),
+        ]
 
         return React.createElement('li', {
           className: 'ns-card' + (open ? ' ns-open' : ''),
@@ -604,8 +677,16 @@ window.__ModuleLoader__.load({
             key: 'h',
             onClick: function () { setOpen(!open) },
           }, headerChildren),
-          open ? React.createElement('div', { className: 'ns-body', key: 'b' }, bodyChildren) : null,
+          open ? React.createElement('div', { className: 'ns-body', key: 'b' }, renderFields(snap, cfg, available)) : null,
         ])
+      }
+
+      /** 分派：新版按 view 渲染 summary / page；旧版无 view → 折叠卡片。 */
+      function Card(props) {
+        var view = props ? props.view : undefined
+        if (view === 'summary') return React.createElement(Summary, null)
+        if (view === 'page') return React.createElement(Panel, null)
+        return React.createElement(LegacyCard, null)
       }
       return Card
     }
@@ -642,6 +723,7 @@ window.__ModuleLoader__.load({
       var slots = ctx.get('slots')
       if (slots !== undefined) {
         var Card = makeCard(scope)
+        // 旧版（≤0.1.5）「设置 > 插件配置」TAB 的插件卡片槽
         slots.inject('settings.plugin.item', function () {
           return slots.register({
             name: 'settings.plugin.item',
@@ -649,6 +731,14 @@ window.__ModuleLoader__.load({
             key: CARD_ID,
             order: 35,
             label: '提示音',
+          }, Card)
+        })
+        // 新版（0.1.6+）Plugins 面板插件详情页的配置槽（key = bundle 包名，
+        // 组件按 owner props.view 渲染 summary / page；旧版无此 slot 则永不触发）
+        slots.inject('plugins.bundle.config', function () {
+          return slots.register({
+            name: 'plugins.bundle.config',
+            key: BUNDLE_NAME,
           }, Card)
         })
       }

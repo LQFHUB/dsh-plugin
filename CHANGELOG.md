@@ -2,6 +2,17 @@
 
 > AGENTS.md「四、变更记录」超过 5 条后的归档存放处（按原格式、时间倒序）。最新记录始终在 AGENTS.md。
 
+### 2026-09-06 modsearch 自维护 fork（设置卡 LAN 信任修复）+ 111 部署文件就绪
+
+- 变更内容：用户安装 modsearch 5.10.1 后浏览器设置卡报 `request refused: this route answers same-origin loopback only`。根因：111 局域网 IP 访问（web 绑定 `0.0.0.0:3080`），而 modsearch 卡片路由 `/modsearch/config` 用独立 fence 只认 loopback Host（上游 main 同样未修）。按用户指示**拉上游源码自维护**：新增 `modsearch/` fork 文件夹，修复 `dsh/index.js`（① 卡片路由 scoped inject 由 `['webServer']` 改为 `['webServer','connection']`；② 新增 `isTrustedAuthorityHost()` 复刻官方 `client-connection` 的 trustedHosts 匹配；③ `isTrustedRequest(req, trustedHosts)` 接受官方 `connection.trustedHosts`——含从 all-interface bind 推导的 LAN IP，与 `/api` fence 对齐；`sec-fetch-site`/`origin` 同源检查保留）；同步更新 `src/dshPlugin.test.ts`（注入断言 + 新增 LAN 放行/拒止用例，**40/40 通过**）；`pnpm-workspace.yaml` 放行 esbuild（pnpm 11 构建必需）；写 `FORK.md`（差异/构建/部署/升级跟随）。111 部署文件就绪：rsync 到 `/root/.dsh/external/modsearch`（含构建好的 dist），web profile `package.json` modsearch 改 `link:/root/.dsh/external/modsearch` + `pnpm install`（package.json/lockfile 已备份）。
+- 涉及路径：`modsearch/`（新 fork 文件夹）；111 `/root/.dsh/external/modsearch`、`/root/.dsh/profiles/web/{package.json,pnpm-lock.yaml}`（备份 `*.bak-pre-modsearch-fork-*`）；`AGENTS.md`
+- 备注：**待重启 111 dsh-web 生效**（会中断会话与 111 其他任务，由用户择机确认）；重启后验证 `curl -s -o /dev/null -w "%{http_code}" -H "Host: 192.168.31.111:3080" http://127.0.0.1:3080/modsearch/config` 应 200；升级上游后需按 `FORK.md` 重打补丁；`web_search`/`x_search`/`read_page` 工具走 CLI 不受影响（已实测）
+### 2026-09-01 dsh-describe-image / dsh-notify-sound v0.1.2 发布 npm（迁移 alpha.2 API 版）
+
+- 变更内容：**发现 npm 上的 0.1.1 是 8/17 旧代码**（顶层静态 `import { installSettingsSection, settingsNamespace }`，alpha.3 下直接 SyntaxError 加载失败）——本地 8/31 迁移到 `SettingsProvider.installSection` 但未重新发布、版本号未升，此前误判"已发布"。修正：升 **0.1.2** 重新发布（npmjs latest=0.1.2，tarball 校验旧 API=0 / installSection=1）；notify-sound 测试全 PASS；describe-image vitest 45 失败均为测试 mock 基建问题（`CallId is not a function`），**无 lib 逻辑断言失败**（lib 已在 111/112 alpha.3 实测运行正常）。
+- 涉及路径：`describe-image/{package.json,lib}`、`notify-sound/{package.json,lib}`；知识库升级指南（第 5/6 点：版本号 + 「判断 npm 是否已发布不能只比版本号」教训）
+- 备注：npmjs latest 均为 0.1.2（npmmirror 同步有延迟）；111/112 部署用的旧 0.1.1 代码（rsync/tarball 迁移版）不受影响；以后**本地改代码必须升版本号再发布**
+
 ### 2026-09-01 111（正式机）升级 dsh 0.1.1-rc.2 → 0.1.2-alpha.3 + 插件全量升级（navbar 移除）
 
 - 变更内容：111 按知识库升级指南跨 4 大版本升级（rc.2 → alpha.3，一次遇全部历史破坏性变更）。**关键踩坑：external link 插件在 alpha.3 无法解析宿主模块**——theme-center/notify-sound/describe-image 报 `Cannot find package '@deepseek-ai/schemastery'`（alpha.3 启动自动生成 `profiles/node_modules` 共享宿主模块，但 external 目录向上解析不经过它，导致 crash loop）。**解决**：`/root/.dsh/external/node_modules` → symlink 指向 `/root/.dsh/profiles/node_modules`，插件向上解析命中（4 个 external 插件静态加载测试通过）。升级内容：dsh `npm install -g @deepseek-ai/dsh@0.1.2-alpha.3`；external rsync 升级 theme-center 0.5.5→0.5.6、web-lan 1.0.0→2.2.1（scope `@user/`→`@npm-liqingfeng/`，package.json 依赖名+bundles 同步改）、describe-image 0.1.0→0.1.1、notify-sound 0.1.0→0.1.1；better-sidebar 0.17.1→0.18.0-alpha.0、dshmarket 1.36.0→1.38.1（pnpm install）；**navbar 移除**（external 目录 + 依赖 + bundles）。

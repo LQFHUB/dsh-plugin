@@ -13,6 +13,19 @@ const ok = (cond, label) => {
 
 const tick = () => new Promise((resolve) => setImmediate(resolve))
 
+/**
+ * 最小渲染助手：假 React 的 createElement 只记录元素、不调用组件函数，
+ * 故断言渲染结果前须把函数组件元素求值（组件内部的 createElement 已入 created）。
+ */
+const render = (node) => {
+  let cur = node
+  let guard = 0
+  while (cur && typeof cur === 'object' && typeof cur.type === 'function' && guard++ < 10) {
+    cur = cur.type(cur.props || {})
+  }
+  return cur
+}
+
 // 内置音首基频（ding/chime/bell/complete/success/alert/fallback）
 const FREQ = { ding: 698.46, chime: 880, bell: 493.88, complete: 523.25, success: 783.99, alert: 220 }
 
@@ -61,8 +74,12 @@ function makeServer(user) {
   }
 }
 
-/** 每场景全新环境。seededOpen 控制卡片首次渲染的展开态（用于断言卡片内容）。 */
-function makeEnv(serverUser, seededOpen) {
+/**
+ * 每场景全新环境。seededOpen 控制旧版折叠卡片首次渲染的展开态；
+ * api='legacy' 模拟 ≤0.1.5（uiSession.pendingInteractions），默认模拟
+ * 0.1.6+（uiSession.sessionStatus）。两版下两个 slot 都会注册。
+ */
+function makeEnv(serverUser, seededOpen, api) {
   const server = makeServer(serverUser)
   const registered = {}
   let oscCount = 0
@@ -117,8 +134,10 @@ function makeEnv(serverUser, seededOpen) {
     },
     useState: (v) => {
       hookCall++
-      const isOpen = hookCall === 1
-      return [isOpen ? seededOpen : (typeof v === 'function' ? v() : v), () => {}]
+      // 函数初值（useSnapshot 的 getSnapshot）恒按真实值求值；只有旧版折叠
+      // 卡片的布尔 useState 受 seededOpen 控制（它是该组件的首个 hook）。
+      if (typeof v === 'function') return [v(), () => {}]
+      return [hookCall === 1 ? seededOpen : v, () => {}]
     },
     useEffect: () => {},
     useRef: () => ({ current: null }),
@@ -133,7 +152,10 @@ function makeEnv(serverUser, seededOpen) {
   let sessionsSub = null
   let pendingSnap = new Map()
   let pendingSub = null
-  let slotReg = null
+  let statusSnap = new Map()
+  let statusSub = null
+  const slotRegs = []
+  const useStatusApi = api !== 'legacy'
   const ctx = {
     sessions: {
       list: {
@@ -141,15 +163,24 @@ function makeEnv(serverUser, seededOpen) {
         subscribe: (fn) => { sessionsSub = fn; return () => {} },
       },
     },
-    uiSession: {
-      pendingInteractions: {
-        getSnapshot: () => pendingSnap,
-        subscribe: (fn) => { pendingSub = fn; return () => {} },
-      },
-    },
+    // 新版（0.1.6+）uiSession.sessionStatus（Map<id,{pendingInteraction}>）；
+    // 旧版（≤0.1.5）uiSession.pendingInteractions（Map<id,{key,kind}>）
+    uiSession: useStatusApi
+      ? {
+          sessionStatus: {
+            getSnapshot: () => statusSnap,
+            subscribe: (fn) => { statusSub = fn; return () => {} },
+          },
+        }
+      : {
+          pendingInteractions: {
+            getSnapshot: () => pendingSnap,
+            subscribe: (fn) => { pendingSub = fn; return () => {} },
+          },
+        },
     get: (name) => (name === 'slots'
       ? {
-          inject: (n, cb) => { slotReg = { name: n, registration: cb() } },
+          inject: (n, cb) => { slotRegs.push({ name: n, registration: cb() }) },
           register: (opts, comp) => ({ opts, comp }),
         }
       : undefined),
@@ -160,10 +191,15 @@ function makeEnv(serverUser, seededOpen) {
     sessionsSnap = next
     sessionsSub()
   }
-  /** 驱动 uiSession.pendingInteractions 快照（{ sessionId: {key, kind, sessionId} }）。 */
+  /** 旧版：驱动 pendingInteractions 快照（{ sessionId: {key, kind, sessionId} }）。 */
   const drivePending = (map) => {
     pendingSnap = new Map(Object.entries(map || {}))
-    pendingSub()
+    if (pendingSub) pendingSub()
+  }
+  /** 新版：驱动 sessionStatus 快照（{ sessionId: {key,kind,sessionId} } → status.pendingInteraction）。 */
+  const driveStatus = (map) => {
+    statusSnap = new Map(Object.entries(map || {}).map(([id, it]) => [id, { running: false, pendingInteraction: it }]))
+    if (statusSub) statusSub()
   }
   const row = (extra) => Object.assign({ id: 's1', running: false }, extra)
 
@@ -172,6 +208,8 @@ function makeEnv(serverUser, seededOpen) {
     ctx,
     drive,
     drivePending,
+    driveStatus,
+    useStatusApi,
     row,
     server,
     created,
@@ -179,7 +217,12 @@ function makeEnv(serverUser, seededOpen) {
     windowListeners,
     docListeners,
     effectDisposers,
-    getSlotReg: () => slotReg,
+    getSlotRegs: () => slotRegs,
+    /** 新版插件详情页组件（plugins.bundle.config 槽）。 */
+    getBundleComp: () => {
+      const reg = slotRegs.find((r) => r.name === 'plugins.bundle.config')
+      return reg ? reg.registration.comp : undefined
+    },
     getOscCount: () => oscCount,
     freqs,
     lastFreq: () => freqs[freqs.length - 1],
@@ -194,11 +237,15 @@ function makeEnv(serverUser, seededOpen) {
     && env.exportsObj.inject.includes('slots') && env.exportsObj.inject.includes('uiSession'),
     'client inject = slots + sessions + uiSession')
   env.exportsObj.apply(env.ctx)
-  const slotReg = env.getSlotReg()
-  ok(slotReg && slotReg.name === 'settings.plugin.item', 'registered into settings.plugin.item slot')
-  ok(slotReg.registration.opts.id === 'notify-sound', 'card id notify-sound')
-  ok(slotReg.registration.opts.order === 35, 'card order 35')
-  ok(slotReg.registration.opts.label === '提示音', 'card label 提示音')
+  const regs = env.getSlotRegs()
+  const legacyReg = regs.find((r) => r.name === 'settings.plugin.item')
+  const bundleReg = regs.find((r) => r.name === 'plugins.bundle.config')
+  ok(legacyReg !== undefined && bundleReg !== undefined,
+    'registered into both settings.plugin.item (≤0.1.5) and plugins.bundle.config (0.1.6+)')
+  ok(legacyReg.registration.opts.id === 'notify-sound', 'card id notify-sound')
+  ok(legacyReg.registration.opts.order === 35, 'card order 35')
+  ok(legacyReg.registration.opts.label === '提示音', 'card label 提示音')
+  ok(bundleReg.registration.opts.key === 'dsh-notify-sound', 'bundle config keyed by package name')
   ok(env.effectDisposers.length === 2 && env.effectDisposers.every((d) => typeof d === 'function'),
     'two effects with disposers (styles + watcher/sync)')
   ok(env.server.state.gets === 1, 'initial GET issued on apply')
@@ -237,7 +284,7 @@ function makeEnv(serverUser, seededOpen) {
   env.drive({ ids: ['s1'], byId: { s1: env.row({ running: true }) }, current: 's1', jobsBySession: {} })
   env.drive({ ids: ['s1'], byId: { s1: env.row({ running: false }) }, current: 's1', jobsBySession: {} })
   ok(env.getOscCount() === 0, 'enabled=false silences completion')
-  env.drivePending({ s1: { key: 'a1', kind: 'approval', sessionId: 's1' } })
+  env.driveStatus({ s1: { key: 'a1', kind: 'approval', sessionId: 's1' } })
   ok(env.getOscCount() === 0, 'enabled=false silences attention events too')
 }
 
@@ -246,15 +293,15 @@ function makeEnv(serverUser, seededOpen) {
   const env = makeEnv({}, false)
   env.exportsObj.apply(env.ctx)
   await tick()
-  env.drivePending({ s1: { key: 'a1', kind: 'approval', sessionId: 's1' } })
+  env.driveStatus({ s1: { key: 'a1', kind: 'approval', sessionId: 's1' } })
   ok(env.getOscCount() > 0 && env.freqs[0] === FREQ.ding, 'approval plays generic attention sound (ding)')
   const n1 = env.getOscCount()
-  env.drivePending({ s1: { key: 'a1', kind: 'approval', sessionId: 's1' } })
+  env.driveStatus({ s1: { key: 'a1', kind: 'approval', sessionId: 's1' } })
   ok(env.getOscCount() === n1, 'same pending key does not repeat')
-  env.drivePending({ s1: { key: 'q1', kind: 'question', sessionId: 's1' } })
+  env.driveStatus({ s1: { key: 'q1', kind: 'question', sessionId: 's1' } })
   ok(env.getOscCount() > n1 && env.freqs[0] === FREQ.ding, 'question plays generic attention sound')
   const n2 = env.getOscCount()
-  env.drivePending({ s1: { key: 'p1', kind: 'plan-review', sessionId: 's1' } })
+  env.driveStatus({ s1: { key: 'p1', kind: 'plan-review', sessionId: 's1' } })
   ok(env.getOscCount() > n2 && env.freqs[0] === FREQ.ding, 'plan-review plays generic attention sound')
 }
 
@@ -263,13 +310,13 @@ function makeEnv(serverUser, seededOpen) {
   const env = makeEnv({ quietCurrent: true, approvalSound: 'bell', failureSound: 'alert' }, false)
   env.exportsObj.apply(env.ctx)
   await tick()
-  env.drivePending({ s1: { key: 'a1', kind: 'approval', sessionId: 's1' } })
+  env.driveStatus({ s1: { key: 'a1', kind: 'approval', sessionId: 's1' } })
   ok(env.getOscCount() > 0 && env.freqs[0] === FREQ.bell, 'approvalSound override plays bell')
   const n3 = env.getOscCount()
-  env.drivePending({ s1: { key: 'a2', kind: 'approval', sessionId: 's1' } })
+  env.driveStatus({ s1: { key: 'a2', kind: 'approval', sessionId: 's1' } })
   ok(env.getOscCount() > n3, 'attention events play even for the open session (quietCurrent ignored); new pending key rings again')
   const afterA2 = env.getOscCount()
-  env.drivePending({})
+  env.driveStatus({})
   ok(env.getOscCount() === afterA2, 'pending cleared plays no extra sound')
 }
 
@@ -359,9 +406,9 @@ function makeEnv(serverUser, seededOpen) {
   env.server.state.reject = true
   env.exportsObj.apply(env.ctx)
   await tick()
-  const Card = env.getSlotReg().registration.comp
+  const Card = env.getBundleComp()
   env.created.length = 0
-  Card({})
+  render(Card({ view: 'page' }))
   const hints = env.created.filter((n) => n.type === 'div' && n.props.className === 'ns-hint')
   ok(hints.length === 1 && String(hints[0].children.join('')).indexOf('无法读取服务端配置') === 0,
     'unavailable renders hint instead of controls')
@@ -370,16 +417,18 @@ function makeEnv(serverUser, seededOpen) {
   ok(env.getOscCount() > 0 && env.freqs[0] === FREQ.chime, 'unavailable still plays defaults')
 }
 
-/* ---------------- 12. 卡片渲染：展开态包含全部控件 ---------------- */
+/* ---------------- 12. 新版 page 视图：包含全部控件（无折叠头） ---------------- */
 {
-  const env = makeEnv({ defaultSound: 'bell', approvalSound: 'ding' }, true)
+  const env = makeEnv({ defaultSound: 'bell', approvalSound: 'ding' }, false)
   env.exportsObj.apply(env.ctx)
   await tick()
-  const Card = env.getSlotReg().registration.comp
+  const Card = env.getBundleComp()
+  ok(typeof Card === 'function', 'plugins.bundle.config component registered')
   env.created.length = 0
-  Card({})
-  const li = env.created.find((n) => n.type === 'li')
-  ok(li !== undefined && String(li.props.className).indexOf('ns-card') === 0, 'card renders as li.ns-card')
+  render(Card({ view: 'page' }))
+  const box = env.created.find((n) => n.type === 'div' && String(n.props.className).indexOf('ns-card') === 0)
+  ok(box !== undefined, 'page view renders ns-card container')
+  ok(env.created.filter((n) => n.type === 'li').length === 0, 'page view has no collapsible li')
   const checks = env.created.filter((n) => n.type === 'input' && n.props.type === 'checkbox')
   ok(checks.length === 2, 'two checkboxes (enabled + quietCurrent)')
   const selects = env.created.filter((n) => n.type === 'select')
@@ -393,10 +442,55 @@ function makeEnv(serverUser, seededOpen) {
   ok(selects[0].props.value === 'bell' && selects[1].props.value === 'ding',
     'selects reflect server values')
   const buttons = env.created.filter((n) => n.type === 'button')
-  ok(buttons.length === 8, 'eight buttons (header + 7 试听)')
+  ok(buttons.length === 7, 'seven preview buttons (no header in page view)')
   const hint = env.created.find((n) => n.type === 'div' && n.props.className === 'ns-hint')
   ok(hint !== undefined && String(hint.children.join('')).indexOf('配置保存在服务端设置') === 0,
     'sync hint rendered')
+}
+
+/* ---------------- 13. 新版 summary 视图：一行状态摘要 ---------------- */
+{
+  const env = makeEnv({ defaultSound: 'bell' }, false)
+  env.exportsObj.apply(env.ctx)
+  await tick()
+  env.created.length = 0
+  render(env.getBundleComp()({ view: 'summary' }))
+  const spans = env.created.filter((n) => n.type === 'span' && n.props.className === 'ns-desc')
+  ok(spans.length === 1, 'summary renders one ns-desc line')
+  const text = String(spans[0].children.join(''))
+  ok(text.indexOf('已启用') === 0 && text.indexOf('铃铛') > 0, 'summary shows enabled state and sound label')
+  ok(env.created.filter((n) => n.type === 'select').length === 0, 'summary renders no controls')
+}
+{
+  const env = makeEnv({ enabled: false }, false)
+  env.exportsObj.apply(env.ctx)
+  await tick()
+  env.created.length = 0
+  render(env.getBundleComp()({ view: 'summary' }))
+  const spans = env.created.filter((n) => n.type === 'span' && n.props.className === 'ns-desc')
+  ok(String(spans[0].children.join('')) === '已关闭', 'summary reflects disabled state')
+}
+
+/* ---------------- 14. 旧版（≤0.1.5）：折叠卡片 + pendingInteractions ---------------- */
+{
+  const env = makeEnv({ defaultSound: 'bell' }, true, 'legacy')
+  ok(env.useStatusApi === false, 'legacy env exposes pendingInteractions only')
+  env.exportsObj.apply(env.ctx)
+  await tick()
+  const legacyReg = env.getSlotRegs().find((r) => r.name === 'settings.plugin.item')
+  const Card = legacyReg.registration.comp
+  env.created.length = 0
+  render(Card({}))
+  const li = env.created.find((n) => n.type === 'li')
+  ok(li !== undefined && String(li.props.className).indexOf('ns-card') === 0, 'legacy renders li.ns-card')
+  ok(env.created.filter((n) => n.type === 'button').length === 8, 'legacy has header + 7 preview buttons')
+  ok(env.created.filter((n) => n.type === 'select').length === 7, 'legacy expanded body renders all selects')
+  // 旧版注意音路径：pendingInteractions 的值本身就是交互
+  env.drivePending({ s1: { key: 'a1', kind: 'approval', sessionId: 's1' } })
+  ok(env.getOscCount() > 0 && env.freqs[0] === FREQ.ding, 'legacy pendingInteractions still rings approval (ding)')
+  const n = env.getOscCount()
+  env.drivePending({ s1: { key: 'a1', kind: 'approval', sessionId: 's1' } })
+  ok(env.getOscCount() === n, 'legacy same pending key does not repeat')
 }
 
 console.log(failures === 0 ? 'ALL CLIENT TESTS PASSED' : failures + ' FAILURES')

@@ -45,7 +45,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 7 条：5 条历史 + 2 条归档动作，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 5 条：4 条历史 + 1 条归档动作，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-09-19 112 升级 dsh 0.1.5-rc.1 → 0.1.6-alpha.2 + notify-sound v0.1.4 / theme-center v0.5.7 适配新版槽位与会话 API
+
+- 变更内容：按用户指示先在 112 验证 0.1.6-alpha.2 与插件兼容性。① **升级** `npm install -g @deepseek-ai/dsh@0.1.6-alpha.2`（npmmirror 已同步，22s 重装 431 包）；② **发现两处破坏性变更**：**(a)** 移除 `settings.plugin.item` 槽（「设置 > 插件配置」TAB 一并移除），插件配置改到 Plugins 面板插件详情页的 `plugins.bundle.config`（keyed slot，**key = bundle 包名**，owner props `{view:'summary'|'page'}`），致 modsearch / notify-sound / theme-center 的**设置卡全部不渲染**；**(b)** `uiSession.pendingInteractions` 移除，改为 `uiSession.sessionStatus`（`HostObservable<Map<SessionId,{running,pendingInteraction,completionUnread}>>`），致 notify-sound「需要人介入」提示音检测失效；③ **适配 notify-sound → 0.1.4、theme-center → 0.5.7**，均为**双版本兼容**：两版 slot 同时注册（旧 `settings.plugin.item` + 新 `plugins.bundle.config`），组件按 `props.view` 分派 summary / page / 无 view（折叠卡）；notify-sound 交互源优先 `sessionStatus`（`status.pendingInteraction`）并回退 `pendingInteractions`；modsearch 按用户要求**暂不适配**（其配置卡在新版不显示，host 端工具与 `/modsearch/config` 路由正常）；④ 112 重新安装 theme-center（此前已卸载）：`dsh plugin --profile web add file:/root/npm-liqingfeng-dsh-theme-center-0.5.7.tgz`，插件数 6→7。
+- 涉及路径：`notify-sound/{lib/client.js,tests/test-client.mjs,README.md,package.json}`（0.1.4）、`theme-center/{lib/client.js,tests/smoke.mjs,README.md,package.json,AGENTS.md}`（0.5.7，新增 §4.10 槽位规范）；112 `/root/.dsh/profiles/web/{package.json,pnpm-lock.yaml}`（备份 `*.bak-pre-016alpha2-20260919_032545`、`*.bak-pre-tc057-20260919_034023`）、`/root/dsh-sessions-bak-pre-016alpha2-20260919_032545.tgz`、`/root/settings.yaml.bak-pre-016alpha2-20260919_032545`、`/usr/local/lib/node_modules/@deepseek-ai/dsh`
+- 备注：**112 验证全过**——服务 active、插件 **7/7 Enabled**、LAN 免 token 303+Set-Cookie、web-lan 双重启后补丁 `PATCHED`、`/modsearch/config` 200、console 0 错误 0 警告。**notify-sound 实测**：插件详情页渲染 7 下拉 + 2 复选 + 7 试听；试听捕获 chime 频率 880/2428.8/1318.5/2637；**真实调用 `ask_user_question` 弹出提问卡片时探针捕获 ding 频率 698.46/1396.92/2102.3646/587.33/1174.66**（与「通用注意音 ding」参数逐项一致），证明新 `sessionStatus` 链路生效。**theme-center 实测**：详情页双 Tab（主题 Tab 25 行皮肤 + 遮罩滑杆；外观 Tab 精简/字号/字体/隐藏/玻璃）、试穿深海蓝 → `body[data-dsh-skin-ocean]` + 皮肤样式注入、退出试穿属性与样式零残留。测试：notify-sound 宿主 33 + 客户端 58 断言全过（新增 summary/page/legacy 三组）、theme-center smoke 全绿。⚠️ 111 仍是 0.1.5-rc.1 + 旧版插件（`settings.plugin.item` 在旧版可用，双注册不影响），**升级 111 需用户确认**；两个插件新版**均未发布 npm**（仅 112 file: 安装，tarball 勿删）；modsearch 配置卡待后续适配。
 
 ### 2026-09-10 111 升级 dsh 0.1.5-rc.1 后 web-lan 补丁丢失修复（局域网「设置不可用 / 插件配置空白」）
 
@@ -64,21 +70,12 @@
 - 变更内容：变更记录超 5 条，将最旧的 4 条（111 升级 alpha.3、112 升级 alpha.3、theme-center 屏蔽聊天宽度、112 安装 knowledge-base skill）移至 `CHANGELOG.md`（按原格式、时间倒序）；后续追加 web-lan 补丁修复记录后再次超限，再将最旧的 1 条（theme-center v0.5.6 发布 npm）移入 `CHANGELOG.md`；归档动作不计数
 - 涉及路径：`AGENTS.md`、`CHANGELOG.md`
 - 备注：AGENTS.md 保留最新 5 条历史记录
+
 ### 2026-09-06 notify-sound v0.1.3 修复「提问/审批/计划评审/目标受阻」提示音不响
 
 - 变更内容：**根因**：浏览器端 `startWatcher` 从 `sessions.list` 快照读 `row.pendingInteraction`，但官方 `SessionSummary` 无此字段（权威数据源是 `ctx.uiSession.pendingInteractions`，kind ∈ approval/question/plan-review），故注意铃声从未触发；goal blocked 检测访问 `projectionValues.goal.phase` 也错两层（官方 `GoalProjection.goal.phase`），同样失效。**修复**：inject 增加 `uiSession`，新增订阅 `uiSession.pendingInteractions` 权威快照（按交互 key 判据：新出现/替换请求响铃、同 key 不重复、消失不响，白名单只处理三类）；goal 投影路径改为 `goal.goal.phase`（兼容 goal 为 null）。测试全 PASS（host 34 + client 47，新增 pending key 判据/清空/错误路径/goal null 用例）。版本 0.1.2 → 0.1.3
 - 涉及路径：`notify-sound/{lib/client.js,tests/test-client.mjs,README.md,package.json}`
 - 备注：**112 部署验证通过**（2026-09-06，npm pack tarball + file: 引用 + pnpm install + 重启）——真实 ask_user_question 弹提问卡片时探针捕获 ding 合成音（基频 698.46…与参数完全一致）、console 0 错误。**npm 已发布 0.1.3**（发布后下载 tarball 校验含新代码，latest=0.1.3）。⚠️ 112 上 notify-sound 现为 file: 本地 tarball 引用（`/root/dsh-notify-sound-0.1.3.tgz`），**勿删**（theme-center 先例：可保留不强制改回 npm）；回滚：specifier 恢复 `^0.1.2` + pnpm install + 重启。**111 部署待用户确认时机**（需重启 dsh-web，会中断 111 任务与本会话）
-### 2026-09-06 modsearch 自维护 fork（设置卡 LAN 信任修复）+ 111 部署文件就绪
-
-- 变更内容：用户安装 modsearch 5.10.1 后浏览器设置卡报 `request refused: this route answers same-origin loopback only`。根因：111 局域网 IP 访问（web 绑定 `0.0.0.0:3080`），而 modsearch 卡片路由 `/modsearch/config` 用独立 fence 只认 loopback Host（上游 main 同样未修）。按用户指示**拉上游源码自维护**：新增 `modsearch/` fork 文件夹，修复 `dsh/index.js`（① 卡片路由 scoped inject 由 `['webServer']` 改为 `['webServer','connection']`；② 新增 `isTrustedAuthorityHost()` 复刻官方 `client-connection` 的 trustedHosts 匹配；③ `isTrustedRequest(req, trustedHosts)` 接受官方 `connection.trustedHosts`——含从 all-interface bind 推导的 LAN IP，与 `/api` fence 对齐；`sec-fetch-site`/`origin` 同源检查保留）；同步更新 `src/dshPlugin.test.ts`（注入断言 + 新增 LAN 放行/拒止用例，**40/40 通过**）；`pnpm-workspace.yaml` 放行 esbuild（pnpm 11 构建必需）；写 `FORK.md`（差异/构建/部署/升级跟随）。111 部署文件就绪：rsync 到 `/root/.dsh/external/modsearch`（含构建好的 dist），web profile `package.json` modsearch 改 `link:/root/.dsh/external/modsearch` + `pnpm install`（package.json/lockfile 已备份）。
-- 涉及路径：`modsearch/`（新 fork 文件夹）；111 `/root/.dsh/external/modsearch`、`/root/.dsh/profiles/web/{package.json,pnpm-lock.yaml}`（备份 `*.bak-pre-modsearch-fork-*`）；`AGENTS.md`
-- 备注：**待重启 111 dsh-web 生效**（会中断会话与 111 其他任务，由用户择机确认）；重启后验证 `curl -s -o /dev/null -w "%{http_code}" -H "Host: 192.168.31.111:3080" http://127.0.0.1:3080/modsearch/config` 应 200；升级上游后需按 `FORK.md` 重打补丁；`web_search`/`x_search`/`read_page` 工具走 CLI 不受影响（已实测）
-### 2026-09-01 dsh-describe-image / dsh-notify-sound v0.1.2 发布 npm（迁移 alpha.2 API 版）
-
-- 变更内容：**发现 npm 上的 0.1.1 是 8/17 旧代码**（顶层静态 `import { installSettingsSection, settingsNamespace }`，alpha.3 下直接 SyntaxError 加载失败）——本地 8/31 迁移到 `SettingsProvider.installSection` 但未重新发布、版本号未升，此前误判"已发布"。修正：升 **0.1.2** 重新发布（npmjs latest=0.1.2，tarball 校验旧 API=0 / installSection=1）；notify-sound 测试全 PASS；describe-image vitest 45 失败均为测试 mock 基建问题（`CallId is not a function`），**无 lib 逻辑断言失败**（lib 已在 111/112 alpha.3 实测运行正常）。
-- 涉及路径：`describe-image/{package.json,lib}`、`notify-sound/{package.json,lib}`；知识库升级指南（第 5/6 点：版本号 + 「判断 npm 是否已发布不能只比版本号」教训）
-- 备注：npmjs latest 均为 0.1.2（npmmirror 同步有延迟）；111/112 部署用的旧 0.1.1 代码（rsync/tarball 迁移版）不受影响；以后**本地改代码必须升版本号再发布**
 </details>
 
 ---
