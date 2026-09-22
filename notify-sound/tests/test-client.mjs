@@ -340,7 +340,7 @@ function makeEnv(serverUser, seededOpen, api) {
   ok(env.getOscCount() === after, 'goal null tolerated without error or sound')
 }
 
-/* ---------------- 8. 后台任务：完成 → 完成音；失败 → 失败音 ---------------- */
+/* ---------------- 8. 后台任务：完成/终止不响（完成提示只由回合结束触发）；失败 → 失败音 ---------------- */
 {
   const env = makeEnv({}, false)
   env.exportsObj.apply(env.ctx)
@@ -352,7 +352,24 @@ function makeEnv(serverUser, seededOpen, api) {
   env.drive(running)
   ok(env.getOscCount() === 0, 'job running produces no sound')
   env.drive(completed)
-  ok(env.getOscCount() > 0 && env.freqs[0] === FREQ.chime, 'job completion plays completion sound')
+  ok(env.getOscCount() === 0, 'job completion stays silent (no per-task completion sound)')
+  // 随后整回合结束仍要提示（后台任务静音不影响回合完成音）
+  const doneJobs = { s1: [{ id: 'bash-1', kind: 'bash', label: 'x', status: 'completed', startedAt: 1, finishedAt: 2 }] }
+  env.drive({ ids: ['s1'], byId: { s1: env.row({ running: true }) }, current: 's1', jobsBySession: doneJobs })
+  env.drive({ ids: ['s1'], byId: { s1: env.row({ running: false }) }, current: 's1', jobsBySession: doneJobs })
+  ok(env.getOscCount() > 0 && env.freqs[0] === FREQ.chime,
+    'turn end still plays completion sound after a silent job completion')
+}
+{
+  // 终止（killed）与完成同样静音
+  const env = makeEnv({}, false)
+  env.exportsObj.apply(env.ctx)
+  await tick()
+  env.drive({ ids: ['s1'], byId: { s1: env.row({ running: false }) }, current: 's1',
+    jobsBySession: { s1: [{ id: 'bash-3', status: 'running', startedAt: 1 }] } })
+  env.drive({ ids: ['s1'], byId: { s1: env.row({ running: false }) }, current: 's1',
+    jobsBySession: { s1: [{ id: 'bash-3', status: 'killed', startedAt: 1, finishedAt: 2 }] } })
+  ok(env.getOscCount() === 0, 'job killed stays silent too')
 }
 {
   const env = makeEnv({}, false)

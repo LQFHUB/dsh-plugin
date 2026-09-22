@@ -32,7 +32,8 @@ export const SETTINGS_BODY_CAP = 64 * 1024
 
 /**
  * 配置 schema（"默认配置一套"）：
- * - 完成类：回合结束 / 后台任务完成 → defaultSound（chime 风铃）
+ * - 完成类：回合结束（一次对话整回合做完）→ defaultSound（chime 风铃）；
+ *   后台任务的 completed / killed 不提示
  * - 注意类（始终响，不受 quietCurrent 限制）：
  *   审批请求 / 用户提问 / 计划评审 → 专属音，留空跟随通用注意音（ding）
  *   目标受阻 → goalBlockedSound（bell 铃铛）

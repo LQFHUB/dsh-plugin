@@ -2,7 +2,9 @@
  * dsh-notify-sound — 浏览器半区（经典脚本 + 模块工厂）
  *
  * 以 window.__ModuleLoader__.load 注册的懒加载 CJS 工厂。浏览器侧职责：
- * 1. 监听 sessions.list 快照，检测「回合结束」与「后台任务结束」→ 完成铃声；
+ * 1. 监听 sessions.list 快照，检测「回合结束」→ 完成铃声（一次对话只提示
+ *    整回合做完；后台任务的 completed / killed 不提示，否则一次对话里
+ *    起停多个后台小任务会逐个响铃）；
  * 2. 检测「需要人介入」的事件 → 注意铃声：
  *    - pendingInteraction 出现（approval 审批 / question 提问 / plan-review 计划评审，
  *      经 uiSession 权威快照读取——SessionSummary 无此字段；0.1.6+ 为
@@ -445,7 +447,9 @@ window.__ModuleLoader__.load({
           prevGoalPhase.set(id, phase)
         }
 
-        // 后台任务结束：failed → 失败音；其余终态 → 完成铃声（尊重 quietCurrent）
+        // 后台任务：只有 failed → 失败音（注意类，需人介入）。completed /
+        // killed 一律不响——完成提示只由上面的「会话回合结束」触发，避免
+        // 一次对话里起停多个后台小任务时逐个响铃。
         var jobsBy = snap.jobsBySession || {}
         for (var sid in jobsBy) {
           if (!Object.prototype.hasOwnProperty.call(jobsBy, sid)) continue
@@ -454,16 +458,8 @@ window.__ModuleLoader__.load({
             var job = jobs[j]
             var key = sid + ':' + job.id
             var prev = prevJobStatus.get(key)
-            var terminal = job.status === 'completed' || job.status === 'failed' || job.status === 'killed'
-            if ((prev === 'running' || prev === 'stopping') && terminal) {
-              if (job.status === 'failed') {
-                attention(cfg, 'failure', 'job:' + key)
-              } else {
-                var skipCurrentJob = quietCurrent && snap.current === sid
-                if (!skipCurrentJob) {
-                  playSound(completionSoundFor(cfg), 'job:' + key)
-                }
-              }
+            if ((prev === 'running' || prev === 'stopping') && job.status === 'failed') {
+              attention(cfg, 'failure', 'job:' + key)
             }
             prevJobStatus.set(key, job.status)
           }
@@ -606,7 +602,7 @@ window.__ModuleLoader__.load({
                 '当前正在查看的会话完成时不响铃'),
             ]),
             React.createElement('div', { className: 'ns-block', key: 'b2' }, [
-              React.createElement('div', { className: 'ns-title', key: 't' }, '完成铃声（回合结束 / 后台任务完成）'),
+              React.createElement('div', { className: 'ns-title', key: 't' }, '完成铃声（一次对话整回合结束）'),
               soundRow('完成铃声', cfg.defaultSound, function (v) { setField('defaultSound', v) }, false, cfg.defaultSound),
             ]),
             React.createElement('div', { className: 'ns-block', key: 'b3' }, [

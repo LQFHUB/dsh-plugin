@@ -45,7 +45,13 @@
 ## 四、变更记录
 
 <details>
-<summary>📜 变更记录（共 5 条：4 条历史 + 1 条归档动作，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+<summary>📜 变更记录（共 6 条：5 条历史 + 1 条归档动作，点击展开，最新在最上面；更早记录见 `CHANGELOG.md`）</summary>
+
+### 2026-09-22 notify-sound v0.1.5：去掉后台任务（小任务）完成提示音，只在一次对话整回合结束时提示
+
+- 变更内容：用户反馈「notify-sound 在小任务完成时也会响，希望去掉，只在一次对话的整个任务完成时提示」，经询问确认"小任务"= 后台任务（`jobsBySession`），并确认保留后台任务失败音。① **`lib/client.js`**：后台任务分支只保留 `failed → failureSound`（注意类），`completed` / `killed` 一律不响——完成提示仅由会话 `running: true → false`（回合结束）触发；文件头注释与配置卡标题同步（「完成铃声（回合结束 / 后台任务完成）」→「完成铃声（一次对话整回合结束）」）；② **`lib/index.js`**：schema 注释同步；③ **测试**：客户端 58 → 60 断言（job 完成静音、job killed 静音、静音后回合结束仍响、job failed 仍响 alert）；④ 版本 `0.1.4 → 0.1.5`；⑤ README 特性/界面示意/事件表/断言数/部署记录更新。
+- 涉及路径：`notify-sound/{lib/client.js,lib/index.js,tests/test-client.mjs,README.md,package.json}`；112 `/root/.dsh/profiles/web/{package.json,pnpm-lock.yaml}`（备份 `*.bak-pre-notify-015-20260922_2218`）、`/root/dsh-notify-sound-0.1.5.tgz`
+- 备注：**112（dsh 0.1.7-alpha.1）实测通过**——① 普通回合结束捕获 chime 4 个振荡器（880/2428.8/1318.5/2637，调用栈落在插件 `tone()` / `ensureContext()`，排除第三方音源）；② 后台任务结束时刻（`sleep 8` 退出码 0、`sleep 5; exit 3`）**无任何振荡器**；③ 同回合内 agent 被任务完成唤醒后的第二个回合结束仍正常响 chime。测试：宿主 33 + 客户端 60 断言全过、`npm run check` 通过。⚠️ **探针经验**：`osc.frequency.value` 在 `frequency.setValueAtTime(freq, t0)` 之后仍返回默认 440，验证时必须 patch `frequency.setValueAtTime` 才能读到真实频率（首次验证因此误判"未响"）。⚠️ 112 上 `/notify-sound/settings` 仍 404（0.1.7 settings API 重构的既有问题，浏览器端回退默认配置，提示音正常）。⚠️ **111 未部署**：111 现为 v0.1.3（link 安装 `/root/.dsh/external/notify-sound`），本次改动部署需重启 `dsh-web.service`，用户指示其另有对话在运行、暂不重启，待用户确认后再执行（回滚：还原 external 目录文件 + 重启）。
 
 ### 2026-09-22 112 升级 dsh 0.1.6-alpha.2 → 0.1.7-alpha.1 + 实测 settings API 重构（第三方插件服务器同步降级）
 
