@@ -4,13 +4,22 @@
  * 注册 `notify-sound` 设置命名空间（schema 见 Config，字段全部带默认值，
  * 即"默认配置一套"）+ `/notify-sound/settings` 读写路由。
  *
+ * 兼容两代 settings API（`apply` 内运行时择一）：
+ * - **≤0.1.6**：`SettingsProvider.installSection` 显式注册命名空间；
+ * - **0.1.7+**：settings 服务改由 configEditor 自动识别活动插件条目——
+ *   条目 Config schema 中标注 `.volatile()` 的字段即成为可热更新的表单
+ *   字段，无需注册；命名空间名 = profile 条目 id（本插件为 `notify-sound`，
+ *   与旧命名空间同名，故浏览器端路由契约与视图结构均不变）。新版下本插件
+ *   只声明页面策略 `configure({ auto: false })`（自带「提示音」卡片，
+ *   不要官方自动表单）。
+ *
  * 为什么需要自建路由：官方 apiproxy 的 settings 暴露白名单
  * （WEB_SETTINGS_NAMESPACES）是硬编码的，第三方插件的命名空间一律答
  * `settings-not-exposed`——因此浏览器端经官方 settingsScope 读不到本
  * 命名空间。本路由绕开该边界：GET 返回命名空间视图（value/base/user/
  * revision/writable），POST 批量写用户层（set/unset，revision 栅栏），
- * 内部经 dsh-settings 的 replace 提交。配置落在 profile 的 settings
- * 用户层（服务端持久化），所有浏览器/设备读同一份配置即天然同步。
+ * 内部经 dsh-settings 的 replace 提交（两代 API 同名同义）。配置落在
+ * profile 用户层（服务端持久化），所有浏览器/设备读同一份配置即天然同步。
  *
  * 本配置无 secret 字段，redact 逻辑保留（secrets 恒为 []）。
  * @module dsh-notify-sound
@@ -31,6 +40,16 @@ export const SETTINGS_API_PATH = '/notify-sound/settings'
 export const SETTINGS_BODY_CAP = 64 * 1024
 
 /**
+ * schemastery 字段的 `.volatile()` 标记：dsh 0.1.7+ 的 settings 服务据此把
+ * 字段识别为"可热更新的表单字段"（configEditor 自动生成配置视图的前提）；
+ * 旧版 schemastery（≤0.1.6 的 3.18.2）无此方法，降级为原样返回——旧版走
+ * installSection 注册命名空间，不需要该标记。
+ */
+const live = typeof z.boolean().default(true).volatile === 'function'
+  ? (schema) => schema.volatile()
+  : (schema) => schema
+
+/**
  * 配置 schema（"默认配置一套"）：
  * - 完成类：回合结束（一次对话整回合做完）→ defaultSound（chime 风铃）；
  *   后台任务的 completed / killed 不提示
@@ -41,15 +60,15 @@ export const SETTINGS_BODY_CAP = 64 * 1024
  * 空字符串 = "跟随通用注意音"（浏览器端解析）。
  */
 export const Config = z.object({
-  enabled: z.boolean().default(true),
-  quietCurrent: z.boolean().default(false),
-  defaultSound: z.string().default('chime'),
-  attentionSound: z.string().default('ding'),
-  approvalSound: z.string().default(''),
-  questionSound: z.string().default(''),
-  planReviewSound: z.string().default(''),
-  goalBlockedSound: z.string().default('bell'),
-  failureSound: z.string().default('alert'),
+  enabled: live(z.boolean().default(true)),
+  quietCurrent: live(z.boolean().default(false)),
+  defaultSound: live(z.string().default('chime')),
+  attentionSound: live(z.string().default('ding')),
+  approvalSound: live(z.string().default('')),
+  questionSound: live(z.string().default('')),
+  planReviewSound: live(z.string().default('')),
+  goalBlockedSound: live(z.string().default('bell')),
+  failureSound: live(z.string().default('alert')),
 })
 
 /** 一条批量写：set 写入用户层字段；unset 删除用户层字段（重新继承 base）。 */
@@ -186,11 +205,22 @@ export function apply(ctx, config = {}) {
   // settings 就绪后（或早已就绪时立即）注册，完全没有 settings 服务的
   // profile 中静默不注册。webServer 同理可选。
   ctx.inject(['settings'], (sctx) => {
-    sctx.settings.installSection(ctx, SETTINGS_NAMESPACE, Config, config, {
-      setSource: () => {},
-      onChange: () => {},
-      validate: () => {},
-    })
+    const settings = sctx.settings
+    // ≤0.1.6：显式注册命名空间（旧机制）。
+    if (typeof settings.installSection === 'function') {
+      settings.installSection(ctx, SETTINGS_NAMESPACE, Config, config, {
+        setSource: () => {},
+        onChange: () => {},
+        validate: () => {},
+      })
+      return
+    }
+    // 0.1.7+：命名空间由 configEditor 从活动插件条目 + Config（volatile 字段）
+    // 自动识别，无需注册；这里只声明页面策略——本插件自带「提示音」卡片，
+    // 关闭官方自动表单（与官方 ui-theme 同款写法）。
+    if (typeof settings.configure === 'function') {
+      sctx.effect(() => settings.configure({ auto: false }, ctx.fiber))
+    }
   })
   registerSettingsRoute(ctx)
 }

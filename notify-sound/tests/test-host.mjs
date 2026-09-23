@@ -1,5 +1,6 @@
 // notify-sound 宿主半区契约测试（node 内置，无需浏览器）
 // 运行：node tests/test-host.mjs
+import z from '@deepseek-ai/schemastery'
 import { apply, name, inject, Config, SETTINGS_API_PATH, SETTINGS_NAMESPACE } from '../lib/index.js'
 
 let failures = 0
@@ -10,21 +11,38 @@ const ok = (cond, label) => {
 
 /* ---------------- 假件 ---------------- */
 
-/** 带命名空间状态的假 settings 服务（register/describe/replace）。 */
-function makeFakeSettings(initialUser) {
+/**
+ * 解包 volatile 引用：0.1.7+ 的 schemastery 把标了 `.volatile()` 的字段解析为
+ * 带 `get()` 的引用对象（官方 dsh-settings 的 plainConfig 同样会解包），
+ * 测试里需要还原为普通值才能断言。旧版 schemastery 无此形态，原样返回。
+ */
+function plain(value) {
+  if (value !== null && typeof value === 'object' && typeof value.get === 'function') return plain(value.get())
+  if (Array.isArray(value)) return value.map(plain)
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, plain(child)]))
+  }
+  return value
+}
+
+/**
+ * 带命名空间状态的假 settings 服务。
+ * 两代形态：默认（`api: 'legacy'`）为 ≤0.1.6 的 SettingsProvider（有
+ * installSection）；`api: 'modern'` 为 0.1.7+ 的 SettingsForms（无
+ * installSection，命名空间由 configEditor 自动识别，插件只声明页面策略）。
+ */
+function makeFakeSettings(initialUser, options = {}) {
+  const modern = options.api === 'modern'
   const state = {
     user: { ...(initialUser || {}) },
     revision: 1,
     registerCalls: [],
     replaceCalls: [],
+    configureCalls: [],
   }
-  const defaults = Config({})
+  const defaults = plain(Config({}))
   const service = {
     writable: true,
-    // dsh v0.1.2-alpha.2 新 API：SettingsProvider.installSection（替代旧 register）
-    installSection: (owner, ns, schema, entry, hooks) => {
-      state.registerCalls.push({ ns: String(ns), opts: hooks })
-    },
     describe: () => [{
       ns: SETTINGS_NAMESPACE,
       value: { ...defaults, ...state.user },
@@ -43,12 +61,26 @@ function makeFakeSettings(initialUser) {
       state.revision++
     },
   }
+  if (modern) {
+    // dsh 0.1.7+：SettingsForms.configure(presentation, owner) → disposer
+    service.configure = (presentation, owner) => {
+      state.configureCalls.push({ presentation, owner })
+      return () => {}
+    }
+  } else {
+    // dsh ≤0.1.6：SettingsProvider.installSection(owner, ns, schema, entry, hooks)
+    service.installSection = (owner, ns, schema, entry, hooks) => {
+      state.registerCalls.push({ ns: String(ns), opts: hooks })
+    }
+  }
   return { service, state, defaults }
 }
 
 /** 带可注入服务与可收集 effect 的假 ctx。 */
 function makeCtx(settings, webserver) {
   return {
+    // 插件 fiber：0.1.7+ 的 settings.configure(presentation, owner) 需要它
+    fiber: { fakeFiber: true },
     inject: (deps, cb) => {
       if (deps.includes('settings') && settings !== undefined) {
         cb({ settings, effect: (fn) => { fn() } })
@@ -96,7 +128,7 @@ ok(name === 'notify-sound', 'name export')
 ok(Array.isArray(inject) && inject.includes('webServer'), 'inject includes webServer')
 
 {
-  const d = Config({})
+  const d = plain(Config({}))
   ok(d.enabled === true, 'default enabled=true')
   ok(d.quietCurrent === false, 'default quietCurrent=false')
   ok(d.defaultSound === 'chime', 'default defaultSound=chime')
@@ -112,6 +144,22 @@ ok(Array.isArray(inject) && inject.includes('webServer'), 'inject includes webSe
   let rejected = false
   try { Config({ enabled: 'yes' }) } catch (e) { rejected = true }
   ok(rejected, 'schema rejects invalid types')
+}
+
+// volatile 标记（0.1.7+ 表单识别前提）：本机 schemastery 无 .volatile() 时跳过
+// （降级路径），由 0.1.7 宿主（schemastery 3.18.4）实测覆盖。
+{
+  const supportsVolatile = typeof z.boolean().default(true).volatile === 'function'
+  if (supportsVolatile) {
+    // toJSON 顶层为 { uid, refs }：根节点的 dict 给出字段 → uid，再经 refs 看 meta.volatile
+    const json = Config.toJSON()
+    const dict = json.refs?.[json.uid]?.dict ?? {}
+    const missing = Object.keys(dict).filter((key) => json.refs?.[dict[key]]?.meta?.volatile !== true)
+    ok(Object.keys(dict).length === 9 && missing.length === 0,
+      'all 9 Config fields marked volatile (0.1.7+ form discovery)')
+  } else {
+    console.log('SKIP volatile marking — local schemastery 无 .volatile()（由 0.1.7 宿主实测）')
+  }
 }
 
 /* ---------------- apply：无服务时不抛错、注册命名空间与路由 ---------------- */
@@ -134,6 +182,38 @@ ok(Array.isArray(inject) && inject.includes('webServer'), 'inject includes webSe
   ok(registeredRoute !== null && registeredRoute.kind === 'exact'
     && registeredRoute.path === SETTINGS_API_PATH,
     'route registered at /notify-sound/settings (exact)')
+}
+
+// 新版（0.1.7+ SettingsForms）：无 installSection → 只声明页面策略，路由照常
+{
+  const { service, state } = makeFakeSettings(undefined, { api: 'modern' })
+  let registeredRoute = null
+  const webserver = { register: (opts) => { registeredRoute = opts } }
+  apply(makeCtx(service, webserver))
+  ok(state.registerCalls.length === 0, 'modern API: installSection not called')
+  ok(state.configureCalls.length === 1 && state.configureCalls[0].presentation.auto === false,
+    'modern API: configure({ auto: false }) declared (own card, no auto form)')
+  ok(state.configureCalls[0].owner?.fakeFiber === true,
+    'modern API: configure receives the plugin fiber')
+  ok(registeredRoute !== null && registeredRoute.kind === 'exact'
+    && registeredRoute.path === SETTINGS_API_PATH,
+    'modern API: route still registered at /notify-sound/settings')
+}
+
+// 新版下路由行为与旧版一致（GET 视图 / POST 经 replace 写入）
+{
+  const { service, state } = makeFakeSettings({ defaultSound: 'bell' }, { api: 'modern' })
+  let registeredRoute = null
+  apply(makeCtx(service, { register: (opts) => { registeredRoute = opts } }))
+  const r1 = res()
+  await registeredRoute.handler(req('GET', undefined, {}), r1)
+  ok(r1._out.status === 200 && parse(r1).value.value.defaultSound === 'bell',
+    'modern API: GET carries user-layer value')
+  const r2 = res()
+  await registeredRoute.handler(req('POST', { writes: [{ field: 'defaultSound', op: 'set', value: 'ding' }] }), r2)
+  ok(r2._out.status === 200 && state.replaceCalls.length === 1
+    && state.replaceCalls[0].section.defaultSound === 'ding',
+    'modern API: POST writes through replace')
 }
 
 /* ---------------- 路由行为 ---------------- */
