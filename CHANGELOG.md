@@ -2,6 +2,12 @@
 
 > AGENTS.md「四、变更记录」超过 5 条后的归档存放处（按原格式、时间倒序）。最新记录始终在 AGENTS.md。
 
+### 2026-09-10 111 升级 dsh 0.1.5-rc.1 后 web-lan 补丁丢失修复（局域网「设置不可用 / 插件配置空白」）
+
+- 变更内容：111 升级 dsh 到 0.1.5-rc.1（23:04 全局重装覆盖 `dsh-client-connection` 包）后，局域网访问报「加载提供方目录失败: settings are unavailable in this browser」、插件配置 TAB 空白。**根因**：web-lan 的文件级补丁被升级覆盖丢失（`lib/client.js` 的 isLoopback 恢复官方表达式、`lib/index.js` 无 `isLanAuthority`），浏览器端 `ctx.remote.$host.isLoopback` 为 false → 官方 `dsh-client-ui-settings` 的 `SettingsDescribeMirror` 取 `persistence: "memory"`（`lib/client.js:1345`）→ `mirrored.view === void 0` → 报错（`ui-settings-models/lib/client.js:1006`），非 loopback 页面所有设置面（模型/插件配置）一并失效。**修复**：① 热补丁 `dsh-client-connection/lib/client.js`（`isLoopback: true`）——0.1.5-rc.1 的 `dsh-client-hmr` 默认挂载并对全部 client bundle 做 500ms stat 轮询，改文件即热重组，**无需重启即生效**；② 预补 host 半区 `lib/index.js`（局域网来源自动种 cookie 免 token）；③ 从本仓库复制 `web-lan/`（v2.3.0）到 `/root/.dsh/external/web-lan` 并 `dsh plugin --profile web add link:...` 装回 profile（`dsh.profile.bundles` 自动追加），以恢复 dsh 升级后的补丁自愈能力。
+- 涉及路径：111 `/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-client-connection/lib/{client.js,index.js}`（备份 `*.bak-pre-weblan-20260910_2333*`）、`/root/.dsh/external/web-lan`、`/root/.dsh/profiles/web/{package.json,pnpm-lock.yaml,cordis.patch.yml}`（备份 `*.bak-pre-weblan-reinstall-20260910_233408`）
+- 备注：**热补丁已实测通过**——局域网（192.168.31.111:3080，token URL）「设置→模型」渲染 4 个提供方、「插件配置」渲染 8 张卡，浏览器 console 0 错误 0 警告；`dsh --profile web --dump-config` 退出 0（仍单行 `webserver 0.0.0.0:3080` + 新增 web-lan 行，无重复冲突）；web-lan 单测 10/10 PASS；新表达式正则 `/isLoopback:\s*[^,]+/` 与 `authorizeIndex` 目标行均已空跑校验命中。⚠️ **待重启 111 `dsh-web.service` 使 host 免 token 补丁生效**（该补丁为启动时加载，已在磁盘预打，**只需重启一次**，无需历史「双重启」）；重启后验证无 token 访问 `http://192.168.31.111:3080/` 应 303+Set-Cookie。回滚：cp 回两处 `*.bak-pre-weblan-*` + `dsh plugin --profile web remove @npm-liqingfeng/dsh-web-lan` + 重启。
+
 ### 2026-09-22 notify-sound v0.1.5：去掉后台任务（小任务）完成提示音，只在一次对话整回合结束时提示
 
 - 变更内容：用户反馈「notify-sound 在小任务完成时也会响，希望去掉，只在一次对话的整个任务完成时提示」，经询问确认"小任务"= 后台任务（`jobsBySession`），并确认保留后台任务失败音。① **`lib/client.js`**：后台任务分支只保留 `failed → failureSound`（注意类），`completed` / `killed` 一律不响——完成提示仅由会话 `running: true → false`（回合结束）触发；文件头注释与配置卡标题同步（「完成铃声（回合结束 / 后台任务完成）」→「完成铃声（一次对话整回合结束）」）；② **`lib/index.js`**：schema 注释同步；③ **测试**：客户端 58 → 60 断言（job 完成静音、job killed 静音、静音后回合结束仍响、job failed 仍响 alert）；④ 版本 `0.1.4 → 0.1.5`；⑤ README 特性/界面示意/事件表/断言数/部署记录更新。
